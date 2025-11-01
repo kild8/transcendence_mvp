@@ -108,6 +108,50 @@ class Ball {
     }
 }
 
+class Obstacle {
+  position: Vector2D;
+  size: number;
+  pointingUp: boolean;
+  constructor(x: number, y: number, size: number, pointingUp: boolean) {
+    this.position = { x, y };
+    this.size = size;
+    this.pointingUp = pointingUp;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    if (this.pointingUp) {
+      ctx.moveTo(this.position.x, this.position.y);
+      ctx.lineTo(this.position.x - this.size / 2, this.position.y + this.size);
+      ctx.lineTo(this.position.x + this.size / 2, this.position.y + this.size);
+    }
+    else {
+      ctx.moveTo(this.position.x, this.position.y + this.size);
+      ctx.lineTo(this.position.x - this.size / 2, this.position.y);
+      ctx.lineTo(this.position.x + this.size / 2, this.position.y);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  checkCollision(ball: Ball) {
+    const bx = ball.position.x + ball.size / 2;
+    const by = ball.position.y + ball.size / 2;
+    
+    const topY = this.position.y;
+    const bottomY = this.position.y + this.size;
+    const leftX = this.position.x - this.size / 2;
+    const rightX = this.position.x + this.size / 2;
+
+    if (bx >= leftX && bx <= rightX && by >= topY && by <= bottomY) {
+      ball.velocity.y = -ball.velocity.y;
+      ball.position.y += Math.sign(ball.velocity.y) * 2;
+    }
+  }
+}
+
+
 type OnGameOver = (winner: string, loser: string, score: string) => void;
 
 class Game {
@@ -116,6 +160,8 @@ class Game {
   private leftPaddle: Paddle;
   private rightPaddle: Paddle;
   private ball: Ball;
+  private topObstacle: Obstacle;
+  private bottomObstacle: Obstacle;
   private keys: Record<string, boolean> = {};
   private running: boolean = true;
   private rafId: number | null = null;
@@ -132,6 +178,8 @@ class Game {
     this.leftPaddle = new Paddle(20, this.canvas.height / 2 - 50, 10, 100, "white");
     this.rightPaddle = new Paddle(this.canvas.width - 30, this.canvas.height / 2 - 50, 10, 100, "white");
     this.ball = new Ball(this.canvas.width / 2, this.canvas.height / 2, "white");
+    this.topObstacle = new Obstacle(this.canvas.width / 2, 0, 20, false);
+    this.bottomObstacle = new Obstacle(this.canvas.width / 2, this.canvas.height - 20, 20, true);
     this.leftName = leftName; this.rightName = rightName;
     this.winningScore = winningScore;
     this.onGameOver = onGameOver;
@@ -160,7 +208,8 @@ class Game {
     if (this.keys["ArrowDown"]) this.rightPaddle.moveDown(this.canvas.height);
 
     this.ball.update(this.canvas.width, this.canvas.height, this.leftPaddle, this.rightPaddle);
-
+    this.topObstacle.checkCollision(this.ball);
+    this.bottomObstacle.checkCollision(this.ball);
     // check for victory
     if (this.leftPaddle.score >= this.winningScore) {
       this.handleWin(this.leftName, this.rightName, `${this.leftPaddle.score}:${this.rightPaddle.score}`);
@@ -188,7 +237,9 @@ class Game {
     this.leftPaddle.draw(this.ctx);
     this.rightPaddle.draw(this.ctx);
     this.ball.draw(this.ctx);
-
+    //obstacles
+    this.topObstacle.draw(this.ctx);
+    this.bottomObstacle.draw(this.ctx);
     // middle dashed line
     this.ctx.strokeStyle = "white";
     this.ctx.beginPath();
