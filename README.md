@@ -13,7 +13,7 @@ docker compose up --build
 ```
 
 Open the app in your browser:
-- Frontend (served by nginx) : http://localhost
+- Frontend (served by nginx) : http://localhost:8080
 - Backend API (direct) : http://localhost:3000/api/health
 
 To stop:
