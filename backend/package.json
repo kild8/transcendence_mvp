@@ -3,11 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "prisma": "prisma"
   },
   "dependencies": {
     "fastify": "^4.22.0",
     "@fastify/cors": "^8.2.0",
-    "@fastify/formbody": "^7.0.0"
+    "@fastify/formbody": "^7.0.0",
+    "@prisma/client": "^5.0.0",
+    "better-sqlite3": "^8.0.1"
+  },
+  "devDependencies": {
+    "prisma": "^5.0.0"
   }
 }
