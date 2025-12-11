@@ -7,7 +7,7 @@
 let currentGame: any = null;
 
 /* ---------- Types & state ---------- */
-type Page = 'home' | 'versus' | 'tournament';
+type Page = 'home' | 'versus' | 'tournament' | 'add-user' | 'list-users';
 const MAX_TOURNAMENT_PLAYERS = 8;
 const app = document.getElementById('app')!;
 
@@ -22,7 +22,7 @@ function elFromHTML(html: string): HTMLElement {
   return template.content.firstElementChild as HTMLElement;
 }
 function navigateTo(page: Page) { window.location.hash = `#${page}`; }
-function getHashPage(): Page { const h = (window.location.hash || '#home').replace('#','') as Page; if (h !== 'home' && h !== 'versus' && h !== 'tournament') return 'home'; return h; }
+function getHashPage(): Page { const h = (window.location.hash || '#home').replace('#','') as Page; if (h !== 'home' && h !== 'versus' && h !== 'tournament' && h !== 'add-user' && h !== 'list-users') return 'home'; return h; }
 
 /* ---------- Renderers ---------- */
 function renderVictory(winner: string, loser: string, score: string, leftName?: string, rightName?: string) {
@@ -125,6 +125,8 @@ function render(page: Page) {
   if (page === 'home') main.appendChild(homeContent());
   if (page === 'versus') main.appendChild(versusContent());
   if (page === 'tournament') main.appendChild(tournamentContent());
+  if (page === 'add-user') app.appendChild(addUserContent());
+  if (page === 'list-users') app.appendChild(listUsersContent());
   container.appendChild(main);
   const footer = elFromHTML(`<footer class="mt-6 small text-center">Petit MVP • Vanilla TS + Tailwind</footer>`);
   container.appendChild(footer);
@@ -343,14 +345,91 @@ function homeContent(): HTMLElement {
         <button id="btn-versus" class="btn">Versus local</button>
         <button id="btn-tournament" class="btn">Tournois</button>
       </div>
+      <div class="w-full flex flex-col sm:flex-row gap-4">
+        <button id="btn-add-user" class="btn">Ajouter un utilisateur</button>
+        <button id="btn-list-users" class="btn">Lister les utilisateurs</button>
+      </div>
       <div class="w-full text-center small">Sélectionne un mode pour commencer.</div>
     </section>
   `;
   const node = elFromHTML(html);
   node.querySelector('#btn-versus')!.addEventListener('click', () => navigateTo('versus'));
   node.querySelector('#btn-tournament')!.addEventListener('click', () => navigateTo('tournament'));
+  node.querySelector('#btn-add-user')!.addEventListener('click', () => navigateTo('add-user'));
+  node.querySelector('#btn-list-users')!.addEventListener('click', () => navigateTo('list-users'));
   return node;
 }
+
+
+/* fetch + user management */
+function addUserContent(): HTMLElement {
+  const html = `
+    <section class="mt-6 flex flex-col gap-4 items-center">
+      <input id="input-name" placeholder="Nom de l'utilisateur" class="border p-2 rounded" />
+      <button id="btn-submit" class="btn">Ajouter</button>
+      <button id="btn-back" class="btn small">← Retour</button>
+      <div id="msg" class="mt-2 small text-green-700"></div>
+    </section>
+  `;
+  const node = elFromHTML(html);
+  const input = node.querySelector('#input-name') as HTMLInputElement;
+  const msg = node.querySelector('#msg') as HTMLElement;
+
+  node.querySelector('#btn-submit')!.addEventListener('click', async () => {
+    const name = input.value.trim();
+    if (!name) {
+      msg.textContent = "Le nom ne peut pas être vide.";
+      return;
+    }
+    try {
+      const res = await fetch('/api/add-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        msg.textContent = `Utilisateur ajouté : ${data.name}`;
+        input.value = '';
+      } else {
+        msg.textContent = `Erreur : ${data.error || 'unknown'}`;
+      }
+    } catch(e) {
+      msg.textContent = `Erreur réseau : ${e}`;
+    }
+  });
+
+  node.querySelector('#btn-back')!.addEventListener('click', () => navigateTo('home'));
+  return node;
+}
+
+function listUsersContent(): HTMLElement {
+  const html = `
+    <section class="mt-6 flex flex-col gap-2 items-center">
+      <button id="btn-back" class="btn small">← Retour</button>
+      <ul id="users-list" class="mt-2 border p-2 rounded w-64"></ul>
+    </section>
+  `;
+  const node = elFromHTML(html);
+  const ul = node.querySelector('#users-list') as HTMLUListElement;
+
+  node.querySelector('#btn-back')!.addEventListener('click', () => navigateTo('home'));
+
+  // Fetch users depuis l'API
+  (async () => {
+    try {
+      const res = await fetch('/api/users');
+      const users = await res.json();
+      ul.innerHTML = users.map((u: any) => `<li>${u.id} — ${u.name}</li>`).join('');
+    } catch(e) {
+      ul.innerHTML = `<li>Erreur lors de la récupération : ${e}</li>`;
+    }
+  })();
+
+  return node;
+}
+
+
 
 /* Versus */
 function versusContent(): HTMLElement {
