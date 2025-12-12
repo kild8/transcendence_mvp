@@ -7,7 +7,7 @@
 let currentGame: any = null;
 
 /* ---------- Types & state ---------- */
-type Page = 'home' | 'versus' | 'tournament' | 'add-user' | 'list-users';
+type Page = 'home' | 'versus' | 'tournament' | 'add-user' | 'list-users' | 'profile';
 const MAX_TOURNAMENT_PLAYERS = 8;
 const app = document.getElementById('app')!;
 
@@ -22,7 +22,7 @@ function elFromHTML(html: string): HTMLElement {
   return template.content.firstElementChild as HTMLElement;
 }
 function navigateTo(page: Page) { window.location.hash = `#${page}`; }
-function getHashPage(): Page { const h = (window.location.hash || '#home').replace('#','') as Page; if (h !== 'home' && h !== 'versus' && h !== 'tournament' && h !== 'add-user' && h !== 'list-users') return 'home'; return h; }
+function getHashPage(): Page { const h = (window.location.hash || '#home').replace('#','') as Page; if (h !== 'home' && h !== 'versus' && h !== 'tournament' && h !== 'add-user' && h !== 'list-users' && h !== 'profile') return 'home'; return h; }
 
 /* ---------- Renderers ---------- */
 function renderVictory(winner: string, loser: string, score: string, leftName?: string, rightName?: string) {
@@ -125,8 +125,9 @@ function render(page: Page) {
   if (page === 'home') main.appendChild(homeContent());
   if (page === 'versus') main.appendChild(versusContent());
   if (page === 'tournament') main.appendChild(tournamentContent());
-  if (page === 'add-user') app.appendChild(addUserContent());
-  if (page === 'list-users') app.appendChild(listUsersContent());
+  if (page === 'add-user') main.appendChild(addUserContent());
+  if (page === 'list-users') main.appendChild(listUsersContent());
+  if (page === 'profile') main.appendChild(profileContent());
   container.appendChild(main);
   const footer = elFromHTML(`<footer class="mt-6 small text-center">Petit MVP • Vanilla TS + Tailwind</footer>`);
   container.appendChild(footer);
@@ -344,6 +345,7 @@ function homeContent(): HTMLElement {
       <div class="w-full flex flex-col sm:flex-row gap-4">
         <button id="btn-versus" class="btn">Versus local</button>
         <button id="btn-tournament" class="btn">Tournois</button>
+        <button id="btn-profile" class="btn">Profil utilisateur</button>
       </div>
       <div class="w-full flex flex-col sm:flex-row gap-4">
         <button id="btn-add-user" class="btn">Ajouter un utilisateur</button>
@@ -357,6 +359,7 @@ function homeContent(): HTMLElement {
   node.querySelector('#btn-tournament')!.addEventListener('click', () => navigateTo('tournament'));
   node.querySelector('#btn-add-user')!.addEventListener('click', () => navigateTo('add-user'));
   node.querySelector('#btn-list-users')!.addEventListener('click', () => navigateTo('list-users'));
+  node.querySelector('#btn-profile')!.addEventListener('click', () => navigateTo('profile'));
   return node;
 }
 
@@ -366,31 +369,35 @@ function addUserContent(): HTMLElement {
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center">
       <input id="input-name" placeholder="Nom de l'utilisateur" class="border p-2 rounded" />
+      <input id="input-email" placeholder="Email" class="border p-2 rounded" />
       <button id="btn-submit" class="btn">Ajouter</button>
       <button id="btn-back" class="btn small">← Retour</button>
       <div id="msg" class="mt-2 small text-green-700"></div>
     </section>
   `;
   const node = elFromHTML(html);
-  const input = node.querySelector('#input-name') as HTMLInputElement;
+  const inputName = node.querySelector('#input-name') as HTMLInputElement;
+  const inputEmail = node.querySelector('#input-email') as HTMLInputElement;
   const msg = node.querySelector('#msg') as HTMLElement;
 
   node.querySelector('#btn-submit')!.addEventListener('click', async () => {
-    const name = input.value.trim();
-    if (!name) {
-      msg.textContent = "Le nom ne peut pas être vide.";
+    const name = inputName.value.trim();
+    const email = inputEmail.value.trim();
+    if (!name || !email) {
+      msg.textContent = "Le nom et email ne peuvent pas être vide.";
       return;
     }
     try {
       const res = await fetch('/api/add-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name, email })
       });
       const data = await res.json();
       if (data.ok) {
-        msg.textContent = `Utilisateur ajouté : ${data.name}`;
-        input.value = '';
+        msg.textContent = `Utilisateur ajouté : ${data.user.name} (${data.user.email})`;
+        inputName.value = '';
+        inputEmail.value = '';
       } else {
         msg.textContent = `Erreur : ${data.error || 'unknown'}`;
       }
@@ -400,6 +407,78 @@ function addUserContent(): HTMLElement {
   });
 
   node.querySelector('#btn-back')!.addEventListener('click', () => navigateTo('home'));
+  return node;
+}
+
+function profileContent(): HTMLElement {
+  const html = `
+    <section class="mt-6 flex flex-col gap-4 items-center">
+      <input id="input-search-user" placeholder="Nom de l'utilisateur" class="border p-2 rounded" />
+      <div class="flex gap-2">
+        <button id="btn-search" class="btn">Rechercher</button>
+        <button id="btn-back" class="btn small">← Retour</button>
+      </div>
+
+      <div id="profile-view" class="mt-6 hidden text-center">
+        <img id="profile-avatar" class="w-24 h-24 rounded-full border mx-auto mb-4" />
+        <p id="profile-name" class="text-lg font-semibold"></p>
+        <p id="profile-email" class="small"></p>
+        <p id="profile-date" class="small text-gray-600"></p>
+      </div>
+    </section>
+  `;
+
+  const node = elFromHTML(html);
+  const input = node.querySelector('#input-search-user') as HTMLInputElement;
+  const view = node.querySelector('#profile-view') as HTMLElement;
+  const avatarEl = node.querySelector('#profile-avatar') as HTMLImageElement;
+  const nameEl = node.querySelector('#profile-name') as HTMLElement;
+  const emailEl = node.querySelector('#profile-email') as HTMLElement;
+  const dateEl = node.querySelector('#profile-date') as HTMLElement;
+
+  node.querySelector('#btn-back')!.addEventListener('click', () => navigateTo('home'));
+
+  // fallback onerror -> default avatar
+  avatarEl.onerror = () => {
+    avatarEl.src = '/default-avatar.png';
+  };
+
+  node.querySelector('#btn-search')!.addEventListener('click', async () => {
+    const name = input.value.trim();
+    if (!name) return alert("Entre un nom.");
+
+    // hide view while loading / reset
+    view.classList.add('hidden');
+    avatarEl.src = ''; // remove any previous src so browser doesn't try to load wrong url
+    nameEl.textContent = '';
+    emailEl.textContent = '';
+    dateEl.textContent = '';
+
+    const res = await fetch(`/api/user/${encodeURIComponent(name)}`);
+    if (!res.ok) {
+      alert("Utilisateur introuvable.");
+      return;
+    }
+    const data = await res.json();
+    if (!data.ok) {
+      alert(data.error || "Utilisateur introuvable.");
+      return;
+    }
+
+    const user = data.user;
+
+    // user.avatar should be the filename saved by the backend; if backend for any reason has full path, take basename:
+    const avatarFilename = user.avatar ? user.avatar.split('/').pop() : null;
+    // utiliser /api/uploads/ pour s'aligner sur le backend + nginx proxy des /api/
+    avatarEl.src = avatarFilename ? `/api/uploads/${avatarFilename}` : '/default-avatar.png';
+
+    nameEl.textContent = user.name;
+    emailEl.textContent = user.email || '';
+    dateEl.textContent = user.created_at ? "Ajouté le : " + user.created_at : '';
+
+    view.classList.remove('hidden');
+  });
+
   return node;
 }
 
