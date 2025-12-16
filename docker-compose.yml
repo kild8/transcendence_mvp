@@ -16,3 +16,4 @@ services:
       - "3000:3000"
     volumes:
       - ./backend/data:/app/data
+      - ./backend/uploads:/app/uploads 

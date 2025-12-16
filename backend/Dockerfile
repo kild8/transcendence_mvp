@@ -6,6 +6,9 @@ WORKDIR /app
 # Creer une database
 RUN mkdir -p /app/data && chown -R node:node /app/data
 
+# Creer un dossier pour les avatars
+RUN mkdir -p /app/uploads
+
 # Installer Sqlite
 RUN apt-get update && apt-get install -y sqlite3
 
