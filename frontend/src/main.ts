@@ -411,6 +411,8 @@ function addUserContent(): HTMLElement {
 }
 
 function profileContent(): HTMLElement {
+  let currentUserId: number | null = null;
+
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center">
       <input id="input-search-user" placeholder="Nom de l'utilisateur" class="border p-2 rounded" />
@@ -421,6 +423,18 @@ function profileContent(): HTMLElement {
 
       <div id="profile-view" class="mt-6 hidden text-center">
         <img id="profile-avatar" class="w-24 h-24 rounded-full border mx-auto mb-4" />
+
+        <form id="avatar-form" class="mt-4 flex flex-col items-center gap-2" hidden>
+          <input
+            type="file"
+            id="avatar-input"
+            accept="image/*"
+            class="small"
+          />
+          <button type="submit" id="avatar-submit" class="btn small">Changer l’avatar</button>
+          <p id="avatar-msg" class="small text-green-700"></p>
+        </form>
+
         <p id="profile-name" class="text-lg font-semibold"></p>
         <p id="profile-email" class="small"></p>
         <p id="profile-date" class="small text-gray-600"></p>
@@ -435,6 +449,10 @@ function profileContent(): HTMLElement {
   const nameEl = node.querySelector('#profile-name') as HTMLElement;
   const emailEl = node.querySelector('#profile-email') as HTMLElement;
   const dateEl = node.querySelector('#profile-date') as HTMLElement;
+  const avatarForm = node.querySelector('#avatar-form') as HTMLFormElement;
+  const avatarInput = node.querySelector('#avatar-input') as HTMLInputElement;
+  const avatarMsg = node.querySelector('#avatar-msg') as HTMLElement;
+  const avatarSubmit = node.querySelector('#avatar-submit') as HTMLButtonElement;
 
   node.querySelector('#btn-back')!.addEventListener('click', () => navigateTo('home'));
 
@@ -449,38 +467,105 @@ function profileContent(): HTMLElement {
 
     // hide view while loading / reset
     view.classList.add('hidden');
-    avatarEl.src = ''; // remove any previous src so browser doesn't try to load wrong url
+    avatarForm.hidden = true;
+    avatarEl.src = ''; // remove any previous src
+    avatarMsg.textContent = '';
     nameEl.textContent = '';
     emailEl.textContent = '';
     dateEl.textContent = '';
+    currentUserId = null;
 
-    const res = await fetch(`/api/user/${encodeURIComponent(name)}`);
-    if (!res.ok) {
-      alert("Utilisateur introuvable.");
+    try {
+      const res = await fetch(`/api/user/${encodeURIComponent(name)}`);
+      if (!res.ok) {
+        alert("Utilisateur introuvable.");
+        return;
+      }
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Utilisateur introuvable.");
+        return;
+      }
+
+      const user = data.user;
+      currentUserId = user.id;
+
+      const avatarFilename = user.avatar ? String(user.avatar).split('/').pop() : null;
+      avatarEl.src = avatarFilename ? `/api/uploads/${avatarFilename}` : '/default-avatar.png';
+
+      nameEl.textContent = user.name;
+      emailEl.textContent = user.email || '';
+      dateEl.textContent = user.created_at ? "Ajouté le : " + user.created_at : '';
+
+      // show the whole view and enable the upload form
+      view.classList.remove('hidden');
+      avatarForm.hidden = false;
+      avatarInput.value = ''; // reset file input
+    } catch (err) {
+      console.error(err);
+      alert("Erreur réseau lors de la recherche.");
+    }
+  });
+
+  // ---------------- upload handler ----------------
+  avatarForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    avatarMsg.textContent = '';
+
+    if (!currentUserId) {
+      avatarMsg.textContent = "Utilisateur non chargé";
       return;
     }
-    const data = await res.json();
-    if (!data.ok) {
-      alert(data.error || "Utilisateur introuvable.");
+    const file = avatarInput.files?.[0];
+    if (!file) {
+      avatarMsg.textContent = "Choisis une image";
       return;
     }
 
-    const user = data.user;
+    // disable during upload
+    avatarSubmit.disabled = true;
+    avatarMsg.textContent = "Upload en cours...";
 
-    // user.avatar should be the filename saved by the backend; if backend for any reason has full path, take basename:
-    const avatarFilename = user.avatar ? user.avatar.split('/').pop() : null;
-    // utiliser /api/uploads/ pour s'aligner sur le backend + nginx proxy des /api/
-    avatarEl.src = avatarFilename ? `/api/uploads/${avatarFilename}` : '/default-avatar.png';
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      formData.append('userId', String(currentUserId));
 
-    nameEl.textContent = user.name;
-    emailEl.textContent = user.email || '';
-    dateEl.textContent = user.created_at ? "Ajouté le : " + user.created_at : '';
+      const res = await fetch('/api/upload-avatar', {
+        method: 'POST',
+        body: formData
+      });
 
-    view.classList.remove('hidden');
+      if (!res.ok) {
+        const t = await res.text();
+        console.error('upload failed:', res.status, t);
+        avatarMsg.textContent = "Erreur lors de l'upload";
+        avatarSubmit.disabled = false;
+        return;
+      }
+
+      const data = await res.json();
+      if (!data.ok) {
+        avatarMsg.textContent = data.error || "Erreur sur le serveur";
+        avatarSubmit.disabled = false;
+        return;
+      }
+
+      // use returned url if present; otherwise build one with /api/uploads/
+      const url = data.url ? data.url : `/api/uploads/${data.avatar}`;
+      avatarEl.src = `${url}?t=${Date.now()}`;
+      avatarMsg.textContent = "Avatar mis à jour ✔️";
+    } catch (err) {
+      console.error(err);
+      avatarMsg.textContent = "Erreur réseau pendant l'upload";
+    } finally {
+      avatarSubmit.disabled = false;
+    }
   });
 
   return node;
 }
+
 
 function listUsersContent(): HTMLElement {
   const html = `

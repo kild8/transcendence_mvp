@@ -15,6 +15,11 @@ const { pipeline } = require("stream");
 const { promisify } = require("util");
 const pump = promisify(pipeline);
 
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Création de la table users
 db.prepare(`
   CREATE TABLE IF NOT EXISTS users (
@@ -116,7 +121,7 @@ fastify.post("/api/upload-avatar", async (req, reply) => {
   db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(safeFilename, userId);
 
   // return url too
-  return { ok: true, avatar: safeFilename, url: `/uploads/${safeFilename}` };
+  return { ok: true, avatar: safeFilename, url: `/api/uploads/${safeFilename}` };
 });
 
 // Récupérer avatar statique
