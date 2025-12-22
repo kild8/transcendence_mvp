@@ -1,6 +1,6 @@
 const Fastify = require("fastify");
 const fastify = Fastify({ logger: true });
-
+const { initWebSocket } = require("./ws");
 fastify.register(require("@fastify/cors"), { origin: true });
 fastify.register(require("@fastify/formbody"));
 fastify.register(require("@fastify/multipart"), {
@@ -32,54 +32,64 @@ db.prepare(`
     email TEXT NOT NULL UNIQUE,
     avatar TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`).run();
+    )
+    `).run();
+    
+    ///WEBSOCKETS
+    const wss = initWebSocket(fastify.server);
+    fastify.listen({ port: 3000, host: "0.0.0.0" }, (err, address) => {
+      if (err) {
+        fastify.log.error(err);
+        process.exit(1);
+      }
+      console.log(`Server listening on ${address}`);
+    });
 
-// ------------------------------------------------------
-//                      ROUTES API
-// ------------------------------------------------------
-
-// Health check
-fastify.get("/api/health", async () => ({ status: "ok" }));
-
-// ----------- TOURNOIS -----------
-let lastPlayers = [];
-
-fastify.post("/api/start-tournament", async (req, reply) => {
-  const { players } = req.body || {};
-
-  if (!Array.isArray(players) || players.length < 2) {
-    return reply.status(400).send({ error: "Invalid players array (min 2)" });
-  }
-
-  lastPlayers = players;
-  return { ok: true, players: lastPlayers };
-});
-
-fastify.get("/api/players", async () => ({ players: lastPlayers }));
-
-// ----------- USERS (REST) -----------
-
-// Ajouter un utilisateur (correct)
-fastify.post("/api/add-user", async (req, reply) => {
-  const { name, email } = req.body || {};
-  if (!name || !email) return reply.status(400).send({ error: "Name and email are required" });
-  try {
-    db.prepare("INSERT INTO users (name, email) VALUES (?, ?)").run(name, email);
-    const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
-    return { ok: true, user };
-  } catch(e) {
-    return reply.status(400).send({ error: "User or email already exists" });
-  }
-});
-
-// Lister les utilisateurs
-fastify.get("/api/users", async () => {
-  return db.prepare("SELECT * FROM users").all();
-});
-
-// Vérifier si user existe
-fastify.post("/api/login", async (req, reply) => {
+    // ------------------------------------------------------
+    //                      ROUTES API
+    // ------------------------------------------------------
+    
+    // Health check
+    fastify.get("/api/health", async () => ({ status: "ok" }));
+    
+    // ----------- TOURNOIS -----------
+    let lastPlayers = [];
+    
+    fastify.post("/api/start-tournament", async (req, reply) => {
+      const { players } = req.body || {};
+      
+      if (!Array.isArray(players) || players.length < 2) {
+        return reply.status(400).send({ error: "Invalid players array (min 2)" });
+      }
+      
+      lastPlayers = players;
+      return { ok: true, players: lastPlayers };
+    });
+    
+    fastify.get("/api/players", async () => ({ players: lastPlayers }));
+    
+    // ----------- USERS (REST) -----------
+    
+    // Ajouter un utilisateur (correct)
+    fastify.post("/api/add-user", async (req, reply) => {
+      const { name, email } = req.body || {};
+      if (!name || !email) return reply.status(400).send({ error: "Name and email are required" });
+      try {
+        db.prepare("INSERT INTO users (name, email) VALUES (?, ?)").run(name, email);
+        const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
+        return { ok: true, user };
+      } catch(e) {
+        return reply.status(400).send({ error: "User or email already exists" });
+      }
+    });
+    
+    // Lister les utilisateurs
+    fastify.get("/api/users", async () => {
+      return db.prepare("SELECT * FROM users").all();
+    });
+    
+    // Vérifier si user existe
+    fastify.post("/api/login", async (req, reply) => {
   const { name } = req.body || {};
   if (!name) return reply.status(400).send({ error: "Name is required" });
 

@@ -18,6 +18,8 @@ COPY package*.json ./
 # Installer toutes les dépendances (y compris Prisma et better-sqlite3)
 RUN npm install
 
+RUN npm install ws
+
 # Copier le reste des fichiers du backend
 COPY . .
 
