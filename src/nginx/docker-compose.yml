@@ -1,0 +1,22 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nginx
+    ports:
+      - "8080:80"
+      - "443:443"
+    networks:
+      - transcendence_nw
+    secrets:
+      - nginx_server_crt
+      - nginx_server_key
+    depends_on:
+      - backend
+
+secrets:
+  nginx_server_crt:
+    file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_crt.txt
+  nginx_server_key:
+    file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_key.txt

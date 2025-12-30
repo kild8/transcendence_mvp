@@ -9,6 +9,27 @@ fastify.register(require("@fastify/multipart"), {
   }
 });
 
+// Exemple de fermeture propre d'une connexion DB
+const shutdown = async () => {
+  console.log('SIGTERM received: closing server...');
+  server.close(() => {
+    console.log('HTTP server closed.');
+    // Fermer ici DB / queues / autres ressources si nécessaire
+    process.exit(0);
+  });
+
+  // Si le serveur ne se ferme pas après un timeout, forcer
+  setTimeout(() => {
+    console.error('Forcing server shutdown...');
+    process.exit(1);
+  }, 10000); // 10 sec max
+};
+
+// Écoute du signal SIGTERM (Docker envoie ce signal lors de `docker stop`)
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown); // pour CTRL+C localement
+
+
 const Database = require("better-sqlite3");
 const db = new Database("./data/database.sqlite");
 

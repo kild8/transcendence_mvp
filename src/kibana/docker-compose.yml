@@ -1,0 +1,11 @@
+services:
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: kibana
+    restart: unless-stopped
+    ports:
+      - 5601
+    depends_on:
+      - elasticsearch
+    networks:
+      - transcendence_nw

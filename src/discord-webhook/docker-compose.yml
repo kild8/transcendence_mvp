@@ -1,0 +1,11 @@
+services:
+  discord-webhook:
+    image: benjojo/alertmanager-discord:latest
+    container_name: alertmanager-discord
+    restart: unless-stopped
+    environment:
+      - DISCORD_WEBHOOK=${DISCORD_ALERT_WEBHOOK}
+    ports:
+     - 9094
+    networks:
+      - transcendence_nw

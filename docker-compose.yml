@@ -1,19 +1,7 @@
-services:
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "8080:80"
-    depends_on:
-      - backend
+include:
+  - path: './src/backend/docker-compose.yml'
+  - path: './src/nginx/docker-compose.yml'
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./backend/data:/app/data
-      - ./backend/uploads:/app/uploads 
+networks:
+  transcendence_nw:
+    driver: bridge

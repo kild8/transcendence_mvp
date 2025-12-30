@@ -1,0 +1,17 @@
+services:
+  node-exporter:
+    image: prom/node-exporter:v1.10.2
+    container_name: node-exporter
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    ports:
+      - 9100
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'

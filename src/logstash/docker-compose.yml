@@ -1,0 +1,9 @@
+services:
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: logstash
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+    networks:
+      - transcendence_nw

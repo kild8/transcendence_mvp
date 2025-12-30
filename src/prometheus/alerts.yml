@@ -1,0 +1,15 @@
+groups:
+- name: cadvisor-memory-alerts
+  rules:
+  - alert: CadvisorHighMemory
+    expr: |
+      (
+        container_memory_usage_bytes{name="cadvisor"}
+        - container_memory_cache{name="cadvisor"}
+      ) > 52428800
+    labels:
+      severity: warning
+    annotations:
+      summary: "Mémoire élevée pour cAdvisor"
+      description: "La consommation mémoire de cAdvisor dépasse 50 MB"
+

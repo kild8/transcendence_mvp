@@ -1,0 +1,18 @@
+services:
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.53.0
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    ports:
+      - 8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - transcendence_nw

@@ -1,0 +1,12 @@
+services:
+  prometheus:
+    build:
+      context: .
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - 9090
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    networks:
+      - transcendence_nw
