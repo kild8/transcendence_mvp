@@ -1,0 +1,17 @@
+include:
+  - path: './src/alert-manager/docker-compose.yml'
+  - path: './src/kibana/docker-compose.yml'
+  - path: './src/backend/docker-compose.yml'
+  - path: './src/cadvisor/docker-compose.yml'
+  - path: './src/elasticsearch/docker-compose.yml'
+  - path: './src/logstash/docker-compose.yml'
+  - path: './src/node-exporter/docker-compose.yml'
+  - path: './src/discord-webhook/docker-compose.yml'
+  - path: './src/grafana/docker-compose.yml'
+  - path: './src/nginx/.docker-compose.yml.all'
+  - path: './src/prometheus/docker-compose.yml'
+  - path: './src/filebeat/docker-compose.yml'
+
+networks:
+  transcendence_nw:
+    driver: bridge
