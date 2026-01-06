@@ -5,6 +5,14 @@ export const state = {
     mode: "LOCAL" as "LOCAL" | "LAN",
     ws: null as WebSocket | null,
     playerRole: null as "player1" | "player2" | null,
+
+    //for AUTH
+    currentUser: null as null | {
+      id: number;
+      name: string;
+      email: string;
+    }
+
   },
   WINNING_SCORE: 2,
   MAX_TOURNAMENT_PLAYERS: 8

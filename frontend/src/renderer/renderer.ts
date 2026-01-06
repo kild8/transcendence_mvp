@@ -1,5 +1,8 @@
 import { elFromHTML } from '../utils.js';
 import { Page } from '../router.js';
+import { state } from '../state.js';
+import { navigateTo } from '../router.js';
+import { loginContent } from '../pages/login.js'
 import { homeContent } from '../pages/home.js';
 import { versusContent } from '../pages/versus.js';
 import { tournamentContent } from '../pages/tournament.js';
@@ -9,7 +12,23 @@ import { profileContent } from '../pages/profile.js';
 
 export const app = document.getElementById('app')!;
 
+export const protectedPages: Page[] = [
+  'home',
+  'versus',
+  'tournament',
+  'add-user',
+  'list-users',
+  'profile'
+];
+
 export function render(page: Page) {
+
+  // protect to see the site without login
+  if (protectedPages.includes(page) && !state.appState.currentUser) {
+    navigateTo('login');
+    return;
+  }
+
   app.innerHTML = '';
   const container = document.createElement('div');
   container.className = 'card';
@@ -18,6 +37,7 @@ export function render(page: Page) {
   const main = document.createElement('main');
   main.className = 'mt-6';
 
+  if (page === 'login') main.appendChild(loginContent());
   if (page === 'home') main.appendChild(homeContent());
   if (page === 'versus') main.appendChild(versusContent());
   if (page === 'tournament') main.appendChild(tournamentContent());

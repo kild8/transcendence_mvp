@@ -12,8 +12,8 @@
     "@fastify/formbody": "^7.0.0",
     "@fastify/multipart": "^8.x",
     "@fastify/static": "^7.0.0",
-	"@fastify/cookie": "^9.0.0",
-	"jsonwebtoken": "^9.0.2",
+	  "@fastify/cookie": "^9.0.0",
+	  "jsonwebtoken": "^9.0.2",
     "better-sqlite3": "^8.0.1"
   }
 }
