@@ -41,17 +41,34 @@ db.prepare(`
     avatar TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-    `).run();
+  `).run();
+
+
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS matches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player1_id INTEGER NOT NULL,
+    player2_id INTEGER NOT NULL,
+    score_player1 INTEGER NOT NULL,
+    score_player2 INTEGER NOT NULL,
+    winner_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (player1_id) REFERENCES users(id),
+    FOREIGN KEY (player2_id) REFERENCES users(id),
+    FOREIGN KEY (winner_id) REFERENCES users(id)
+  )
+`).run();
+
     
-    ///WEBSOCKETS
-    const wss = initWebSocket(fastify.server);
-    fastify.listen({ port: 3000, host: "0.0.0.0" }, (err, address) => {
-      if (err) {
-        fastify.log.error(err);
-        process.exit(1);
-      }
-      console.log(`Server listening on ${address}`);
-    });
+///WEBSOCKETS
+const wss = initWebSocket(fastify.server);
+fastify.listen({ port: 3000, host: "0.0.0.0" }, (err, address) => {
+  if (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+  console.log(`Server listening on ${address}`);
+});
 
     // ------------------------------------------------------
     //                      ROUTES API
@@ -293,6 +310,90 @@ fastify.register(require("@fastify/static"), {
   prefix: "/api/uploads/",
   decorateReply: false
 });
+
+
+// ----------- MATCH-HISTORY -----------
+fastify.post('/api/matches', async (req, reply) => {
+  try {
+    const token = req.cookies?.token;
+    if (!token) return reply.status(401).send({ error: 'Unauthorized' });
+
+    const payload = jwt.verify(token, JWT_SECRET);
+
+    const {
+      player1_id,
+      player2_id,
+      score_player1,
+      score_player2
+    } = req.body || {};
+
+    if (
+      !player1_id ||
+      !player2_id ||
+      score_player1 == null ||
+      score_player2 == null
+    ) {
+      return reply.status(400).send({ error: 'Invalid match data' });
+    }
+
+    const winner_id =
+      score_player1 > score_player2 ? player1_id : player2_id;
+
+    db.prepare(`
+      INSERT INTO matches (
+        player1_id,
+        player2_id,
+        score_player1,
+        score_player2,
+        winner_id
+      ) VALUES (?, ?, ?, ?, ?)
+    `).run(
+      player1_id,
+      player2_id,
+      score_player1,
+      score_player2,
+      winner_id
+    );
+
+    return { ok: true };
+  } catch (err) {
+    fastify.log.error(err);
+    return reply.status(500).send({ error: 'Server error' });
+  }
+});
+
+
+fastify.get('/api/matches/me', async (req, reply) => {
+  try {
+    const token = req.cookies?.token;
+    if (!token) return reply.status(401).send({ error: 'Unauthorized' });
+
+    const payload = jwt.verify(token, JWT_SECRET);
+    const userId = payload.id;
+
+    const matches = db.prepare(`
+      SELECT
+        m.id,
+        m.score_player1,
+        m.score_player2,
+        m.created_at,
+        u1.name AS player1_name,
+        u2.name AS player2_name,
+        uw.name AS winner_name
+      FROM matches m
+      JOIN users u1 ON u1.id = m.player1_id
+      JOIN users u2 ON u2.id = m.player2_id
+      JOIN users uw ON uw.id = m.winner_id
+      WHERE m.player1_id = ? OR m.player2_id = ?
+      ORDER BY m.created_at DESC
+    `).all(userId, userId);
+
+    return { ok: true, matches };
+  } catch (err) {
+    return reply.status(401).send({ error: 'Invalid token' });
+  }
+});
+
 
 // ------------------------------------------------------
 //                   START SERVER
