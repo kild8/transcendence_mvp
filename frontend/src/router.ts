@@ -1,4 +1,4 @@
-export type Page = 'login' | 'home' | 'versus' | 'tournament' | 'add-user' | 'list-users' | 'profile';
+export type Page = 'login' | 'register' | 'home' | 'versus' | 'tournament' | 'add-user' | 'list-users' | 'profile';
 
 export function navigateTo(page: Page) {
   window.location.hash = `#${page}`;
@@ -6,6 +6,6 @@ export function navigateTo(page: Page) {
 
 export function getHashPage(): Page {
   const h = (window.location.hash || '#home').replace('#','') as Page;
-  if (!['login','home','versus','tournament','add-user','list-users','profile'].includes(h)) return 'home';
+  if (!['login','register','home','versus','tournament','add-user','list-users','profile'].includes(h)) return 'home';
   return h;
 }

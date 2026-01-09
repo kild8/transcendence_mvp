@@ -10,6 +10,8 @@ fastify.register(require("@fastify/multipart"), {
   }
 });
 
+const bcrypt = require('bcrypt');
+
 const jwt = require("jsonwebtoken");
 
 const Database = require("better-sqlite3");
@@ -38,10 +40,11 @@ db.prepare(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
+    password_hash TEXT,         -- NULL for Google OAuth
     avatar TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
+  )
+`).run();
 
 
 db.prepare(`
@@ -76,6 +79,124 @@ fastify.listen({ port: 3000, host: "0.0.0.0" }, (err, address) => {
     
     // Health check
 fastify.get("/api/health", async () => ({ status: "ok" }));
+
+// Helper: extrait et vérifie le token, retourne l'utilisateur (sans password_hash) ou null
+async function getUserFromReq(req) {
+  try {
+    // token from cookie OR Authorization header
+    const token = req.cookies?.token || (
+      req.headers.authorization ? req.headers.authorization.split(' ')[1] : null
+    );
+    if (!token) return null;
+
+    // verify (throws si invalide/expiré)
+    const payload = jwt.verify(token, JWT_SECRET);
+
+    // récupère l'utilisateur sans le password_hash (sécurité)
+    const user = db.prepare(
+      `SELECT id, name, email, avatar, created_at
+       FROM users WHERE id = ?`
+    ).get(payload.id);
+
+    if (!user) return null;
+    return user;
+  } catch (err) {
+    // token invalide/expiré ou autre erreur
+    return null;
+  }
+}
+
+// PreHandler pour protéger routes Fastify
+async function authPreHandler(req, reply) {
+  const user = await getUserFromReq(req);
+  if (!user) {
+    return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+  }
+  // attache user à la requête pour l'utiliser dans le handler
+  req.user = user;
+}
+
+// Register (email + password + pseudo)
+fastify.post('/api/auth/register', async (req, reply) => {
+  try {
+    const { name, email, password } = req.body || {};
+
+    if (!name || !email || !password) {
+      return reply.status(400).send({ ok: false, error: 'name, email and password are required' });
+    }
+
+    // basic email format validation
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(String(email).toLowerCase())) {
+      return reply.status(400).send({ ok: false, error: 'Invalid email format' });
+    }
+
+    if (String(password).length < 8) {
+      return reply.status(400).send({ ok: false, error: 'Password must be at least 8 characters' });
+    }
+
+    // unique constraints (name/email)
+    const existing = db.prepare('SELECT * FROM users WHERE email = ? OR name = ?').get(email, name);
+    if (existing) {
+      if (existing.email === email) return reply.status(400).send({ ok: false, error: 'Email already in use' });
+      return reply.status(400).send({ ok: false, error: 'Name already in use' });
+    }
+
+    // hash password
+    const hash = await bcrypt.hash(password, 10); // 10 rounds
+
+    // insert
+    const info = db.prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)').run(name, email, hash);
+    const user = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(info.lastInsertRowid);
+
+    // issue JWT and set HttpOnly cookie
+    const payload = { id: user.id, name: user.name, email: user.email };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+
+    reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
+    return reply.send({ ok: true, user });
+  } catch (err) {
+    fastify.log.error({ err }, 'register failed');
+    return reply.status(500).send({ ok: false, error: 'Server error' });
+  }
+});
+
+// Login (email or name + password)
+fastify.post('/api/auth/login', async (req, reply) => {
+  try {
+    const { identifier, password } = req.body || {}; // identifier = email OR name
+
+    if (!identifier || !password) {
+      return reply.status(400).send({ ok: false, error: 'identifier and password are required' });
+    }
+
+    let user = null;
+    if (identifier.includes('@')) {
+      user = db.prepare('SELECT * FROM users WHERE email = ?').get(identifier);
+    } else {
+      user = db.prepare('SELECT * FROM users WHERE name = ?').get(identifier);
+    }
+
+    if (!user || !user.password_hash) {
+      // user not found or has no local password (e.g., registered via Google)
+      return reply.status(401).send({ ok: false, error: 'Invalid credentials' });
+    }
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return reply.status(401).send({ ok: false, error: 'Invalid credentials' });
+
+    const publicUser = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(user.id);
+    const payload = { id: publicUser.id, name: publicUser.name, email: publicUser.email };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+
+    reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
+    return reply.send({ ok: true, user: publicUser });
+  } catch (err) {
+    fastify.log.error({ err }, 'login failed');
+    return reply.status(500).send({ ok: false, error: 'Server error' });
+  }
+});
+
 
 //route for Google
 fastify.get('/api/auth/google', async (req, reply) => {
@@ -149,17 +270,9 @@ fastify.get('/api/auth/google/callback', async (req, reply) => {
 
 // route for the front to know if user is log
 fastify.get('/api/me', async (req, reply) => {
-  try {
-    const token = req.cookies?.token || (req.headers.authorization ? req.headers.authorization.split(' ')[1] : null);
-    if (!token) return { ok: false };
-
-    const payload = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id);
-    if (!user) return { ok: false };
-    return { ok: true, user };
-  } catch (err) {
-    return { ok: false };
-  }
+  const user = await getUserFromReq(req);
+  if (!user) return { ok: false };
+  return { ok: true, user };
 });
 
 
@@ -227,82 +340,83 @@ fastify.get("/api/user/:name", async (req, reply) => {
   return { ok: true, user };
 });
 
-// Upload avatar (robuste)
-fastify.post("/api/upload-avatar", async (req, reply) => {
-  try {
-    const parts = req.parts();
+// Upload avatar (SÉCURISÉ – JWT only)
+fastify.post("/api/upload-avatar",
+{ preHandler: authPreHandler },
+  async (req, reply) => {
+    try {
+      const userId = req.user.id; // 🔐 vient du JWT, PAS du client
+      const parts = req.parts();
 
-    let filePart = null;
-    let userId = null;
+      let filePart = null;
 
-    // write file to a temporary path first (so on error we don't leave a partially named file)
-    const tmpName = `tmp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const tmpPath = path.join(uploadsDir, tmpName);
+      // temporary file
+      const tmpName = `tmp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const tmpPath = path.join(uploadsDir, tmpName);
 
-    // iterate parts and handle field/file
-    for await (const part of parts) {
-      if (part.type === "field") {
-        if (part.fieldname === "userId") userId = part.value;
-        continue;
+      // iterate multipart parts
+      for await (const part of parts) {
+        if (part.type === "file" && part.fieldname === "avatar") {
+          filePart = part;
+          await pump(part.file, fs.createWriteStream(tmpPath));
+        }
+        // on ignore tous les autres fields
       }
-      if (part.type === "file" && part.fieldname === "avatar") {
-        filePart = part;
-        // stream file to temporary path
-        await pump(filePart.file, fs.createWriteStream(tmpPath));
-        // do NOT break; keep iterating to consume rest of parts (important)
+
+      if (!filePart) {
+        if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+        return reply.status(400).send({ ok: false, error: "Avatar manquant" });
       }
-    }
 
-    if (!filePart) {
-      // cleanup tmp if exists
-      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-      return reply.status(400).send({ ok: false, error: "Avatar manquant" });
-    }
-    if (!userId) {
-      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-      return reply.status(400).send({ ok: false, error: "userId manquant" });
-    }
+      // récupérer l'utilisateur depuis la DB (sécurité)
+      const user = db.prepare(
+        "SELECT avatar FROM users WHERE id = ?"
+      ).get(userId);
 
-    // validate user
-    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
-    if (!user) {
-      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-      return reply.status(404).send({ ok: false, error: "User not found" });
-    }
-
-    // create safe final filename and move tmp -> final
-    const safeFilename = `${userId}_${Date.now()}_${filePart.filename.replace(/\s+/g, "_")}`;
-    const finalPath = path.join(uploadsDir, safeFilename);
-
-    // rename (atomic where possible)
-    fs.renameSync(tmpPath, finalPath);
-
-    // (optional) remove previous avatar file if exists and is not default
-    if (user.avatar) {
-      try {
-        const old = path.join(uploadsDir, String(user.avatar));
-        if (fs.existsSync(old)) fs.unlinkSync(old);
-      } catch (e) {
-        // ignore
-        fastify.log.warn({ err: e }, "failed to remove old avatar");
+      if (!user) {
+        if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+        return reply.status(404).send({ ok: false, error: "User not found" });
       }
+
+      // filename final sécurisé
+      const safeFilename = `${userId}_${Date.now()}_${filePart.filename.replace(
+        /[^a-zA-Z0-9._-]/g,
+        "_"
+      )}`;
+      const finalPath = path.join(uploadsDir, safeFilename);
+
+      // move tmp → final
+      fs.renameSync(tmpPath, finalPath);
+
+      // supprimer ancien avatar si existant
+      if (user.avatar) {
+        try {
+          const oldPath = path.join(uploadsDir, user.avatar);
+          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        } catch (e) {
+          fastify.log.warn({ err: e }, "failed to remove old avatar");
+        }
+      }
+
+      // update DB
+      db.prepare(
+        "UPDATE users SET avatar = ? WHERE id = ?"
+      ).run(safeFilename, userId);
+
+      return reply.send({
+        ok: true,
+        avatar: safeFilename,
+        url: `/api/uploads/${safeFilename}`
+      });
+    } catch (err) {
+      fastify.log.error({ err }, "upload-avatar failed");
+      return reply.status(500).send({
+        ok: false,
+        error: "Erreur serveur lors de l'upload"
+      });
     }
-
-    // update DB with only the filename
-    db.prepare("UPDATE users SET avatar = ? WHERE id = ?").run(safeFilename, userId);
-
-    // respond with URL that nginx proxies: /api/uploads/...
-    return reply.send({
-      ok: true,
-      avatar: safeFilename,
-      url: `/api/uploads/${safeFilename}`
-    });
-
-  } catch (err) {
-    fastify.log.error({ err }, "upload-avatar failed");
-    return reply.status(500).send({ ok: false, error: "Erreur serveur lors de l'upload" });
   }
-});
+);
 
 // Récupérer avatar statique
 fastify.register(require("@fastify/static"), {
@@ -313,13 +427,8 @@ fastify.register(require("@fastify/static"), {
 
 
 // ----------- MATCH-HISTORY -----------
-fastify.post('/api/matches', async (req, reply) => {
-  try {
-    const token = req.cookies?.token;
-    if (!token) return reply.status(401).send({ error: 'Unauthorized' });
-
-    const payload = jwt.verify(token, JWT_SECRET);
-
+fastify.post('/api/matches',{ preHandler: authPreHandler },
+  async (req, reply) => {
     const {
       player1_id,
       player2_id,
@@ -327,12 +436,7 @@ fastify.post('/api/matches', async (req, reply) => {
       score_player2
     } = req.body || {};
 
-    if (
-      !player1_id ||
-      !player2_id ||
-      score_player1 == null ||
-      score_player2 == null
-    ) {
+    if (!player1_id || !player2_id) {
       return reply.status(400).send({ error: 'Invalid match data' });
     }
 
@@ -356,20 +460,13 @@ fastify.post('/api/matches', async (req, reply) => {
     );
 
     return { ok: true };
-  } catch (err) {
-    fastify.log.error(err);
-    return reply.status(500).send({ error: 'Server error' });
   }
-});
+);
 
 
-fastify.get('/api/matches/me', async (req, reply) => {
-  try {
-    const token = req.cookies?.token;
-    if (!token) return reply.status(401).send({ error: 'Unauthorized' });
-
-    const payload = jwt.verify(token, JWT_SECRET);
-    const userId = payload.id;
+fastify.get('/api/matches/me',{ preHandler: authPreHandler },
+  async (req, reply) => {
+    const userId = req.user.id;
 
     const matches = db.prepare(`
       SELECT
@@ -389,10 +486,8 @@ fastify.get('/api/matches/me', async (req, reply) => {
     `).all(userId, userId);
 
     return { ok: true, matches };
-  } catch (err) {
-    return reply.status(401).send({ error: 'Invalid token' });
   }
-});
+);
 
 
 // ------------------------------------------------------

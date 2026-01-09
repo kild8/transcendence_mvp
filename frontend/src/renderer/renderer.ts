@@ -9,6 +9,7 @@ import { tournamentContent } from '../pages/tournament.js';
 import { addUserContent } from '../pages/add-user.js';
 import { listUsersContent } from '../pages/list-users.js';
 import { profileContent } from '../pages/profile.js';
+import { registerContent } from '../pages/register.js';
 
 export const app = document.getElementById('app')!;
 
@@ -38,6 +39,7 @@ export function render(page: Page) {
   main.className = 'mt-6';
 
   if (page === 'login') main.appendChild(loginContent());
+  if (page === 'register') main.appendChild(registerContent());
   if (page === 'home') main.appendChild(homeContent());
   if (page === 'versus') main.appendChild(versusContent());
   if (page === 'tournament') main.appendChild(tournamentContent());

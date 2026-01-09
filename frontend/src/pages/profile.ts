@@ -90,7 +90,6 @@ export function profileContent(): HTMLElement {
     try {
       const formData = new FormData();
       formData.append('avatar', file);
-      formData.append('userId', String(currentUserId));
       const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
       if (!res.ok) { avatarMsg.textContent = "Erreur lors de l'upload"; return; }
       const data = await res.json();
