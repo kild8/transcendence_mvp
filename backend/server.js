@@ -312,7 +312,29 @@ fastify.post("/api/add-user", async (req, reply) => {
 		return reply.status(400).send({ error: "User or email already exists" });
 	}
 });
-    
+
+// PUT /api/user/me  -> change the authenticated user's name
+fastify.put('/api/user/me', { preHandler: authPreHandler }, async (req, reply) => {
+  try {
+    const user = req.user; // authPreHandler attache user public (id, name, email...)
+    const { name } = req.body || {};
+    if (!name || String(name).trim().length === 0) return reply.status(400).send({ ok: false, error: 'Name required' });
+
+    // check uniqueness
+    const existing = db.prepare('SELECT id FROM users WHERE name = ? AND id != ?').get(name, user.id);
+    if (existing) return reply.status(400).send({ ok: false, error: 'Name already in use' });
+
+    db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, user.id);
+
+    // respond with updated public user
+    const updated = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(user.id);
+    return reply.send({ ok: true, user: updated });
+  } catch (err) {
+    fastify.log.error(err, 'update user failed');
+    return reply.status(500).send({ ok: false, error: 'Server error' });
+  }
+});
+
 // Lister les utilisateurs
 fastify.get("/api/users", async () => {
 	return db.prepare("SELECT * FROM users").all();
