@@ -55,10 +55,13 @@ function handleJoinRoom(ws, data) {
 
   if (room.participants.find(p => p.ws === ws)) return;
   if (room.participants.length >= room.maxPlayers) return ws.send(JSON.stringify({ type: "room-error", message: "Room pleine" }));
-
+  if (!room.host) {
+    room.host = pseudo;
+    console.log("room host is: ", room.host);
+  }
   room.participants.push({ ws, pseudo });
   console.log("Player joined room:", pseudo, "Room participants are now", room.participants.map(p => p.pseudo));
-  ws.send(JSON.stringify({ type: "joined-room", roomId: room.id, roomType: room.type, pseudo }));
+  ws.send(JSON.stringify({ type: "joined-room", roomId: room.id, roomType: room.type, pseudo, host: room.host }));
   broadcastRoomUpdate();
 }
 
@@ -66,8 +69,16 @@ function handleStartGame(ws, data) {
   const room = getRoom(data.roomId);
   if (!room) return;
 
+  const participant = room.participants.find(p => p.ws === ws);
+  if (!participant) return;
+
+  if (room.host !== participant.pseudo) {
+    ws.send(JSON.stringify({ type: "room-error", message: "Seul le créateur de la room peut lancer la partie."}));
+    return;
+  }
+
   if (room.type === "tournament") {
-    handleStartTournament;
+    handleStartTournament(ws, data);
   }
   else if (room.type === "1v1") {
     start1v1Match(room);
@@ -157,19 +168,41 @@ function handlePlayerInput(ws, data) {
 function handleDisconnect(ws) {
   if (ws.socketRole === "lobby") return;
   Object.values(rooms).forEach(room => {
+    const participantIndex = room.participants.findIndex(p => p.ws === ws);
+    if (participantIndex === -1) return;
+
+    const disconnectedPlayer = room.participants[participantIndex];
+    room.participants.splice(participantIndex, 1);
+
+    if (room.host === disconnectedPlayer.pseudo) {
+      room.host = room.participants.length > 0 ? room.participants[0].pseudo : null;
+    }
+
+    room.participants.forEach(p => {
+      if (p.ws.readyState === WebSocket.OPEN) {
+        p.ws.send(JSON.stringify({
+          type: "host-update",
+          host: room.host
+        }));
+      }
+    });
+
     let disconnectedRole = null;
     if (room.players.player1?.ws === ws) disconnectedRole = "player1";
     if (room.players.player2?.ws === ws) disconnectedRole = "player2";
-    if (!disconnectedRole) return;
-
-    const winnerRole = disconnectedRole === "player1" ? "player2" : "player1";
-    room.players[disconnectedRole] = null;
-
-    if (room.tickId && room.players[winnerRole]) {
-      console.log("Victoire par abandon :", winnerRole);
-      setGameOver(room, winnerRole);
+    if (disconnectedRole) {
+      const winnerRole = disconnectedRole === "player1" ? "player2" : "player1";
+      room.players[disconnectedRole] = null;
+      if (room.tickId && room.players[winnerRole]) {
+        console.log("Victoire par abandon :", winnerRole);
+        setGameOver(room, winnerRole);
+      }
     }
-
+     
+    if (room.participants.length === 0) {
+      console.log("Room vide, suppression :", room.id);
+      deleteRoom(room.id);
+    }
     broadcastRoomUpdate();
   });
 
@@ -327,17 +360,23 @@ function resetRoomBall(room) {
 
 function broadcastRoomUpdate() {
   if (!wss) return;
-  const roomsData = Object.values(rooms).map(r => ({
-    id: r.id,
-    type: r.type,
-    players: r.participants.length,
-    maxPlayers: r.maxPlayers
-  }));
-    wss.clients.forEach(ws => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type : "rooms-update", rooms: roomsData}));
-      }
-    });
+  const roomsData = Object.values(rooms).map(serializeRoom);
+  wss.clients.forEach(ws => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type : "rooms-update", roomsData }));
+    }
+  });
+}
+
+function serializeRoom(room) {
+  return {
+    id: room.id,
+    type: room.type,
+    players: room.participants.length,
+    maxPlayers: room.maxPlayers,
+    host: room.host,
+    participants: room.participants.map(p => p.pseudo),
+  };
 }
 
 module.exports = { initWebSocket };
