@@ -12,8 +12,8 @@ up:
 		openssl req -x509 -newkey rsa:2048 -noenc -keyout ${NGINX_SERVER_KEY_FILE} -out ${NGINX_SERVER_CRT_FILE} -days 3650 -subj "/C=CH/ST=Vaud/L=Lausanne/O=webforge/OU=cyber/CN=localhost" -addext "subjectAltName=DNS:localhost,DNS:localhost,DNS:127.0.0.1"; \
 	fi
 
-	chown -R $(USER):$(USER) ${SECRET_FOLDER}
-	chmod 744 -R ${SECRET_FOLDER}
+#	chown -R $(USER):$(USER) ${SECRET_FOLDER}
+	chmod 777 -R ${SECRET_FOLDER}
 
 	docker compose -f $(DOCKER_COMPOSE_FILE) -p ${PROJECT_NAME} up -d --build
 

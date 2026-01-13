@@ -4,9 +4,9 @@ services:
       context: .
     container_name: prometheus
     restart: unless-stopped
-    ports:
-      - 9090
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
     networks:
       - transcendence_nw

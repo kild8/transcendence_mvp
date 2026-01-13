@@ -1,0 +1,11 @@
+services:
+  nodejs-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nodejs-backend
+    restart: unless-stopped
+    volumes:
+      - ./backend/data:/app/data
+    networks:
+      - transcendence_nw

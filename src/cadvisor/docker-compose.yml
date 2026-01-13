@@ -6,8 +6,6 @@ services:
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
-    ports:
-      - 8080
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro

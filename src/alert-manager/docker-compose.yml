@@ -4,8 +4,6 @@ services:
       context: .
     container_name: alertmanager
     restart: unless-stopped
-    ports:
-      - 9093
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
     networks:

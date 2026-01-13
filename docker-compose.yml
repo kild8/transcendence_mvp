@@ -1,6 +1,6 @@
 include:
-  - path: './src/backend/docker-compose.yml'
-  - path: './src/nginx/docker-compose.yml'
+  - path: './src/nodejs-backend/docker-compose.yml'
+  - path: './src/nginx-frontend/docker-compose.yml'
 
 networks:
   transcendence_nw:

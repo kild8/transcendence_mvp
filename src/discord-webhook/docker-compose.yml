@@ -5,7 +5,5 @@ services:
     restart: unless-stopped
     environment:
       - DISCORD_WEBHOOK=${DISCORD_ALERT_WEBHOOK}
-    ports:
-     - 9094
     networks:
       - transcendence_nw
