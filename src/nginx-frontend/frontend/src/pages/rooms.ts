@@ -11,10 +11,6 @@ export function roomsContent(): HTMLElement {
         <button id="back" class="small">← Retour</button>
       </div>
 
-      <div class="mt-4">
-        <input id="pseudo" placeholder="Votre pseudo" class="p-2 border rounded w-full"/>
-      </div>
-
       <div class="mt-4 flex gap-2">
         <button id="create-1v1" class="btn">Créer 1v1</button>
         <button id="create-tournament" class="btn">Créer Tournoi</button>
@@ -32,24 +28,37 @@ export function roomsContent(): HTMLElement {
   const node = elFromHTML(html);
 
   const list = node.querySelector("#rooms") as HTMLUListElement;
-  const pseudoInput = node.querySelector("#pseudo") as HTMLInputElement;
   const create1v1Btn = node.querySelector("#create-1v1") as HTMLButtonElement;
   const createTournamentBtn = node.querySelector("#create-tournament") as HTMLButtonElement;
   const backBtn = node.querySelector("#back") as HTMLButtonElement;
   const gameContainer = node.querySelector("#game-container") as HTMLDivElement;
 
-  const getPseudo = () => pseudoInput.value.trim();
   let currentGame: PongGameLan | null = null;
+  let pseudo: string | null = null;
+  const initPseudo = async () => {
+    try {
+      const res = await fetch("/api/me");
+      const data = await res.json();
+      if (data.ok && data.user?.name) {
+        pseudo = data.user.name;
+      }
+    } catch (err) {
+      console.error("impossible de récupérer le pseudo", err);
+      alert("Impossible de récupérer votre pseudo, veuillez vous reconnecter.");
+    }
+  };
+  initPseudo();
   //--------- Websocket Lobby pour voir les rooms en direct
   //--------- Reste ouvert tant que la page rooms est ouverte
-  const lobbyWs = new WebSocket(`wss://${window.location.hostname}/ws`);
+  const lobbyWs = new WebSocket(`ws://${window.location.hostname}:3000`);
   lobbyWs.onopen = () => {
     lobbyWs.send(JSON.stringify({ type: "register-socket", role: "lobby"}));
   };
   lobbyWs.onmessage = (e) => {
     const data = JSON.parse(e.data);
+    console.log("LOBBY WS: ", data);
     if (data.type === "rooms-update") {
-      renderRooms(data.rooms);
+      renderRooms(data.roomsData);
     }
   };
 
@@ -59,11 +68,14 @@ export function roomsContent(): HTMLElement {
 
     rooms.forEach((r: any) => {
       const li = document.createElement("li");
-      li.className = "flex justify-between items-center border p-2 rounded";
+      li.className = "flex flex-col border p-2 rounded";
 
-      li.innerHTML = ` 
-        <span>${r.type.toUpperCase()} (${r.players}/${r.maxPlayers})</span>
-        <button class="small">Rejoindre</button>
+      li.innerHTML = `
+        <div class ="flex justify-between items-center">
+        <span>${r.host ?? "Room"} ${r.type.toUpperCase()} (${r.players}/${r.maxPlayers})</span>
+        <button>Rejoindre</button>
+        </div>
+        <div class="text-sm mt-1">Joueurs: ${r.participants.join(", ")}</div>
         `;
 
       li.querySelector("button")!.onclick = () => joinRoom(r.id);
@@ -74,8 +86,7 @@ export function roomsContent(): HTMLElement {
 
   // ----------- CREATE ROOM ----------
   const createRoom = async (type: "1v1" | "tournament") => {
-    const pseudo = getPseudo();
-    if (!pseudo) return alert("Entrez un pseudo");
+    if (!pseudo) return alert("Pseudo manquant, veuillez vous reconnecter.");
 
     try {
       const res = await fetch("/api/rooms", {
@@ -97,11 +108,10 @@ export function roomsContent(): HTMLElement {
 
   // ---------- JOIN ROOM ----------
   const joinRoom = (roomId: string) => {
-    const pseudo = getPseudo();
-    if (!pseudo) return alert("Entrez un pseudo");
+    if (!pseudo) return alert("Pseudo manquant, veuillez vous reconnecter.");
 
     sessionStorage.setItem("pseudo", pseudo);
-    const ws = new WebSocket(`wss://${window.location.hostname}/ws`);
+    const ws = new WebSocket(`ws://${window.location.hostname}:3000`);
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "register-socket", role: "game" }));
     }
@@ -114,7 +124,7 @@ export function roomsContent(): HTMLElement {
     const startBtn = document.createElement("button");
     startBtn.textContent = "Démarrer";
     startBtn.className = "btn mt-2";
-    startBtn.style.display = "block";
+    startBtn.style.display = "none";
     gameContainer.appendChild(startBtn);
 
     // --- PRE-CREATE CANVAS ---
@@ -130,9 +140,6 @@ export function roomsContent(): HTMLElement {
       ctx.font = "20px monospace";
       ctx.fillText("En attente du prochain match...", 250, 240);
     }
-
-    let isHost = false;
-
     startBtn.onclick = () => {
       console.log("Start tournament clicked");
       ws.send(JSON.stringify({ type: "start-game", roomId }));
@@ -148,13 +155,23 @@ export function roomsContent(): HTMLElement {
 
       switch (data.type) {
         case "joined-room":
-          if (data.pseudo === data.players?.[0]) {
-            isHost = true;
+          console.log("pseudo: ", pseudo, "host: ", data.host);
+          if (pseudo === data.host) {
             startBtn.style.display = "inline-block";
+          } else {
+            startBtn.style.display = "none";
           }
           break;
 
-        case "rooms-update":
+        case "host-update":
+          if (pseudo === data.host) {
+            startBtn.style.display = "inline-block";
+          } else {
+            startBtn.style.display = "none";
+          }
+          break;
+
+        case "rooms-players-update":
           tournamentLog.innerHTML = `<p>Joueurs dans la room: ${data.players.join(", ")}</p>`;
           break;
 
