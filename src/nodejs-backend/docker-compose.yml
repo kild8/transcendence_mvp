@@ -6,6 +6,7 @@ services:
     container_name: nodejs-backend
     restart: unless-stopped
     volumes:
-      - ./backend/data:/app/data
+      - nodejs-backend-data:/app/data
+      - nodejs-backend-uploads:/app/uploads
     networks:
       - transcendence_nw

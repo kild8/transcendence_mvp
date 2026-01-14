@@ -14,7 +14,7 @@ const CANVAS_HEIGHT = 480;
 let wss;
 
 function initWebSocket(server) {
-  wss = new WebSocket.Server({ server });
+  wss = new WebSocket.Server({ server, path: "/ws" });
   console.log("WebSocket server initialized");
 
   wss.on("connection", (ws) => {

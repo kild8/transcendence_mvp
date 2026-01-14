@@ -50,7 +50,7 @@ export function roomsContent(): HTMLElement {
   initPseudo();
   //--------- Websocket Lobby pour voir les rooms en direct
   //--------- Reste ouvert tant que la page rooms est ouverte
-  const lobbyWs = new WebSocket(`ws://${window.location.hostname}:3000`);
+  const lobbyWs = new WebSocket(`wss://${window.location.hostname}/ws`);
   lobbyWs.onopen = () => {
     lobbyWs.send(JSON.stringify({ type: "register-socket", role: "lobby"}));
   };
@@ -111,7 +111,7 @@ export function roomsContent(): HTMLElement {
     if (!pseudo) return alert("Pseudo manquant, veuillez vous reconnecter.");
 
     sessionStorage.setItem("pseudo", pseudo);
-    const ws = new WebSocket(`ws://${window.location.hostname}:3000`);
+    const ws = new WebSocket(`wss://${window.location.hostname}/ws`);
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "register-socket", role: "game" }));
     }

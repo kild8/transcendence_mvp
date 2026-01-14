@@ -1,8 +1,8 @@
 const Fastify = require("fastify");
 const fastify = Fastify({ logger: true });
+
 const { initWebSocket } = require("./ws");
 fastify.register(require("@fastify/cookie"));
-fastify.register(require("@fastify/cors"), { origin: true });
 fastify.register(require("@fastify/formbody"));
 fastify.register(require("@fastify/multipart"), {
   limits: {
@@ -28,7 +28,7 @@ const pump = promisify(pipeline);
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET || 'change_me_in_prod';
-const FRONTEND_BASE = process.env.FRONTEND_BASE || 'http://localhost:8080';
+const FRONTEND_BASE = process.env.FRONTEND_BASE || 'https://localhost';
 
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
@@ -63,9 +63,14 @@ db.prepare(`
   )
 `).run();
 
+//ADDLOG
+//USER DATABASE READY
+
     
 ///WEBSOCKETS
 const wss = initWebSocket(fastify.server);
+//ADDLOG
+//WEBSOCKET READY
 fastify.listen({ port: 3000, host: "0.0.0.0" }, (err, address) => {
   if (err) {
     fastify.log.error(err);
@@ -73,6 +78,9 @@ fastify.listen({ port: 3000, host: "0.0.0.0" }, (err, address) => {
   }
   console.log(`Server listening on ${address}`);
 });
+//ADDLOG
+//SERVER STARTED
+
 
     // ------------------------------------------------------
     //                      ROUTES API
@@ -156,8 +164,12 @@ fastify.post('/api/auth/register', async (req, reply) => {
 
     reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
     return reply.send({ ok: true, user });
+    //ADDLOG
+    //NEW USER STANDARD  REGISTERED
   } catch (err) {
     fastify.log.error({ err }, 'register failed');
+    //ADDLOG
+    //NEW USER STANDARD  REGISTERATION FAILED
     return reply.status(500).send({ ok: false, error: 'Server error' });
   }
 });
@@ -192,8 +204,12 @@ fastify.post('/api/auth/login', async (req, reply) => {
 
     reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
     return reply.send({ ok: true, user: publicUser });
+    //ADDLOG
+    //USER STANDARD LOGIN SUCCEDED
   } catch (err) {
     fastify.log.error({ err }, 'login failed');
+    //ADDLOG
+    //USER STANDARD LOGIN FAILED
     return reply.status(500).send({ ok: false, error: 'Server error' });
   }
 });
@@ -280,6 +296,8 @@ fastify.get('/api/me', async (req, reply) => {
 // for logout
 fastify.post('/api/auth/logout', async (req, reply) => {
   reply.header('Set-Cookie', `token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
+  //ADDLOG
+  //USER LOGOUT
   return { ok: true };
 });
 
@@ -290,10 +308,12 @@ fastify.post("/api/start-tournament", async (req, reply) => {
 	const { players } = req.body || {};
       
 	if (!Array.isArray(players) || players.length < 2) {
-		return reply.status(400).send({ error: "Invalid players array (min 2)" });
+		return reply.status(400).send({ error: "Invalid players array (min 2)" }); //Est-ce qu'on verifie vraiment que les joueurs sont exactement qui ils devraient etre ?? QQN pourrait pas modifier le js et envoyer une requete ?
 	}
       
 	lastPlayers = players;
+  //ADDLOG
+  //TOURNAMENT STARTED
 	return { ok: true, players: lastPlayers };
 });
     

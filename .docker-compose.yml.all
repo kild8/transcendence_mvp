@@ -16,3 +16,7 @@ include:
 networks:
   transcendence_nw:
     driver: bridge
+
+volumes:
+  nodejs-backend-data:
+  nodejs-backend-uploads:

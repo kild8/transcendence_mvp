@@ -10,6 +10,8 @@ async function roomsRoutes(fastify, opts) {
             return reply.status(400).send({ error: "room type required" });
         }
         const room = createRoom({ type });
+        //ADDLOG
+        //ROOM CREATED
         return reply.status(201).send(room);
     });
 }
