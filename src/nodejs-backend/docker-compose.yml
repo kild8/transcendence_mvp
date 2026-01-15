@@ -10,3 +10,7 @@ services:
       - nodejs-backend-uploads:/app/uploads
     networks:
       - transcendence_nw
+
+volumes:
+  nodejs-backend-data:
+  nodejs-backend-uploads:
