@@ -1,0 +1,21 @@
+En prod, n’expose pas directement 3000 sur Internet : utilise un reverse proxy (Nginx) qui assure HTTPS et redirige vers le container backend.
+
+Ne laisse jamais d’endpoints de debug accessibles en production.
+
+Sécurité — checklist à appliquer avant rendu/production
+
+Validation côté serveur (fait)
+
+Échapper les valeurs affichées côté frontend (prévenir XSS)
+
+Utiliser POST/PUT/DELETE pour modifier les données (fait)
+
+Rate limiting / throttling pour éviter le spam
+
+Authentification (OAuth/42, JWT, sessions) pour actions sensibles
+
+Forcer HTTPS / WSS pour toutes les communications
+
+Logs et monitoring (détecter abus)
+
+Sauvegardes régulières de database.sqlite si nécessaire
