@@ -1,7 +1,0 @@
-include:
-  - path: './src/nodejs-backend/docker-compose.yml'
-  - path: './src/nginx-frontend/docker-compose.yml'
-
-networks:
-  transcendence_nw:
-    driver: bridge
