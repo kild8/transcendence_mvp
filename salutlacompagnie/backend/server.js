@@ -1,6 +1,6 @@
 const Fastify = require("fastify");
 const fastify = Fastify({ logger: true });
-const { initWebSocket } = require("./ws");
+const { initWebSocket, getOnlineUserIds } = require("./ws");
 fastify.register(require("@fastify/cookie"));
 fastify.register(require("@fastify/cors"), { origin: true });
 fastify.register(require("@fastify/formbody"));
@@ -10,6 +10,7 @@ fastify.register(require("@fastify/multipart"), {
   }
 });
 fastify.register(require("./routes/rooms.route.js"));
+fastify.register(require("./routes/friends.route.js"));
 
 const bcrypt = require('bcrypt');
 
@@ -63,6 +64,24 @@ db.prepare(`
   )
 `).run();
 
+// Table friends: relations entre utilisateurs
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS friends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    requester_id INTEGER NOT NULL,
+    addressee_id INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending','accepted','rejected')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (requester_id, addressee_id),
+    FOREIGN KEY (requester_id) REFERENCES users(id),
+    FOREIGN KEY (addressee_id) REFERENCES users(id)
+  )
+`).run();
+
+// Indexes pour accélérer les requêtes
+db.prepare('CREATE INDEX IF NOT EXISTS idx_friends_requester ON friends(requester_id)').run();
+db.prepare('CREATE INDEX IF NOT EXISTS idx_friends_addressee ON friends(addressee_id)').run();
+
 
     // ------------------------------------------------------
     //                      ROUTES API
@@ -106,6 +125,9 @@ async function authPreHandler(req, reply) {
   // attache user à la requête pour l'utiliser dans le handler
   req.user = user;
 }
+
+// expose as decoration so route modules can use it via fastify.authPreHandler
+fastify.decorate('authPreHandler', authPreHandler);
 
 // Register (email + password + pseudo)
 fastify.post('/api/auth/register', async (req, reply) => {

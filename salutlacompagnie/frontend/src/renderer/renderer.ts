@@ -71,10 +71,15 @@ function header(): HTMLElement {
   // Si l'utilisateur est connecté -> afficher son nom + profile + logout
   if (state.appState.currentUser) {
     const name = state.appState.currentUser.name || 'Utilisateur';
+    // avatar if available (fallback to default image)
+    const avatarSrc = (state.appState.currentUser as any).avatar || '/default-avatar.png';
     right.innerHTML = `
-      <div class="small">Bonjour, <strong id="hdr-username">${escapeHtml(name)}</strong></div>
-      <button id="hdr-profile" class="btn small">Profil</button>
-      <button id="hdr-logout" class="btn small">Se déconnecter</button>
+      <div class="flex items-center gap-3">
+        <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full" />
+        <div class="small">Bonjour, <strong id="hdr-username">${escapeHtml(name)}</strong></div>
+        <button id="hdr-profile" class="btn small">Profil</button>
+        <button id="hdr-logout" class="btn small">Se déconnecter</button>
+      </div>
     `;
 
     const profileBtn = node.querySelector('#hdr-profile') as HTMLButtonElement;
@@ -104,6 +109,22 @@ function header(): HTMLElement {
         console.warn('Logout failed', err);
         // on continue quand même côté front
       }
+      if (state.appState.ws) {
+        state.appState.ws.close();
+        state.appState.ws = null;
+      }
+      // fallback: close global presence client if exists
+      try {
+        const pc = (window as any).__presenceClient;
+        if (pc && typeof pc.close === 'function') pc.close();
+        (window as any).__presenceClient = null;
+      } catch (e) {}
+      // close lobby ws if present
+      try {
+        const lw = (state as any).appState.lobbyWs;
+        if (lw && typeof lw.close === 'function') lw.close();
+        if ((state as any).appState) delete (state as any).appState.lobbyWs;
+      } catch (e) {}
       // vider l'état côté client
       state.appState.currentUser = null;
       // aller au login et rerender
@@ -112,17 +133,8 @@ function header(): HTMLElement {
     });
 
   } else {
-    // non connecté -> proposer login / register
-    right.innerHTML = `
-      <a id="hdr-login" class="btn small" href="#login">Connexion</a>
-      <a id="hdr-register" class="btn small" href="#register">S'inscrire</a>
-    `;
-    // on laisse les hashes gérer la navigation (ou on peut ajouter des listeners si besoin)
-    // mais ajoutons des listeners pour s'assurer que render est appelé immédiatement
-    const lLogin = node.querySelector('#hdr-login') as HTMLAnchorElement;
-    const lRegister = node.querySelector('#hdr-register') as HTMLAnchorElement;
-    lLogin.addEventListener('click', (e) => { e.preventDefault(); navigateTo('login'); render(getHashPage()); });
-    lRegister.addEventListener('click', (e) => { e.preventDefault(); navigateTo('register'); render(getHashPage()); });
+    // non connecté -> ne rien afficher dans l'entête (les pages login/register gèrent la navigation)
+    right.innerHTML = '';
   }
 
   return node;

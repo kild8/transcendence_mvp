@@ -79,6 +79,15 @@ export function loginContent(): HTMLElement {
       const meData = await meRes.json();
       if (meData.ok) {
         state.appState.currentUser = meData.user;
+        try {
+          // try to create presence socket immediately after login
+          if (!state.appState.ws) {
+            const { createPresenceSocket } = await import('../wsClient.js');
+              const client = createPresenceSocket(() => console.log('presence open'), () => console.log('presence closed'));
+              state.appState.ws = client as any;
+              try { (window as any).__presenceClient = client; } catch (e) {}
+          }
+        } catch (e) { console.warn('presence socket init failed', e); }
         navigateTo('home');
         render(getHashPage());
       }

@@ -1,6 +1,7 @@
 import { elFromHTML } from "../utils.js";
 import { navigateTo } from "../router.js";
 import { PongGameLan } from "../GameLan.js";
+import { state } from '../state.js';
 
 export function onlineContent(): HTMLElement {
 
@@ -60,6 +61,10 @@ export function onlineContent(): HTMLElement {
   //--------- Websocket Lobby pour voir les rooms en direct
   //--------- Reste ouvert tant que la page rooms est ouverte
   const lobbyWs = new WebSocket(`ws://${window.location.hostname}:3000`);
+  // store on global state so logout can close it if needed
+  try { (window as any).state = (window as any).state || {}; } catch (e) {}
+  (window as any).state = (window as any).state || {};
+  try { (state as any).appState.lobbyWs = lobbyWs; } catch (e) {}
   lobbyWs.onopen = () => {
     lobbyWs.send(JSON.stringify({ type: "register-socket", role: "lobby"}));
   };
@@ -241,12 +246,16 @@ export function onlineContent(): HTMLElement {
 
     backBtn.onclick = () => {
       currentGame?.onGameOver?.();
-      lobbyWs.close();
+      try { lobbyWs.close(); } catch (e) {}
+      try { delete (state as any).appState.lobbyWs; } catch (e) {}
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
       navigateTo("home");
     };
+
+    // ensure lobby ws closed on unload
+    window.addEventListener('beforeunload', () => { try { lobbyWs.close(); } catch (e) {} });
   };
 
   return node;

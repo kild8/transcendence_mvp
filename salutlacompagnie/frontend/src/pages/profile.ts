@@ -46,6 +46,26 @@ export function profileContent(): HTMLElement {
           <button id="btn-back" class="btn small">← Retour</button>
         </div>
 
+        <!-- FRIENDS SECTION -->
+        <div id="friends-area" class="mt-6 w-full max-w-2xl">
+          <h3 class="text-lg font-medium mb-2">Amis</h3>
+
+          <div class="flex gap-2 items-center mb-3">
+            <input id="friend-search" class="border p-2 rounded flex-1" placeholder="Rechercher un utilisateur par pseudo" />
+            <button id="friend-search-btn" class="btn small">Rechercher</button>
+            <button id="friend-requests-btn" class="btn small">Demandes <span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
+          </div>
+
+          <div id="friend-search-result" class="mb-3"></div>
+
+          <div id="friend-requests-panel" class="mb-3 hidden">
+            <h4 class="font-medium">Demandes entrantes</h4>
+            <div id="friend-requests-list" class="flex flex-col gap-2 mt-2"></div>
+          </div>
+
+          <div id="friend-list" class="flex flex-col gap-2 max-h-64 overflow-y-auto"></div>
+        </div>
+
         <div id="history-area" class="mt-4 w-full max-w-2xl hidden">
           <h3 class="text-lg font-medium mb-2">Historique des parties</h3>
           <div id="history-list" class="flex flex-col gap-2 small"></div>
@@ -104,7 +124,7 @@ export function profileContent(): HTMLElement {
 
       // optionally keep global state in sync (guarded)
       if ((state as any)?.appState) {
-        (state as any).appState.currentUser = { id: currentUser.id, name: currentUser.name, email: currentUser.email };
+        (state as any).appState.currentUser = { id: currentUser.id, name: currentUser.name, email: currentUser.email, avatar: currentUser.avatar };
       }
 
       // fill UI (currentUser is guaranteed non-null here)
@@ -160,8 +180,13 @@ export function profileContent(): HTMLElement {
       avatarEl.src = `${url}?t=${Date.now()}`;
       profileMsg.textContent = 'Avatar mis à jour ✔️';
       // update state and local currentUser.avatar
-      currentUser.avatar = data.avatar;
-      if ((state as any)?.appState?.currentUser) (state as any).appState.currentUser.name = currentUser.name;
+  currentUser.avatar = data.avatar;
+  if ((state as any)?.appState?.currentUser) (state as any).appState.currentUser.avatar = data.avatar;
+      // update header avatar if present
+      try {
+        const hdr = document.getElementById('hdr-avatar') as HTMLImageElement | null;
+        if (hdr) hdr.src = `${url}?t=${Date.now()}`;
+      } catch (e) {}
     } catch (err) {
       console.error('avatar upload error', err);
       profileMsg.textContent = 'Erreur réseau pendant l\'upload';
@@ -289,8 +314,186 @@ export function profileContent(): HTMLElement {
     return String(s || '').replace(/&/g, "&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
   }
 
-  // initial load
-  loadProfile();
+  // ---------------- FRIENDS LOGIC ----------------
+  const friendListEl = node.querySelector('#friend-list') as HTMLElement;
+  const friendSearchInput = node.querySelector('#friend-search') as HTMLInputElement;
+  const friendSearchBtn = node.querySelector('#friend-search-btn') as HTMLButtonElement;
+  const friendSearchResult = node.querySelector('#friend-search-result') as HTMLElement;
+  const friendRequestsBtn = node.querySelector('#friend-requests-btn') as HTMLButtonElement;
+  const friendRequestsPanel = node.querySelector('#friend-requests-panel') as HTMLElement;
+  const friendRequestsList = node.querySelector('#friend-requests-list') as HTMLElement;
+  const requestsBadge = node.querySelector('#requests-badge') as HTMLElement;
+
+  async function loadFriendsList() {
+    try {
+      const res = await fetch('/api/friends', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.ok) return;
+      const friends = json.friends || [];
+      friendListEl.innerHTML = '';
+      for (const f of friends) {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-3 p-2 border rounded';
+        row.setAttribute('data-user-id', String(f.id));
+        const onlineClass = f.online ? 'bg-green-500' : 'bg-gray-400';
+        row.innerHTML = `
+          <span class="presence-dot w-3 h-3 rounded-full ${onlineClass} inline-block"></span>
+          <strong class="ml-2">${escapeHtml(f.name)}</strong>
+          <span class="small ml-auto">${escapeHtml(f.email)}</span>
+          <button class="btn small ml-2 remove-friend">Supprimer</button>
+        `;
+        const removeBtn = row.querySelector('.remove-friend') as HTMLButtonElement;
+        removeBtn.addEventListener('click', async () => {
+          await fetch('/api/friends/remove', {
+            method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ friend_id: f.id })
+          });
+          await loadFriendsList();
+        });
+        friendListEl.appendChild(row);
+      }
+    } catch (err) {
+      console.error('loadFriendsList', err);
+    }
+  }
+
+  async function searchUser(name: string) {
+    try {
+      const res = await fetch(`/api/user/${encodeURIComponent(name)}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (!json.ok) return null;
+      return json.user;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  friendSearchBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    friendSearchResult.innerHTML = '';
+    const q = friendSearchInput.value.trim();
+    if (!q) return;
+    friendSearchResult.innerHTML = '<div class="small">Recherche...</div>';
+    const user = await searchUser(q);
+    if (!user) { friendSearchResult.innerHTML = '<div class="small">Utilisateur non trouvé</div>'; return; }
+    const div = document.createElement('div');
+    div.className = 'p-2 border rounded flex items-center gap-3';
+    div.innerHTML = `
+      <strong>${escapeHtml(user.name)}</strong>
+      <span class="small ml-auto">${escapeHtml(user.email || '')}</span>
+      <button id="add-friend-btn" class="btn small ml-2">Ajouter</button>
+    `;
+    friendSearchResult.innerHTML = '';
+    friendSearchResult.appendChild(div);
+    (div.querySelector('#add-friend-btn') as HTMLButtonElement).addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/friends/request', {
+          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ friend_id: user.id })
+        });
+        const j = await res.json();
+        if (j.ok) {
+          friendSearchResult.innerHTML = '<div class="small text-green-600">Demande envoyée ✔️</div>';
+          await loadFriendsList();
+        } else {
+          friendSearchResult.innerHTML = `<div class="small text-red-600">${escapeHtml(j.error || 'Erreur')}</div>`;
+        }
+      } catch (err) {
+        friendSearchResult.innerHTML = '<div class="small text-red-600">Erreur réseau</div>';
+      }
+    });
+  });
+
+  friendRequestsBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (friendRequestsPanel.classList.contains('hidden')) {
+      await loadFriendRequests();
+      friendRequestsPanel.classList.remove('hidden');
+    } else {
+      friendRequestsPanel.classList.add('hidden');
+    }
+  });
+
+  async function loadFriendRequests() {
+    try {
+      const res = await fetch('/api/friends/requests', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.ok) return;
+      friendRequestsList.innerHTML = '';
+      const reqs = json.requests || [];
+      requestsBadge.textContent = reqs.length ? String(reqs.length) : '';
+      for (const r of reqs) {
+        const item = document.createElement('div');
+        item.className = 'p-2 border rounded flex items-center gap-3';
+        item.innerHTML = `
+          <div><strong>${escapeHtml(r.requester_name)}</strong><div class="small">${escapeHtml(r.requester_email)}</div></div>
+          <div class="ml-auto flex gap-2">
+            <button class="btn small accept-btn">Accepter</button>
+            <button class="btn small reject-btn">Refuser</button>
+          </div>
+        `;
+        (item.querySelector('.accept-btn') as HTMLButtonElement).addEventListener('click', async () => {
+          await respondRequest(r.id, 'accept');
+          await loadFriendRequests();
+          await loadFriendsList();
+        });
+        (item.querySelector('.reject-btn') as HTMLButtonElement).addEventListener('click', async () => {
+          await respondRequest(r.id, 'reject');
+          await loadFriendRequests();
+        });
+        friendRequestsList.appendChild(item);
+      }
+    } catch (err) { console.error('loadFriendRequests', err); }
+  }
+
+  async function respondRequest(request_id: number, action: 'accept' | 'reject') {
+    try {
+      const res = await fetch('/api/friends/respond', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id, action })
+      });
+      if (!res.ok) return;
+      await res.json();
+    } catch (err) { console.error('respondRequest', err); }
+  }
+
+  // presence updates from presence WS (if available)
+  function attachPresenceListener() {
+    try {
+      const client = (state as any)?.appState?.ws;
+      const ws = client?.socket || client; // client may be wrapper exposing .socket
+      if (!ws) return;
+      ws.addEventListener('message', (ev: MessageEvent) => {
+        try {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'presence') {
+            const userId = String(data.userId);
+            const online = !!data.online;
+            const el = friendListEl.querySelector(`[data-user-id="${userId}"] .presence-dot`);
+            if (el) {
+              el.classList.toggle('bg-green-500', online);
+              el.classList.toggle('bg-gray-400', !online);
+            }
+          }
+        } catch (e) {}
+      });
+    } catch (e) {}
+  }
+
+  // init friends UI after profile loaded
+  async function initFriends() {
+    await loadFriendsList();
+    await loadFriendRequests();
+    attachPresenceListener();
+  }
+
+  // initial load + init friends UI after profile loaded
+  loadProfile().then(() => {
+    initFriends();
+  }).catch((e) => { console.error('init profile error', e); });
 
   return node;
 }

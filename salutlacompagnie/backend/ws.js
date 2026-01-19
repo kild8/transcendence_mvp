@@ -13,13 +13,52 @@ const TICK_RATE = 30;
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 480;
 let wss;
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'change_me_in_prod';
+
+// presence tracking: Map<userId, countOfConnections>
+const presenceCounts = new Map();
+
+function parseCookies(cookieHeader) {
+  if (!cookieHeader) return {};
+  return cookieHeader.split(';').map(s => s.trim()).reduce((acc, kv) => {
+    const [k, ...rest] = kv.split('=');
+    acc[k] = decodeURIComponent(rest.join('='));
+    return acc;
+  }, {});
+}
+
+function getOnlineUserIds() {
+  return Array.from(presenceCounts.keys()).map(k => Number(k));
+}
 
 function initWebSocket(server) {
   wss = new WebSocket.Server({ server });
   console.log("WebSocket server initialized");
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", (ws, req) => {
     console.log("Un joueur s'est connecté");
+    // try to identify user from cookie JWT for presence
+    try {
+      const cookies = parseCookies(req.headers.cookie || '');
+      const token = cookies.token;
+      if (token) {
+        const payload = jwt.verify(token, JWT_SECRET);
+        const userId = Number(payload.id);
+        ws._userId = userId;
+        // increment presence count
+        const prev = presenceCounts.get(userId) || 0;
+        presenceCounts.set(userId, prev + 1);
+        // broadcast presence to all clients
+        const pmsg = JSON.stringify({ type: 'presence', userId, online: true });
+        if (wss && wss.clients) {
+          wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(pmsg); });
+        }
+      }
+    } catch (e) {
+      // invalid token => ignore presence for this ws
+    }
+
     broadcastRoomUpdate();
     ws.socketRole = "default";
 
@@ -42,7 +81,25 @@ function initWebSocket(server) {
       }
     });
 
-    ws.on("close", () => handleDisconnect(ws));
+    ws.on("close", () => {
+      // handle presence decrement
+      try {
+        const userId = ws._userId;
+        if (userId) {
+          const prev = presenceCounts.get(userId) || 0;
+          if (prev <= 1) {
+            presenceCounts.delete(userId);
+            const pmsg = JSON.stringify({ type: 'presence', userId, online: false });
+            if (wss && wss.clients) {
+              wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(pmsg); });
+            }
+          } else {
+            presenceCounts.set(userId, prev - 1);
+          }
+        }
+      } catch (e) {}
+      handleDisconnect(ws);
+    });
   });
 
   return wss;
@@ -630,4 +687,4 @@ function serializeRoom(room) {
   };
 }
 
-module.exports = { initWebSocket };
+module.exports = { initWebSocket, getOnlineUserIds };
