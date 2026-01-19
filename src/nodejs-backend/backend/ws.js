@@ -7,6 +7,9 @@ const {
   recordMatchWinner
 } = require("./tournament.js");
 
+const {  totalEndedGames, gamesInProgress, exitedGamesCounter, gamesDuration} = require("./metrics.js");
+const pinolog = require("./logger.js");
+
 const WINNING_SCORE = 5;
 const TICK_RATE = 30;
 const CANVAS_WIDTH = 800;
@@ -15,10 +18,10 @@ let wss;
 
 function initWebSocket(server) {
   wss = new WebSocket.Server({ server, path: "/ws" });
-  console.log("WebSocket server initialized");
+  pinolog.info({path: "/ws"}, "WebSocket server initialized");
 
   wss.on("connection", (ws) => {
-    console.log("Un joueur s'est connecté");
+    pinolog.info("Player connection to websocket server");
     broadcastRoomUpdate();
     ws.socketRole = "default";
 
@@ -51,16 +54,23 @@ function initWebSocket(server) {
 function handleJoinRoom(ws, data) {
   const { roomId, pseudo } = data;
   const room = getRoom(roomId);
-  if (!room) return ws.send(JSON.stringify({ type: "room-error", message: "Room introuvable" }));
-
+  if (!room) {
+    pinolog.debug("Unknown room id");
+    return ws.send(JSON.stringify({ type: "room-error", message: "Room introuvable" }));
+  }
   if (room.participants.find(p => p.ws === ws)) return;
-  if (room.participants.length >= room.maxPlayers) return ws.send(JSON.stringify({ type: "room-error", message: "Room pleine" }));
+  if (room.participants.length >= room.maxPlayers) {
+    pinolog.debug("Room is full");
+    return ws.send(JSON.stringify({ type: "room-error", message: "Room pleine" }));
+  }
   if (!room.host) {
     room.host = pseudo;
-    console.log("room host is: ", room.host);
+    pinolog.info({player: pseudo}, pseudo, "got promoted to room host")
+    // console.log("room host is: ", room.host);
   }
   room.participants.push({ ws, pseudo });
-  console.log("Player joined room:", pseudo, "Room participants are now", room.participants.map(p => p.pseudo));
+  pinolog.info({roomId: roomId, player: pseudo, roomSize: room.participants.length}, "A player joined the room");
+  // console.log("Player joined room:", pseudo, "Room participants are now", room.participants.map(p => p.pseudo));
   ws.send(JSON.stringify({ type: "joined-room", roomId: room.id, roomType: room.type, pseudo, host: room.host }));
   broadcastRoomUpdate();
 }
@@ -107,7 +117,7 @@ function start1v1Match(room) {
       p.ws.send(JSON.stringify({ type: "start-game", roomId: room.id, role}));
     }
   });
-
+  pinolog.info({roomId: room.id, type: room.type, player1: player1, player2: player2}, "match started");
   startGameLoop(room);
 }
 
@@ -153,6 +163,13 @@ function handleStartTournament(ws, data) {
   if (!room.lastInputs) room.lastInputs = { player1: null, player2: null };
   if (!room.ball) room.ball = { position: { x: 400, y: 240 }, velocity: { x: 6, y: 4 }, size: 10 };
 
+  pinolog.info({
+    roomId: room.id, 
+    participantsNumber: room.participants.length,
+    participants: room.participants,
+    matches: room.tournament.matches},
+    "tournament started"
+  );
   // Lance le premier match
   startNextTournamentMatch(room);
 }
@@ -174,6 +191,8 @@ function handleDisconnect(ws) {
     const disconnectedPlayer = room.participants[participantIndex];
     room.participants.splice(participantIndex, 1);
 
+    pinolog.info({roomId: room, type: room.type, player: disconnectedPlayer}, "player disconected");
+
     if (room.host === disconnectedPlayer.pseudo) {
       room.host = room.participants.length > 0 ? room.participants[0].pseudo : null;
     }
@@ -194,18 +213,19 @@ function handleDisconnect(ws) {
       const winnerRole = disconnectedRole === "player1" ? "player2" : "player1";
       room.players[disconnectedRole] = null;
       if (room.tickId && room.players[winnerRole]) {
-        console.log("Victoire par abandon :", winnerRole);
+        // console.log("Victoire par abandon :", winnerRole);
         setGameOver(room, winnerRole);
       }
     }
      
     if (room.participants.length === 0) {
-      console.log("Room vide, suppression :", room.id);
+      // console.log("Room vide, suppression :", room.id);
       deleteRoom(room.id);
     }
     broadcastRoomUpdate();
   });
 
+  exitedGamesCounter.inc();
   console.log("Un joueur s'est déconnecté");
 }
 
@@ -214,12 +234,12 @@ function startNextTournamentMatch(room) {
   const tournament = room.tournament;
   if (!tournament) return;
 
-  console.log("START NEXT MATCH");
-  console.log("Players:", tournament.players);
-  console.log("Matches:", tournament.matches);
+  // console.log("START NEXT MATCH");
+  // console.log("Players:", tournament.players);
+  // console.log("Matches:", tournament.matches);
 
   let match = getNextMatch(tournament);
-  console.log("Next match:", match);
+  // console.log("Next match:", match);
 
   if (!match) {
     if (tournament.nextRound.length === 1) {
@@ -277,12 +297,26 @@ function startNextTournamentMatch(room) {
     }
   });
 
+  pinolog.info({
+    roomId: room.id,
+    type: room.type,
+    player1: p1,
+    player2: p2},
+    "match started"
+  );
   startGameLoop(room); // lance le jeu
 }
 
 function setGameOver(room, winnerRole) {
   if (room.gameOver) return;
   room.gameOver = true;
+
+  gamesInProgress.dec();
+  room.timestamps.end = Date.now();
+  gamesDuration.observe((room.timestamps.end - room.timestamps.start) / 1000);
+  room.timestamps.start = null;
+  room.timestamps.end = null;
+  totalEndedGames.inc();
 
   const loserRole = winnerRole === "player1" ? "player2" : "player1";
   const winner = room.players[winnerRole]?.pseudo || null;
@@ -303,6 +337,7 @@ function setGameOver(room, winnerRole) {
     }
   });
 
+  pinolog.info({roomId: room.id, type: room.type, player1: room.players.player1, player2: room.players.player2, winner: winner}, "match ended");
   if (room.tickId) {
     clearInterval(room.tickId);
     room.tickId = null;
@@ -319,6 +354,9 @@ function setGameOver(room, winnerRole) {
 // --------- GAME LOOP ---------
 function startGameLoop(room) {
   if (room.tickId) return;
+
+  room.timestamps.start = Date.now();
+  gamesInProgress.inc();
   room.tickId = setInterval(() => {
     if (room.gameOver) return;
     ["player1", "player2"].forEach(role => {

@@ -5,3 +5,5 @@ services:
     restart: unless-stopped
     networks:
       - transcendence_nw
+
+#port 8200

@@ -9,3 +9,5 @@ services:
       - elasticsearch
     networks:
       - transcendence_nw
+
+#port 5601

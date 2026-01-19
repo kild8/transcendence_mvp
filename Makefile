@@ -22,9 +22,12 @@ down:
 
 clear:
 	docker compose -f $(DOCKER_COMPOSE_FILE) -p ${PROJECT_NAME} down --rmi all -v
+	if [ $$(docker volume ls -q | grep transcendence) ]; then \
+		docker volume rm $$(docker volume ls -q | grep transcendence); \
+	fi
 
 peek:
-	docker container ls -a
+	docker container ls -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 	docker network ls
 	docker volume ls
 

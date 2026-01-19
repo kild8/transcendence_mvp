@@ -12,9 +12,11 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
       - transcendence_nw
 
 volumes:
-  es_data:
+  elasticsearch-data:
+
+#port 9200

@@ -6,5 +6,10 @@ services:
     restart: unless-stopped
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
+    volumes:
+      - alertmanager-data:/alertmanager
     networks:
       - transcendence_nw
+
+volumes:
+  alertmanager-data:

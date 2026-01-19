@@ -8,5 +8,12 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
     ports:
       - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
     networks:
       - transcendence_nw
+
+volumes:
+  prometheus-data:
+
+#port 9090

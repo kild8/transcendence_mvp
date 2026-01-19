@@ -7,3 +7,5 @@ services:
       - DISCORD_WEBHOOK=${DISCORD_ALERT_WEBHOOK}
     networks:
       - transcendence_nw
+
+#port 9094

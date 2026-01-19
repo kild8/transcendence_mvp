@@ -4,12 +4,21 @@ services:
       context: .
     container_name: filebeat
     user: root
+    restart: unless-stopped
+    command:
+      - '--strict.perms=false'
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./test-logs:/filebeat-test-logs
+      - filebeat-registry:/usr/share/filebeat/data:rw
+      - ./test-files:/tmp/filebeat
     depends_on:
       - logstash
+      - elasticsearch
     networks:
       - transcendence_nw 
 
+volumes:
+  filebeat-registry:
+
+#port NONE

@@ -1,0 +1,6 @@
+groups:
+- name: container.rules
+  interval: 15s   # fréquence de calcul
+  rules:
+  - record: container_alive
+    expr: (count(container_start_time_seconds) by (name) > 0) OR on() vector(0)

@@ -3,7 +3,7 @@ const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 480;
 
 
-function createRoom({ type, host}) {
+function createRoom({ type, host }) {
     const roomId = "room_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
 
     const room = {
@@ -39,9 +39,11 @@ function createRoom({ type, host}) {
         tickId : null,
         lastInputs: { player1: null, player2: null },
         lastInputTimes: { player1: 0, player2: 0 },
+        timestamps: {start: null, end: null}
     };
 
     rooms[roomId] = room;
+    pinolog.info({roomId: roomId, type: type, host: host}, "Room created");
     return room;
 }
 
@@ -59,6 +61,7 @@ function getRoom(roomId) {
 }
 
 function deleteRoom(roomId) {
+    pinolog.info({roomId: roomId}, "Room deleted");
     delete rooms[roomId];
 }
 

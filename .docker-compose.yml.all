@@ -12,6 +12,7 @@ include:
   - path: './src/prometheus/docker-compose.yml'
   - path: './src/filebeat/docker-compose.yml'
   - path: './src/hashicorp-vault/docker-compose.yml'
+  - path: './src/nginx-prometheus-exporter/docker-compose.yml'
 
 networks:
   transcendence_nw:

@@ -20,3 +20,5 @@ secrets:
     file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_crt.txt
   nginx_server_key:
     file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_key.txt
+
+#port 80 443 any

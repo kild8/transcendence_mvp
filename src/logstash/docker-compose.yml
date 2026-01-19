@@ -1,9 +1,12 @@
 services:
   logstash:
-    image: docker.elastic.co/logstash/logstash:8.11.0
+    image: docker.elastic.co/logstash/logstash:9.2.4
     container_name: logstash
     restart: unless-stopped
     depends_on:
       - elasticsearch
     networks:
       - transcendence_nw
+
+#port 5044 beats
+#port 9600 http monitoring
