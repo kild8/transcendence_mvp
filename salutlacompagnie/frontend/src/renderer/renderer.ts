@@ -68,14 +68,24 @@ function header(): HTMLElement {
   const node = elFromHTML(html);
   const right = node.querySelector('#header-right') as HTMLElement;
 
-  // Si l'utilisateur est connecté -> afficher son nom + profile + logout
+  // Si l'utilisateur est connecté -> afficher son avatar + nom + profile + logout
   if (state.appState.currentUser) {
     const name = state.appState.currentUser.name || 'Utilisateur';
-    // avatar if available (fallback to default image)
-    const avatarSrc = (state.appState.currentUser as any).avatar || '/default-avatar.png';
+    // compute avatar src:
+    const rawAvatar = (state.appState.currentUser as any).avatar;
+    const avatarSrc = (function () {
+      if (!rawAvatar) return '/default-avatar.png';
+      // si c'est déjà un chemin (contient /) on le prend tel quel (relatif ou absolu)
+      if (String(rawAvatar).includes('/')) {
+        return String(rawAvatar).startsWith('/') ? String(rawAvatar) : `/${String(rawAvatar)}`;
+      }
+      // sinon on suppose que c'est un filename stocké dans /api/uploads/
+      return `/api/uploads/${String(rawAvatar)}`;
+    })();
+
     right.innerHTML = `
       <div class="flex items-center gap-3">
-        <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full" />
+        <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full cursor-pointer" />
         <div class="small">Bonjour, <strong id="hdr-username">${escapeHtml(name)}</strong></div>
         <button id="hdr-profile" class="btn small">Profil</button>
         <button id="hdr-logout" class="btn small">Se déconnecter</button>
@@ -85,11 +95,11 @@ function header(): HTMLElement {
     const profileBtn = node.querySelector('#hdr-profile') as HTMLButtonElement;
     const logoutBtn = node.querySelector('#hdr-logout') as HTMLButtonElement;
     const usernameEl = node.querySelector('#hdr-username') as HTMLElement;
+    const avatarEl = node.querySelector('#hdr-avatar') as HTMLImageElement | null;
 
     profileBtn.addEventListener('click', (e) => {
       e.preventDefault();
       navigateTo('profile');
-      // on réaffiche la page (render est la fonction exportée dans ce module)
       render(getHashPage());
     });
 
@@ -100,40 +110,45 @@ function header(): HTMLElement {
       render(getHashPage());
     });
 
+    // clique sur l'avatar renvoie aussi au profile
+    if (avatarEl) {
+      avatarEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateTo('profile');
+        render(getHashPage());
+      });
+      // en cas d'erreur de chargement, fallback
+      avatarEl.onerror = () => { avatarEl.src = '/default-avatar.png'; };
+    }
+
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       try {
-        // envoie le POST pour supprimer le cookie côté serveur
         await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
       } catch (err) {
         console.warn('Logout failed', err);
-        // on continue quand même côté front
       }
       if (state.appState.ws) {
         state.appState.ws.close();
         state.appState.ws = null;
       }
-      // fallback: close global presence client if exists
+      try {
+        const lw = (state as any).appState.lobbyWs;
+        if (lw && typeof lw.close === 'function') lw.close();
+        delete (state as any).appState.lobbyWs;
+      } catch (e) {}
       try {
         const pc = (window as any).__presenceClient;
         if (pc && typeof pc.close === 'function') pc.close();
         (window as any).__presenceClient = null;
       } catch (e) {}
-      // close lobby ws if present
-      try {
-        const lw = (state as any).appState.lobbyWs;
-        if (lw && typeof lw.close === 'function') lw.close();
-        if ((state as any).appState) delete (state as any).appState.lobbyWs;
-      } catch (e) {}
-      // vider l'état côté client
       state.appState.currentUser = null;
-      // aller au login et rerender
       navigateTo('login');
       render(getHashPage());
     });
 
   } else {
-    // non connecté -> ne rien afficher dans l'entête (les pages login/register gèrent la navigation)
+    // non connecté -> ne rien afficher dans l'entête
     right.innerHTML = '';
   }
 

@@ -42,10 +42,6 @@ export function loginContent(): HTMLElement {
         Créer un compte
       </button>
 
-      <!-- GUEST -->
-      <button id="btn-guest" class="btn small w-full">
-        Continuer en invité
-      </button>
     </section>
   `;
 
@@ -103,11 +99,11 @@ export function loginContent(): HTMLElement {
   });
 
   // ---------- GUEST ----------
-  node.querySelector('#btn-guest')!.addEventListener('click', () => {
-    state.appState.currentUser = { id: -1, name: 'Guest', email: '' };
-    navigateTo('home');
-    render(getHashPage());
-  });
+  // node.querySelector('#btn-guest')!.addEventListener('click', () => {
+  //   state.appState.currentUser = { id: -1, name: 'Guest', email: '' };
+  //   navigateTo('home');
+  //   render(getHashPage());
+  // });
 
   return node;
 }

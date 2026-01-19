@@ -30,7 +30,8 @@ async function checkAuth() {
       state.appState.currentUser = {
         id: data.user.id,
         name: data.user.name,
-        email: data.user.email
+        email: data.user.email,
+        avatar: data.user.avatar
       };
       // open presence websocket client (keeps user online)
       try {
