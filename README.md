@@ -26,10 +26,10 @@ Once the containers are running, the following services are accessible via **loc
 
 | Service | URL | Description |
 | :--- | :--- | :--- |
-| **Web Application** | [http://localhost](http://localhost) | Main Single-Page Application (SPA). |
-| **Grafana** | [http://localhost/grafana](http://localhost/grafana) | Real-time system monitoring dashboard. |
-| **Kibana** | [http://localhost/kibana](http://localhost/kibana) | Log visualization and analysis (ELK Stack). |
-| **Vault** | [http://localhost/vault](http://localhost/vault) | Secure secret management and OIDC authority. |
+| **Web Application** | [https://localhost](https://localhost) | Main Single-Page Application (SPA). |
+| **Grafana** | [https://localhost/grafana](https://localhost/grafana) | Real-time system monitoring dashboard. |
+| **Kibana** | [https://localhost/kibana](https://localhost/kibana) | Log visualization and analysis (ELK Stack). |
+| **Vault** | [https://localhost/vault](https://localhost/vault) | Secure secret management and OIDC authority. |
 
 > **⚠️ Important:** On the first launch, **HashiCorp Vault** automatically generates access credentials. You can find the Root Token, Unseal keys, and monitoring admin accounts in the `vault_access/` folder at the root of the project.
 
@@ -48,7 +48,7 @@ This project adheres to the specific technical constraints defined in the subjec
 * **Security:**
     * Secrets (API keys, credentials, env variables) managed by **HashiCorp Vault**.
     * Protection against SQL injections and XSS attacks.
-    * All connections secured via **HTTPS**.
+    * All connections secured via **httpsS**.
 
 ---
 
