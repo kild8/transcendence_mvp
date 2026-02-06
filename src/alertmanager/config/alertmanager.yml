@@ -1,0 +1,12 @@
+global:
+  resolve_timeout: 1m
+
+# route:
+#   receiver: 'discord-alerts'
+
+# receivers:
+# - name: 'discord-alerts'
+#   webhook_configs:
+#   - url: 'http://alertmanager-discord:9094'
+#     send_resolved: true
+

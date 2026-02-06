@@ -1,6 +1,11 @@
-FROM docker.elastic.co/logstash/logstash:8.11.0
+FROM docker.elastic.co/logstash/logstash-wolfi:9.2.4
 
-WORKDIR /usr/share/logstash/pipeline
+COPY config/logstash.conf /usr/share/logstash/pipeline/logstash.conf
 
-COPY logstash.conf logstash.conf
+USER root
 
+COPY --chmod=+x startup_scripts/. /usr/local/bin/.
+
+USER 1000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

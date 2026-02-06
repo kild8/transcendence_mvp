@@ -1,5 +1,11 @@
-FROM  docker.elastic.co/beats/filebeat:9.2.4
+FROM  docker.elastic.co/beats/filebeat-wolfi:9.2.4
 
-WORKDIR /usr/share/filebeat
+COPY --chown=root:filebeat config/filebeat.yml /usr/share/filebeat/filebeat.yml
 
-COPY filebeat.yml filebeat.yml
+USER root
+
+COPY --chmod=+x startup_scripts/. /usr/local/bin/.
+
+USER 1000
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]

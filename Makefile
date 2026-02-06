@@ -1,35 +1,50 @@
-VOLUME_FOLDER								= ./volumes
-PROJECT_NAME								= transcendence
-DOCKER_COMPOSE_FILE					?= ./docker-compose.yml
-SECRET_FOLDER								= secrets
-NGINX_SERVER_CRT_FILE				= ${SECRET_FOLDER}/nginx_server_crt.txt
-NGINX_SERVER_KEY_FILE				= ${SECRET_FOLDER}/nginx_server_key.txt
+PROJECT_NAME			:=	transcendence
+DOCKER_COMPOSE_FILE		:=	$(CURDIR)/docker-compose.yml
+VAULT_ACCESS_DIR_PATH	:=	$(CURDIR)/vault_access
+SECRETS_DIR_PATH		:= 	$(CURDIR)/secrets
+DOCKER_COMPOSE_COMMAND	:=	SECRETS_DIR_PATH=$(SECRETS_DIR_PATH) \
+							VAULT_ACCESS_DIR_PATH=$(VAULT_ACCESS_DIR_PATH) \
+							docker compose -f $(DOCKER_COMPOSE_FILE) -p $(PROJECT_NAME)
+
+RESTART_TARGET			?=	none
 
 up:
-	mkdir -p ${SECRET_FOLDER}
-#Generate Certificates
-	if [ ! "$$(ls ${SECRET_FOLDER} | grep nginx)" ]; then \
-		openssl req -x509 -newkey rsa:2048 -noenc -keyout ${NGINX_SERVER_KEY_FILE} -out ${NGINX_SERVER_CRT_FILE} -days 3650 -subj "/C=CH/ST=Vaud/L=Lausanne/O=webforge/OU=cyber/CN=localhost" -addext "subjectAltName=DNS:localhost,DNS:localhost,DNS:127.0.0.1"; \
-	fi
-
-#	chown -R $(USER):$(USER) ${SECRET_FOLDER}
-	chmod 777 -R ${SECRET_FOLDER}
-
-	docker compose -f $(DOCKER_COMPOSE_FILE) -p ${PROJECT_NAME} up -d --build
+	@$(DOCKER_COMPOSE_COMMAND) up -d --build
+	@echo Done
 
 down:
-	docker compose -f $(DOCKER_COMPOSE_FILE) -p ${PROJECT_NAME} down
+	@$(DOCKER_COMPOSE_COMMAND) down
 
-clear:
-	docker compose -f $(DOCKER_COMPOSE_FILE) -p ${PROJECT_NAME} down --rmi all -v
-	if [ $$(docker volume ls -q | grep transcendence) ]; then \
-		docker volume rm $$(docker volume ls -q | grep transcendence); \
+clear-images:
+	@$(DOCKER_COMPOSE_COMMAND) down --rmi all
+
+clear-volumes:
+	@docker volume prune -f
+	@if docker volume ls -q | grep -q $(PROJECT_NAME); then \
+		docker volume rm $$(docker volume ls -q | grep $(PROJECT_NAME)); \
 	fi
-
+	@echo Done
 peek:
-	docker container ls -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-	docker network ls
-	docker volume ls
+	@docker container ls -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+	@docker network ls --format "table {{.Name}}\t{{.Driver}}" | grep -v -E '^(bridge|host|none|Network_Name)'
+	@docker volume ls
 
+dev-kill:
+	@$(DOCKER_COMPOSE_COMMAND) kill
+	@$(DOCKER_COMPOSE_COMMAND) down
 
-.PHONY: up down clear peek
+dev-rs:
+	@if [ "$(RESTART_TARGET)" = "" ] || [ "$(RESTART_TARGET)" = "none" ]; then \
+		echo "Error: Please specify a target (ex: make restart RESTART_TARGET=grafana)"; \
+		exit 1; \
+	fi
+	@$(DOCKER_COMPOSE_COMMAND) kill $(RESTART_TARGET)
+	@$(DOCKER_COMPOSE_COMMAND) rm -f $(RESTART_TARGET)
+	@docker volume rm $$(docker volume ls -q --filter name=$(PROJECT_NAME)_$(RESTART_TARGET)) 2>/dev/null || true
+	@$(DOCKER_COMPOSE_COMMAND) up -d --build $(RESTART_TARGET)
+
+dev-cl: dev-kill clear-volumes
+
+dev-rb: dev-kill clear-volumes up
+
+.PHONY: up down clear-volumes peek dev-rs dev-kill dev-cl dev-rs

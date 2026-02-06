@@ -1,0 +1,32 @@
+services:
+  vault-agent-logstash:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-agent-logstash
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-agent-logstash-data:/vault/file
+      - vault-agent-logstash-logs:/vault/logs
+      - vault-agent-logstash-id:/vault/approle
+      - logstash-vault-secrets:/vault/secrets:rw
+    command: ["vault", "agent", "-config=/vault/config/agent.hcl"]
+    networks:
+      - transcendence_nw
+    healthcheck:
+      test: 
+        - "CMD-SHELL"
+        - |
+          test -f /vault/secrets/logstash.crt && \
+          test -f /vault/secrets/logstash.key && \
+          test -f /vault/secrets/ca.crt && \
+          test -f /vault/secrets/logstash_system_password
+      interval: 3s
+      retries: 12
+#port 8200
+
+volumes:
+  vault-agent-logstash-data:
+  vault-agent-logstash-logs:

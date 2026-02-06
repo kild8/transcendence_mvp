@@ -4,13 +4,19 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: nodejs-backend
-    restart: unless-stopped
+    restart: on-failure
     volumes:
       - nodejs-backend-data:/app/data
       - nodejs-backend-uploads:/app/uploads
+      - nodejs-backend-vault-secrets:/vault/secrets:ro
+    depends_on:
+      vault-agent-nodejs-backend:
+        condition: service_healthy
     networks:
       - transcendence_nw
 
 volumes:
   nodejs-backend-data:
   nodejs-backend-uploads:
+
+#port 3000

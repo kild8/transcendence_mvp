@@ -4,10 +4,25 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: kibana
-    restart: unless-stopped
+    restart: on-failure
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=512
+    volumes:
+      - kibana-data:/usr/share/kibana/data
+      - kibana-config:/usr/share/kibana/config
+      - kibana-vault-secrets:/usr/share/kibana/config/secrets:ro
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
+      vault-server:
+        condition: service_healthy
+      vault-agent-kibana:
+        condition: service_healthy
     networks:
       - transcendence_nw
 
 #port 5601
+
+volumes:
+  kibana-data:
+  kibana-config:

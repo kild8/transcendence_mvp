@@ -1,0 +1,45 @@
+services:
+  vault-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-server
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-server-data:/vault/file
+      - vault-server-logs:/vault/logs
+      - vault-agent-nginx-frontend-id:/vault_agents_ids/nginx-frontend
+      - vault-agent-elasticsearch-id:/vault_agents_ids/elasticsearch
+      - vault-agent-kibana-id:/vault_agents_ids/kibana
+      - vault-agent-nodejs-backend-id:/vault_agents_ids/nodejs-backend
+      - vault-agent-grafana-id:/vault_agents_ids/grafana
+      - vault-agent-logstash-id:/vault_agents_ids/logstash
+      - vault-agent-filebeat-id:/vault_agents_ids/filebeat
+      - vault-agent-vault-server-id:/vault_agents_ids/vault-server
+      - vault-server-vault-secrets:/vault/secrets:ro
+      - ${VAULT_ACCESS_DIR_PATH}:/vault/access
+    command:
+      - server
+    networks:
+      - transcendence_nw
+    secrets:
+      - google_auth_client_id
+      - google_auth_secret_id
+    healthcheck:
+      test: test -f /vault/file/.vault_certs_healthy
+      interval: 3s
+      retries: 12
+
+secrets:
+  google_auth_client_id:
+    file: ${SECRETS_DIR_PATH}/google_auth_client_id.txt
+  google_auth_secret_id:
+    file: ${SECRETS_DIR_PATH}/google_auth_secret_id.txt
+
+#port 8200
+
+volumes:
+  vault-server-data:
+  vault-server-logs:

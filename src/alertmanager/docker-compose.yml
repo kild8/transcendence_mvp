@@ -1,0 +1,18 @@
+services:
+  alertmanager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: alertmanager
+    restart: on-failure
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--log.format=json"
+      - "--log.level=info"
+    volumes:
+      - alertmanager-data:/alertmanager
+    networks:
+      - transcendence_nw
+
+volumes:
+  alertmanager-data:

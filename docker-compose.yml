@@ -1,7 +1,48 @@
+# Including each service
 include:
+  - path: './src/alertmanager/docker-compose.yml'
+  - path: './src/kibana/docker-compose.yml'
   - path: './src/nodejs-backend/docker-compose.yml'
+  - path: './src/cadvisor/docker-compose.yml'
+  - path: './src/elasticsearch/docker-compose.yml'
+  - path: './src/logstash/docker-compose.yml'
+  - path: './src/node-exporter/docker-compose.yml'
+  - path: './src/grafana/docker-compose.yml'
   - path: './src/nginx-frontend/docker-compose.yml'
+  - path: './src/prometheus/docker-compose.yml'
+  - path: './src/filebeat/docker-compose.yml'
+  - path: './src/vault-server/docker-compose.yml'
+  - path: './src/vault-agent-kibana/docker-compose.yml'
+  - path: './src/vault-agent-elasticsearch/docker-compose.yml'
+  - path: './src/vault-agent-nginx-frontend/docker-compose.yml'
+  - path: './src/vault-agent-nodejs-backend/docker-compose.yml'
+  - path: './src/vault-agent-grafana/docker-compose.yml'
+  - path: './src/vault-agent-logstash/docker-compose.yml'
+  - path: './src/vault-agent-filebeat/docker-compose.yml'
+  - path: './src/vault-agent-vault-server/docker-compose.yml'
 
+# Shared volumes by some containers definition
+volumes:
+  #Shared Vault - Vault agents
+  vault-agent-kibana-id:
+  vault-agent-nginx-frontend-id:
+  vault-agent-elasticsearch-id:
+  vault-agent-nodejs-backend-id:
+  vault-agent-grafana-id:
+  vault-agent-logstash-id:
+  vault-agent-filebeat-id:
+  vault-agent-vault-server-id:
+  #Shared Vault agents - services
+  kibana-vault-secrets:
+  nginx-frontend-vault-secrets:
+  elasticsearch-vault-secrets:
+  nodejs-backend-vault-secrets:
+  grafana-vault-secrets:
+  logstash-vault-secrets:
+  filebeat-vault-secrets:
+  vault-server-vault-secrets:
+
+# Shared networks definition
 networks:
   transcendence_nw:
     driver: bridge

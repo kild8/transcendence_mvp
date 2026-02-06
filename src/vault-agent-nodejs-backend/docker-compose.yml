@@ -1,0 +1,26 @@
+services:
+  vault-agent-nodejs-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-agent-nodejs-backend
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-agent-nodejs-backend-data:/vault/file
+      - vault-agent-nodejs-backend-logs:/vault/logs
+      - vault-agent-nodejs-backend-id:/vault/approle
+      - nodejs-backend-vault-secrets:/vault/secrets:rw
+    command: ["vault", "agent", "-config=/vault/config/agent.hcl"]
+    networks:
+      - transcendence_nw
+    healthcheck:
+      test: test -f /vault/secrets/google_auth_client_id -a -f /vault/secrets/google_auth_secret_id -a -f
+      interval: 3s
+      retries: 12
+#port 8200
+
+volumes:
+  vault-agent-nodejs-backend-data:
+  vault-agent-nodejs-backend-logs:

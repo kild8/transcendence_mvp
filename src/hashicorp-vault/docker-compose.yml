@@ -1,9 +1,0 @@
-services:
-  hashicorp-vault:
-    image: hashicorp/vault-secrets-operator:1.1
-    container_name: hashicorp-vault
-    restart: unless-stopped
-    networks:
-      - transcendence_nw
-
-#port 8200

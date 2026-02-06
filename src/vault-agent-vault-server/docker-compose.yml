@@ -1,0 +1,22 @@
+services:
+  vault-agent-vault-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-agent-vault-server
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-agent-vault-server-data:/vault/file
+      - vault-agent-vault-server-logs:/vault/logs
+      - vault-agent-vault-server-id:/vault/approle
+      - vault-server-vault-secrets:/vault/secrets:rw
+    command: ["vault", "agent", "-config=/vault/config/agent.hcl"]
+    networks:
+      - transcendence_nw
+#port 8200
+
+volumes:
+  vault-agent-vault-server-data:
+  vault-agent-vault-server-logs:

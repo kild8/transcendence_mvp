@@ -4,16 +4,18 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: grafana
-    restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+    restart: on-failure
     volumes:
       - grafana-data:/var/lib/grafana
+      - grafana-vault-secrets:/vault/secrets:ro
     networks:
       - transcendence_nw
+    depends_on:
+      vault-agent-grafana:
+        condition: service_healthy
+
 
 volumes:
   grafana-data:
 
-#port 3000
+#port 3000s

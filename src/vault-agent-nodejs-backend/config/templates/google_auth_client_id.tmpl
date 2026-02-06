@@ -1,0 +1,3 @@
+{{- with secret "kv-secrets/data/google_auth_client_id" -}}
+{{ .Data.data.google_auth_client_id }}
+{{- end -}}

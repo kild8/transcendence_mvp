@@ -4,17 +4,22 @@ services:
       context: .
     container_name: filebeat
     user: root
-    restart: unless-stopped
+    restart: on-failure
     command:
       - '--strict.perms=false'
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - filebeat-registry:/usr/share/filebeat/data:rw
-      - ./test-files:/tmp/filebeat
+      - filebeat-vault-secrets:/usr/share/filebeat/secrets:ro
+      # - ./test-files:/tmp/filebeat
     depends_on:
-      - logstash
-      - elasticsearch
+      vault-agent-filebeat:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      logstash:
+        condition: service_started
     networks:
       - transcendence_nw 
 

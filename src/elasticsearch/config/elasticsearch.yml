@@ -1,0 +1,39 @@
+
+# basic stuff
+cluster.name: "docker-cluster"
+network.host: 0.0.0.0
+discovery.type: single-node
+
+# Setup mutual TLS 
+xpack.security.enabled: true
+xpack.security.http.ssl.enabled: true
+xpack.security.http.ssl.verification_mode: full
+xpack.security.http.ssl.key: "/usr/share/elasticsearch/config/secrets/elasticsearch.key"
+xpack.security.http.ssl.certificate: "/usr/share/elasticsearch/config/secrets/elasticsearch.crt"
+xpack.security.http.ssl.certificate_authorities: ["/usr/share/elasticsearch/config/secrets/ca.crt"]
+xpack.security.http.ssl.client_authentication: required
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.verification_mode: full
+xpack.security.transport.ssl.key: "/usr/share/elasticsearch/config/secrets/elasticsearch.key"
+xpack.security.transport.ssl.certificate: "/usr/share/elasticsearch/config/secrets/elasticsearch.crt"
+xpack.security.transport.ssl.certificate_authorities: ["/usr/share/elasticsearch/config/secrets/ca.crt"]
+
+# Setup oidc
+xpack.security.authc.token.enabled: true
+xpack.security.authc.realms.oidc.oidc-vault:
+  order: 2
+  rp.requested_scopes: ["openid", "user", "groups"]
+  rp.client_id: "${VAULT_CLIENT_ID}"
+  rp.response_type: code
+  rp.redirect_uri: "https://localhost/kibana/api/security/oidc/callback"
+  op.issuer: "https://vault-server:8200/v1/identity/oidc/provider/my-provider"
+  op.jwkset_path: "https://vault-server:8200/v1/identity/oidc/provider/my-provider/.well-known/keys"
+  op.authorization_endpoint: "https://localhost/vault/ui/vault/identity/oidc/provider/my-provider/authorize"
+  op.token_endpoint: "https://vault-server:8200/v1/identity/oidc/provider/my-provider/token"
+  op.userinfo_endpoint: "https://vault-server:8200/v1/identity/oidc/provider/my-provider/userinfo"
+  ssl.certificate_authorities: ["/usr/share/elasticsearch/config/secrets/ca.crt"]
+  # op.jwkset_path: oidc/jwkset.json
+  claims.principal: sub
+  claims.mail: contact.email
+  claims.name: username
+  claims.groups: groups

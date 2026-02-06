@@ -1,0 +1,31 @@
+services:
+  vault-agent-filebeat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-agent-filebeat
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-agent-filebeat-data:/vault/file
+      - vault-agent-filebeat-logs:/vault/logs
+      - vault-agent-filebeat-id:/vault/approle
+      - filebeat-vault-secrets:/vault/secrets:rw
+    command: ["vault", "agent", "-config=/vault/config/agent.hcl"]
+    networks:
+      - transcendence_nw
+    healthcheck:
+      test: 
+        - "CMD-SHELL"
+        - |
+          test -f /vault/secrets/filebeat.crt && \
+          test -f /vault/secrets/filebeat.key && \
+          test -f /vault/secrets/ca.crt
+      interval: 3s
+      retries: 12
+#port 8200
+
+volumes:
+  vault-agent-filebeat-data:
+  vault-agent-filebeat-logs:

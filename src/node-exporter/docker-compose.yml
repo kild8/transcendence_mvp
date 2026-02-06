@@ -2,7 +2,7 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.10.2
     container_name: node-exporter
-    restart: unless-stopped
+    restart: on-failure
     network_mode: host
     pid: host
     volumes:
@@ -10,6 +10,7 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--log.format=json"

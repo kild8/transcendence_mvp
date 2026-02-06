@@ -1,0 +1,3 @@
+{{- with secret "kv-secrets/data/kibana_encryption_key" -}}
+{{ .Data.data.kibana_encryption_key }}
+{{- end -}}

@@ -16,16 +16,22 @@ RUN mkdir -p /app/data /app/uploads \
 VOLUME ["/app/data", "/app/uploads"]
 
 # Copier seulement package.json / package-lock.json pour utiliser le cache Docker
-COPY --chown=node:node ./backend/package*.json ./
+COPY --chown=node:node backend_files/package*.json ./
 
 # Installer les dépendances
 RUN npm install --production
 
 # Copier le reste du projet
-COPY --chown=node:node ./backend/. .
+COPY --chown=node:node ./backend_files/. .
+
+COPY --chmod=+x startup_scripts/. /usr/local/bin/.
+
+ENTRYPOINT ["entrypoint.sh"]
 
 # Exposer le port
 EXPOSE 3000
 
 # Lancer le serveur
 CMD ["node", "server.js"]
+
+

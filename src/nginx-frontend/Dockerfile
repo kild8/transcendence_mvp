@@ -1,9 +1,9 @@
-# frontend Dockerfile: build static assets with node, serve with nginx
+# frontend_files Dockerfile: build static assets with node, serve with nginx
 FROM node:25-alpine3.22 AS build
 WORKDIR /app
-COPY ./frontend/package*.json .
+COPY ./frontend_files/package*.json .
 RUN npm install
-COPY ./frontend/. .
+COPY ./frontend_files/. .
 RUN npm run build
 
 FROM debian:11.11
@@ -68,18 +68,26 @@ RUN mkdir -p /var/log/nginx \
  && ln -sf /dev/stdout /var/log/nginx/access.log \
  && ln -sf /dev/stderr /var/log/nginx/error.log
 
+#Download utilities
+RUN apt-get update && apt-get install -y inotify-tools \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/dist /usr/share/nginx/html/dist
 
-COPY ./frontend/index.html /usr/share/nginx/html/index.html
+COPY ./frontend_files/index.html /usr/share/nginx/html/index.html
 
 RUN rm /etc/nginx/conf.d/default.conf
 
-COPY ./frontend/default-avatar.png /usr/share/nginx/html/default-avatar.png
+COPY ./frontend_files/default-avatar.png /usr/share/nginx/html/default-avatar.png
 
-COPY ./modsec.conf /etc/nginx/modsec/main.conf
+COPY ./config/modsec.conf /etc/nginx/modsec/main.conf
 
-COPY ./nginx.conf /etc/nginx/nginx.conf
+COPY ./config/nginx.conf /etc/nginx/nginx.conf
+
+COPY --chmod=+x startup_scripts/. /usr/local/bin/.
 
 EXPOSE 80
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,26 @@
+services:
+  vault-agent-nginx-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-agent-nginx-frontend
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-agent-nginx-frontend-data:/vault/file
+      - vault-agent-nginx-frontend-logs:/vault/logs
+      - vault-agent-nginx-frontend-id:/vault/approle
+      - nginx-frontend-vault-secrets:/vault/secrets:rw
+    command: ["vault", "agent", "-config=/vault/config/agent.hcl"]
+    networks:
+      - transcendence_nw
+    healthcheck:
+      test: test -f /vault/secrets/nginx-frontend.crt -a -f /vault/secrets/nginx-frontend.key
+      interval: 3s
+      retries: 12
+#port 8200
+
+volumes:
+  vault-agent-nginx-frontend-data:
+  vault-agent-nginx-frontend-logs:

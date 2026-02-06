@@ -1,0 +1,37 @@
+services:
+  vault-agent-elasticsearch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-agent-elasticsearch
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-agent-elasticsearch-data:/vault/file
+      - vault-agent-elasticsearch-logs:/vault/logs
+      - vault-agent-elasticsearch-id:/vault/approle
+      - elasticsearch-vault-secrets:/vault/secrets:rw
+    command: ["vault", "agent", "-config=/vault/config/agent.hcl"]
+    networks:
+      - transcendence_nw
+    healthcheck:
+      test: 
+        - "CMD-SHELL"
+        - |
+          test -f /vault/secrets/elasticsearch.crt && \
+          test -f /vault/secrets/elasticsearch.key && \
+          test -f /vault/secrets/ca.crt && \
+          test -f /vault/secrets/client-id && \
+          test -f /vault/secrets/client-secret && \
+          test -f /vault/secrets/elastic_password && \
+          test -f /vault/secrets/kibana_system_password && \
+          test -f /vault/secrets/logstash_system_password
+      interval: 3s
+      retries: 12
+
+#port 8200
+
+volumes:
+  vault-agent-elasticsearch-data:
+  vault-agent-elasticsearch-logs:

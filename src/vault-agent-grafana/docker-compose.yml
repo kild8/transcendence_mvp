@@ -1,0 +1,27 @@
+services:
+  vault-agent-grafana:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-agent-grafana
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-agent-grafana-data:/vault/file
+      - vault-agent-grafana-logs:/vault/logs
+      - vault-agent-grafana-id:/vault/approle
+      - grafana-vault-secrets:/vault/secrets:rw
+    command: ["vault", "agent", "-config=/vault/config/agent.hcl"]
+    networks:
+      - transcendence_nw
+    healthcheck:
+      test: test -f /vault/secrets/client-id -a -f /vault/secrets/client-secret
+      interval: 3s
+      retries: 12
+
+#port 8200
+
+volumes:
+  vault-agent-grafana-data:
+  vault-agent-grafana-logs:

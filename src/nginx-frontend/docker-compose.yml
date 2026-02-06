@@ -4,21 +4,35 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: nginx-frontend
+    restart: on-failure
     ports:
-      - "8080:8080"
+      - "80:80"
       - "443:443"
     networks:
       - transcendence_nw
-    secrets:
-      - nginx_server_crt
-      - nginx_server_key
+    # secrets:
+    #   - nginx_server_crt
+    #   - nginx_server_key
+    volumes:
+      - nginx-frontend-vault-secrets:/vault/secrets:ro
     depends_on:
-      - nodejs-backend
+      nodejs-backend:
+        condition: service_started
+      grafana:
+        condition: service_started
+      kibana:
+        condition: service_started
+      prometheus:
+        condition: service_started
+      vault-server:
+        condition: service_started
+      vault-agent-nginx-frontend:
+        condition: service_healthy
 
-secrets:
-  nginx_server_crt:
-    file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_crt.txt
-  nginx_server_key:
-    file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_key.txt
+# secrets:
+#   nginx_server_crt:
+#     file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_crt.txt
+#   nginx_server_key:
+#     file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_key.txt
 
 #port 80 443 any

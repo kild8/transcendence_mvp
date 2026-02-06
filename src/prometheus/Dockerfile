@@ -1,9 +1,7 @@
 FROM prom/prometheus:v3.8.1
 
-WORKDIR /etc/prometheus
+COPY config/prometheus.yml /etc/prometheus/prometheus.yml
 
-COPY prometheus.yml prometheus.yml
+COPY config/alerts.yml /etc/prometheus/alerts.yml
 
-COPY alerts.yml alerts.yml
-
-COPY container_rules.yml container_rules.yml
+COPY config/container_rules.yml /etc/prometheus/container_rules.yml
