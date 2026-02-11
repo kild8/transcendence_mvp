@@ -18,6 +18,7 @@ services:
       - vault-agent-logstash-id:/vault_agents_ids/logstash
       - vault-agent-filebeat-id:/vault_agents_ids/filebeat
       - vault-agent-vault-server-id:/vault_agents_ids/vault-server
+      - vault-agent-alertmanager-id:/vault_agents_ids/alertmanager
       - vault-server-vault-secrets:/vault/secrets:ro
       - ${VAULT_ACCESS_DIR_PATH}:/vault/access
     command:
@@ -27,6 +28,7 @@ services:
     secrets:
       - google_auth_client_id
       - google_auth_secret_id
+      - discord_webhook_url
     healthcheck:
       test: test -f /vault/file/.vault_certs_healthy
       interval: 3s
@@ -37,6 +39,8 @@ secrets:
     file: ${SECRETS_DIR_PATH}/google_auth_client_id.txt
   google_auth_secret_id:
     file: ${SECRETS_DIR_PATH}/google_auth_secret_id.txt
+  discord_webhook_url:
+    file: ${SECRETS_DIR_PATH}/discord_webhook_url.txt
 
 #port 8200
 

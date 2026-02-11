@@ -21,19 +21,12 @@ auto_auth {
 }
 
 template {
-  source      = "/vault/templates/nginx-frontend.crt.tmpl"
-  destination = "/vault/secrets/nginx-frontend.crt"
-  command     = "chown vault:101 /vault/secrets/nginx-frontend.crt"
-}
-
-template {
-  source      = "/vault/templates/nginx-frontend.key.tmpl"
-  destination = "/vault/secrets/nginx-frontend.key"
-  command     = "chown vault:101 /vault/secrets/nginx-frontend.key"
-}
-
-template {
-  source      = "/vault/templates/ca.crt.tmpl"
-  destination = "/vault/secrets/ca.crt"
-  command     = "chown vault:1000 /vault/secrets/ca.crt"
+  source      = "/vault/templates/certificate.tmpl"
+  destination = "/vault/secrets/certificate.json"
+  command     = <<-EOH
+    jq -r '.certificate' /vault/secrets/certificate.json > /vault/secrets/nginx-frontend.crt && \
+    jq -r '.private_key' /vault/secrets/certificate.json > /vault/secrets/nginx-frontend.key && \
+    jq -r '.issuing_ca'  /vault/secrets/certificate.json > /vault/secrets/ca.crt && \
+    chmod 644 /vault/secrets/nginx-frontend.* /vault/secrets/ca.crt
+  EOH
 }

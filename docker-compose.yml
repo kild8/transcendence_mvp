@@ -20,6 +20,7 @@ include:
   - path: './src/vault-agent-logstash/docker-compose.yml'
   - path: './src/vault-agent-filebeat/docker-compose.yml'
   - path: './src/vault-agent-vault-server/docker-compose.yml'
+  - path: './src/vault-agent-alertmanager/docker-compose.yml'
 
 # Shared volumes by some containers definition
 volumes:
@@ -32,6 +33,7 @@ volumes:
   vault-agent-logstash-id:
   vault-agent-filebeat-id:
   vault-agent-vault-server-id:
+  vault-agent-alertmanager-id:
   #Shared Vault agents - services
   kibana-vault-secrets:
   nginx-frontend-vault-secrets:
@@ -41,6 +43,7 @@ volumes:
   logstash-vault-secrets:
   filebeat-vault-secrets:
   vault-server-vault-secrets:
+  alertmanager-vault-secrets:
 
 # Shared networks definition
 networks:

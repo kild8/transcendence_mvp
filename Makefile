@@ -29,6 +29,11 @@ peek:
 	@docker network ls --format "table {{.Name}}\t{{.Driver}}" | grep -v -E '^(bridge|host|none|Network_Name)'
 	@docker volume ls
 
+dev-start:
+	@$(DOCKER_COMPOSE_COMMAND) start $(RESTART_TARGET)
+dev-stop:
+	@$(DOCKER_COMPOSE_COMMAND) stop $(RESTART_TARGET)
+
 dev-kill:
 	@$(DOCKER_COMPOSE_COMMAND) kill
 	@$(DOCKER_COMPOSE_COMMAND) down

@@ -1,0 +1,3 @@
+{{- with secret "kv-secrets/data/discord_webhook_url" -}}
+{{ .Data.data.discord_webhook_url }}
+{{- end -}}

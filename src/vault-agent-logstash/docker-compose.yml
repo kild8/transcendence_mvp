@@ -22,7 +22,7 @@ services:
           test -f /vault/secrets/logstash.crt && \
           test -f /vault/secrets/logstash.key && \
           test -f /vault/secrets/ca.crt && \
-          test -f /vault/secrets/logstash_system_password
+          test -f /vault/secrets/logstash_internal_password
       interval: 3s
       retries: 12
 #port 8200

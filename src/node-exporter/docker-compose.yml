@@ -1,6 +1,8 @@
 services:
   node-exporter:
-    image: prom/node-exporter:v1.10.2
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: node-exporter
     restart: on-failure
     network_mode: host
@@ -14,3 +16,4 @@ services:
       - "--path.sysfs=/host/sys"
       - "--path.rootfs=/rootfs"
       - "--log.format=json"
+      - "--collector.textfile.directory=/var/lib/node_exporter/textfile_collector"

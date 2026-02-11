@@ -5,8 +5,8 @@
 # This may be undesirable, especially if logstash.yml is bind-mounted from the
 # host system.
 
-export LOGSTASH_USER=logstash_system
-export LOGSTASH_PASSWORD=$(cat /usr/share/logstash/config/secrets/logstash_system_password)
+export LOGSTASH_USER=logstash_internal
+export LOGSTASH_PASSWORD=$(cat /usr/share/logstash/config/secrets/logstash_internal_password)
 
 env2yaml /usr/share/logstash/config/logstash.yml
 

@@ -5,14 +5,13 @@ services:
     container_name: filebeat
     user: root
     restart: on-failure
-    command:
-      - '--strict.perms=false'
+    command: ["filebeat", "-e", "--strict.perms=false"]
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - filebeat-registry:/usr/share/filebeat/data:rw
       - filebeat-vault-secrets:/usr/share/filebeat/secrets:ro
-      # - ./test-files:/tmp/filebeat
+      - ./test-files:/tmp/filebeat-logs
     depends_on:
       vault-agent-filebeat:
         condition: service_healthy

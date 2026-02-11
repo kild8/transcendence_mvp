@@ -1,3 +1,3 @@
 {{- with secret "pki/issue/nginx-frontend" "common_name=nginx-frontend" -}}
-{{ .Data.certificate }}
+{{ .Data | toJSON }}
 {{- end -}}

@@ -12,66 +12,39 @@ filebeat.inputs:
     processors:
       - add_docker_metadata:
           host: "unix:///var/run/docker.sock"
-
-processors:
-  - drop_fields:
-      fields:
-        - container.id
-        - agent
-        - log
-        - host
-  - script:
-      lang: javascript
-      source: >
-        function process(event) {
-          var keep = ["com_docker_compose_service", "com_docker_compose_version", "com_docker_compose_project"];
-          var container_labels = event.Get("container.labels")
-          for (var i in container_labels) {
-            if (keep.indexOf(i) === -1) {
-              delete container_labels[i];
+      - drop_fields:
+          fields:
+            - container.id
+            - agent
+            - log
+            - host
+      - script:
+          lang: javascript
+          source: >
+            function process(event) {
+              var keep = ["com_docker_compose_service", "com_docker_compose_version", "com_docker_compose_project"];
+              var container_labels = event.Get("container.labels")
+              for (var i in container_labels) {
+                if (keep.indexOf(i) === -1) {
+                  delete container_labels[i];
+                }
+              }
             }
-          }
-        }
+
+
+# output.file:
+#   path: "/tmp/filebeat-logs"
+#   filename: "docker.log"
+#   rotate_every_kb: 10240
+#   number_of_files: 3
+#   codec.json:
+#     pretty: true
 
 output.logstash:
   enabled: true
   codec.json:
     pretty: true
-  hosts: ["https://logstash:5044"]
+  hosts: ["logstash:5044"]
   ssl.certificate_authorities: ["/usr/share/filebeat/secrets/ca.crt"]
   ssl.certificate: "/usr/share/filebeat/secrets/filebeat.crt"
   ssl.key: "/usr/share/filebeat/secrets/filebeat.key"
-
-# output.file:
-#   enabled: true
-#   codec.json:
-#     pretty: true
-#   permissions: 0666
-#   path: "/tmp/filebeat"
-#   filename: filebeat.txt
-
-
-# filebeat.inputs:
-# - type: filestream
-#   id: docker-logs
-#   enabled: true
-#   paths:
-#     - /var/lib/docker/containers/*/*.log
-#   parsers:
-#     - container:
-#         stream: stdout
-#         format: docker
-#   symlinks: true
-#   processors:
-#     - decode_json_fields:
-#         fields: ["message"]
-#         target: ""
-#         overwrite_keys: true
-#     - drop_fields:
-#         fields: ["host", "agent", "ecs", "input", "container", "@metadata"]
-
-# output.logstash:
-#   hosts: ["logstash:5044"]
-
-# output.elasticsearch:
-#   hosts: ["http://elasticsearch:9200"]

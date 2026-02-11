@@ -21,25 +21,18 @@ auto_auth {
 }
 
 template {
-  source      = "/vault/templates/logstash.crt.tmpl"
-  destination = "/vault/secrets/logstash.crt"
-  command     = "chown vault:1000 /vault/secrets/logstash.crt"
+  source      = "/vault/templates/certificate.tmpl"
+  destination = "/vault/secrets/certificate.json"
+  command     = <<-EOH
+    jq -r '.certificate' /vault/secrets/certificate.json > /vault/secrets/logstash.crt && \
+    jq -r '.private_key' /vault/secrets/certificate.json > /vault/secrets/logstash.key && \
+    jq -r '.issuing_ca'  /vault/secrets/certificate.json > /vault/secrets/ca.crt && \
+    chmod 644 /vault/secrets/logstash.* /vault/secrets/ca.crt
+  EOH
 }
 
 template {
-  source      = "/vault/templates/logstash.key.tmpl"
-  destination = "/vault/secrets/logstash.key"
-  command     = "chown vault:1000 /vault/secrets/logstash.key"
-}
-
-template {
-  source      = "/vault/templates/ca.crt.tmpl"
-  destination = "/vault/secrets/ca.crt"
-  command     = "chown vault:1000 /vault/secrets/ca.crt"
-}
-
-template {
-  source      = "/vault/templates/logstash_system_password.tmpl"
-  destination = "/vault/secrets/logstash_system_password"
-  command     = "chown vault:1000 /vault/secrets/logstash_system_password"
+  source      = "/vault/templates/logstash_internal_password.tmpl"
+  destination = "/vault/secrets/logstash_internal_password"
+  command     = "chown vault:1000 /vault/secrets/logstash_internal_password"
 }

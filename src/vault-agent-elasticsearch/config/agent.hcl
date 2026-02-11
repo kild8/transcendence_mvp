@@ -21,21 +21,14 @@ auto_auth {
 }
 
 template {
-  source      = "/vault/templates/elasticsearch.crt.tmpl"
-  destination = "/vault/secrets/elasticsearch.crt"
-  command     = "chown vault:1000 /vault/secrets/elasticsearch.crt"
-}
-
-template {
-  source      = "/vault/templates/elasticsearch.key.tmpl"
-  destination = "/vault/secrets/elasticsearch.key"
-  command     = "chown vault:1000 /vault/secrets/elasticsearch.key"
-}
-
-template {
-  source      = "/vault/templates/ca.crt.tmpl"
-  destination = "/vault/secrets/ca.crt"
-  command     = "chown vault:1000 /vault/secrets/ca.crt"
+  source      = "/vault/templates/certificate.tmpl"
+  destination = "/vault/secrets/certificate.json"
+  command     = <<-EOH
+    jq -r '.certificate' /vault/secrets/certificate.json > /vault/secrets/elasticsearch.crt && \
+    jq -r '.private_key' /vault/secrets/certificate.json > /vault/secrets/elasticsearch.key && \
+    jq -r '.issuing_ca'  /vault/secrets/certificate.json > /vault/secrets/ca.crt && \
+    chmod 644 /vault/secrets/elasticsearch.* /vault/secrets/ca.crt
+  EOH
 }
 
 template {
@@ -63,7 +56,7 @@ template {
 }
 
 template {
-  source      = "/vault/templates/logstash_system_password.tmpl"
-  destination = "/vault/secrets/logstash_system_password"
-  command     = "chown vault:1000 /vault/secrets/logstash_system_password"
+  source      = "/vault/templates/logstash_internal_password.tmpl"
+  destination = "/vault/secrets/logstash_internal_password"
+  command     = "chown vault:1000 /vault/secrets/logstash_internal_password"
 }

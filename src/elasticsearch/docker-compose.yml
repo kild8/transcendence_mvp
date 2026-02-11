@@ -12,7 +12,7 @@ services:
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
       - elasticsearch-config:/usr/share/elasticsearch/config
-      - elasticsearch-vault-secrets:/usr/share/elasticsearch/config/secrets:ro
+      - elasticsearch-vault-secrets:/usr/share/elasticsearch/config/secrets:rw
     ports:
       - "9200:9200"
     depends_on:

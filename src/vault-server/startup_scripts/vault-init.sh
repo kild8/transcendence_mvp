@@ -21,7 +21,7 @@ MONITORING_ADMIN_PHONE=+336$(tr -dc '0-9' < /dev/urandom | head -c 9)
 
 ELASTICSEARCH_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
 KIBANA_SYSTEM_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
-LOGSTASH_SYSTEM_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
+LOGSTASH_INTERNAL_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
 
 KIBANA_ENCRYPTION_KEY=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 NODEJS_BACKEND_JWT_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
@@ -74,11 +74,17 @@ path "pki/issue/vault-server" {
 }
 EOF
 
+vault policy write alertmanager-policy - <<EOF
+path "kv-secrets/+/discord_webhook_url" {
+  capabilities = ["read"]
+}
+EOF
+
 vault policy write logstash-policy - <<EOF
 path "pki/issue/logstash" {
   capabilities = ["create", "update"]
 }
-path "kv-secrets/+/elasticsearch_logstash_system_password" {
+path "kv-secrets/+/elasticsearch_logstash_internal_password" {
   capabilities = ["read"]
 }
 EOF
@@ -114,7 +120,7 @@ path "kv-secrets/+/elasticsearch_elastic_password" {
 path "kv-secrets/+/elasticsearch_kibana_system_password" {
   capabilities = ["read"]
 }
-path "kv-secrets/+/elasticsearch_logstash_system_password" {
+path "kv-secrets/+/elasticsearch_logstash_internal_password" {
   capabilities = ["read"]
 }
 EOF
@@ -185,6 +191,12 @@ vault write auth/approle/role/filebeat \
 
 vault write auth/approle/role/vault-server \
     token_policies="vault-server-policy" \
+    secret_id_ttl=24h \
+    token_ttl=1h \
+    token_max_ttl=4h
+
+vault write auth/approle/role/alertmanager \
+    token_policies="alertmanager-policy" \
     secret_id_ttl=24h \
     token_ttl=1h \
     token_max_ttl=4h
@@ -345,11 +357,12 @@ vault secrets enable -path=kv-secrets -version=2 kv
 
 vault kv put /kv-secrets/google_auth_client_id google_auth_client_id=$(cat /run/secrets/google_auth_client_id)
 vault kv put /kv-secrets/google_auth_secret_id google_auth_secret_id=$(cat /run/secrets/google_auth_secret_id)
+vault kv put /kv-secrets/discord_webhook_url discord_webhook_url=$(cat /run/secrets/discord_webhook_url)
 vault kv put /kv-secrets/kibana_encryption_key kibana_encryption_key=${KIBANA_ENCRYPTION_KEY}
 vault kv put /kv-secrets/nodejs_backend_jwt_secret jwt_secret=${NODEJS_BACKEND_JWT_SECRET}
 vault kv put /kv-secrets/elasticsearch_elastic_password elastic_password=${ELASTICSEARCH_PASSWORD}
 vault kv put /kv-secrets/elasticsearch_kibana_system_password kibana_system_password=${KIBANA_SYSTEM_PASSWORD}
-vault kv put /kv-secrets/elasticsearch_logstash_system_password logstash_system_password=${LOGSTASH_SYSTEM_PASSWORD}
+vault kv put /kv-secrets/elasticsearch_logstash_internal_password logstash_internal_password=${LOGSTASH_INTERNAL_PASSWORD}
 
 #Sending the container/agents ids using shared docker volumes # Should automate for all agent container
 mkdir -p /vault_agents_ids
@@ -361,6 +374,7 @@ mkdir -p /vault_agents_ids/grafana
 mkdir -p /vault_agents_ids/logstash
 mkdir -p /vault_agents_ids/filebeat
 mkdir -p /vault_agents_ids/vault-server
+mkdir -p /vault_agents_ids/alertmanager
 
 echo $(vault read -field=role_id auth/approle/role/nginx-frontend/role-id) > /vault_agents_ids/nginx-frontend/role-id
 echo $(vault read -field=role_id auth/approle/role/kibana/role-id) > /vault_agents_ids/kibana/role-id
@@ -370,6 +384,7 @@ echo $(vault read -field=role_id auth/approle/role/grafana/role-id) > /vault_age
 echo $(vault read -field=role_id auth/approle/role/logstash/role-id) > /vault_agents_ids/logstash/role-id
 echo $(vault read -field=role_id auth/approle/role/filebeat/role-id) > /vault_agents_ids/filebeat/role-id
 echo $(vault read -field=role_id auth/approle/role/vault-server/role-id) > /vault_agents_ids/vault-server/role-id
+echo $(vault read -field=role_id auth/approle/role/alertmanager/role-id) > /vault_agents_ids/alertmanager/role-id
 
 vault write -f auth/approle/role/nginx-frontend/secret-id -format=json | jq -r '.data.secret_id' > /vault_agents_ids/nginx-frontend/secret-id
 vault write -f auth/approle/role/kibana/secret-id -format=json | jq -r '.data.secret_id' > /vault_agents_ids/kibana/secret-id
@@ -379,6 +394,7 @@ vault write -f auth/approle/role/grafana/secret-id -format=json | jq -r '.data.s
 vault write -f auth/approle/role/logstash/secret-id -format=json | jq -r '.data.secret_id' > /vault_agents_ids/logstash/secret-id
 vault write -f auth/approle/role/filebeat/secret-id -format=json | jq -r '.data.secret_id' > /vault_agents_ids/filebeat/secret-id
 vault write -f auth/approle/role/vault-server/secret-id -format=json | jq -r '.data.secret_id' > /vault_agents_ids/vault-server/secret-id
+vault write -f auth/approle/role/alertmanager/secret-id -format=json | jq -r '.data.secret_id' > /vault_agents_ids/alertmanager/secret-id
 
 #Disconecting by removing the granted token
 rm /root/.vault-token

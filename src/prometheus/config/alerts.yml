@@ -1,57 +1,66 @@
-# groups:
-# - name: cadvisor-memory-alerts
-#   rules:
-#   - alert: CadvisorHighMemory
-#     expr: |
-#       (
-#         container_memory_usage_bytes{name="cadvisor"}
-#         - container_memory_cache{name="cadvisor"}
-#       ) > 52428800
-#     labels:
-#       severity: warning
-#     annotations:
-#       summary: "Mémoire élevée pour cAdvisor"
-#       description: "La consommation mémoire de cAdvisor dépasse 50 MB"
-
-
 groups:
-- name: container-health
-  rules:
-  - alert: ContainerDown
-    expr: time() - container_last_seen > 10
-    for: 10s
-    labels:
-      severity: critical
-    annotations:
-      summary: "Container down"
-      description: "Le container {{ $labels.container }} est down depuis plus de 10s"
-- name: container-cpu
-  rules:
-  - alert: ContainerHighCPUComparedToAverage
-    expr: |
-      rate(container_cpu_usage_seconds_total{image!=""}[1m])
-      >
-      avg_over_time(
-        rate(container_cpu_usage_seconds_total{image!=""}[1m])[5m:]
-      ) * 1.5
-    for: 2m
-    labels:
-      severity: warning
-    annotations:
-      summary: "CPU anormalement élevé"
-      description: "CPU du container {{ $labels.container }} > 150% de sa moyenne récente"
-- name: container-memory
-  rules:
-  - alert: ContainerHighMemoryComparedToAverage
-    expr: |
-      container_memory_working_set_bytes{image!=""}
-      >
-      avg_over_time(
-        container_memory_working_set_bytes{image!=""}[5m]
-      ) * 1.5
-    for: 2m
-    labels:
-      severity: warning
-    annotations:
-      summary: "RAM anormalement élevée"
-      description: "RAM du container {{ $labels.container }} > 150% de sa moyenne récente"
+  - name: infrastructure_alerts
+    rules:
+      - alert: ContainerDown
+        expr: container_alive == 0
+        for: 30s
+        keep_firing_for: 2m 
+        labels:
+          severity: critical
+        annotations:
+          description: "The container {{ $labels.name }} did not respond for 30 seconds."
+      - alert: HighMemoryUsage
+        expr: ((node_memory_MemTotal_bytes - node_memory_MemFree_bytes - node_memory_Cached_bytes) / node_memory_MemTotal_bytes) * 100 > 80
+        for: 1m
+        keep_firing_for: 2m
+        labels:
+          severity: warning
+        annotations:
+          description: "The RAM usage has exceeded 80% during the past minute."
+      - alert: HighCPUUsage
+        expr: (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))) * 100 > 80
+        for: 1m
+        keep_firing_for: 2m 
+        labels:
+          severity: warning
+        annotations:
+          description: "The CPU usage has exceeded 80% during the past minute."
+      - alert: HighDiskUsage
+        expr: (1 - node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 > 80
+        for: 1m
+        keep_firing_for: 2m 
+        labels:
+          severity: warning
+        annotations:
+          description: "The disk usage has exceeded 80% during the past minute."
+      - alert: HighAppRequestErrorsRate
+        expr: (sum((increase(http_requests_total{job="nodejs-backend", status=~"4.."}[24h]) or vector(0))) + sum((increase(http_requests_total{job="nodejs-backend", status=~"5.."}[24h]) or vector(0)))) / sum((increase(http_requests_total{job="nodejs-backend"}[24h]))) * 100 > 10
+        for: 1m
+        keep_firing_for: 2m 
+        labels:
+          severity: warning
+        annotations:
+          description: "The error rate of requests has exceeded 10% during the past minute."
+      - alert: HighAppRequestAverageDuration
+        expr: sum(rate(http_request_duration_seconds_sum[30m])) / sum(rate(http_request_duration_seconds_count[30m])) * 1000 > 100
+        for: 1m
+        keep_firing_for: 2m 
+        labels:
+          severity: warning
+        annotations:
+          description: "The average duration of requests has exceeded 100ms during the past minute."
+      - alert: AbnormalExitedGamesSpike
+        expr: increase(exited_games_counter[5m]) > 3 * avg_over_time(increase(exited_games_counter[5m])[1h:5m])
+        for: 1m
+        keep_firing_for: 2m 
+        labels:
+          severity: critical
+        annotations:
+          description: "The rate of deconnections has tripled compared to average last hour (Actual: {{ $value | printf \"%.0f\" }})."
+      - alert: NetworkInterfaceSaturation
+        expr: sum by (name) (rate(container_network_receive_bytes_total{name="nginx-frontend"}[5m])) > 100 * 1024 * 1024
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          description: "Incoming throughput on {{ $labels.name }} is {{ $value | humanize1024 }}B/s (threshold: 100MB/s)."

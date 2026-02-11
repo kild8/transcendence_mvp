@@ -26,7 +26,7 @@ services:
           test -f /vault/secrets/client-secret && \
           test -f /vault/secrets/elastic_password && \
           test -f /vault/secrets/kibana_system_password && \
-          test -f /vault/secrets/logstash_system_password
+          test -f /vault/secrets/logstash_internal_password
       interval: 3s
       retries: 12
 

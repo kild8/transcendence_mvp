@@ -1,0 +1,3 @@
+{{- with secret "pki/issue/logstash" "common_name=logstash" "private_key_format=pkcs8" -}}
+{{ .Data | toJSON }}
+{{- end -}}

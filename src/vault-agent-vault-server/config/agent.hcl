@@ -21,19 +21,12 @@ auto_auth {
 }
 
 template {
-  source      = "/vault/templates/vault-server.crt.tmpl"
-  destination = "/vault/secrets/vault-server.crt"
-  command     = "chown vault:1000 /vault/secrets/vault-server.crt"
-}
-
-template {
-  source      = "/vault/templates/vault-server.key.tmpl"
-  destination = "/vault/secrets/vault-server.key"
-  command     = "chown vault:1000 /vault/secrets/vault-server.key"
-}
-
-template {
-  source      = "/vault/templates/ca.crt.tmpl"
-  destination = "/vault/secrets/ca.crt"
-  command     = "chown vault:1000 /vault/secrets/ca.crt"
+  source      = "/vault/templates/certificate.tmpl"
+  destination = "/vault/secrets/certificate.json"
+  command     = <<-EOH
+    jq -r '.certificate' /vault/secrets/certificate.json > /vault/secrets/vault-server.crt && \
+    jq -r '.private_key' /vault/secrets/certificate.json > /vault/secrets/vault-server.key && \
+    jq -r '.issuing_ca'  /vault/secrets/certificate.json > /vault/secrets/ca.crt && \
+    chmod 644 /vault/secrets/vault-server.* /vault/secrets/ca.crt
+  EOH
 }

@@ -1,0 +1,26 @@
+services:
+  vault-agent-alertmanager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vault-agent-alertmanager
+    restart: on-failure
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - vault-agent-alertmanager-data:/vault/file
+      - vault-agent-alertmanager-logs:/vault/logs
+      - vault-agent-alertmanager-id:/vault/approle
+      - alertmanager-vault-secrets:/vault/secrets:rw
+    command: ["vault", "agent", "-config=/vault/config/agent.hcl"]
+    networks:
+      - transcendence_nw
+    healthcheck:
+      test: test -f /vault/secrets/discord_webhook_url
+      interval: 3s
+      retries: 12
+#port 8200
+
+volumes:
+  vault-agent-alertmanager-data:
+  vault-agent-alertmanager-logs:

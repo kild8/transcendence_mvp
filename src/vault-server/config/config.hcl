@@ -10,6 +10,12 @@ listener "tcp" {
   tls_min_version = "tls12"
 }
 
+telemetry {
+  prometheus_retention_time = "30s"
+  disable_hostname = true
+  unauthenticated_metrics_access = true
+}
+
 storage "file" {
   path = "/vault/file"
 }

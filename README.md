@@ -7,12 +7,14 @@ This project is the final stage of the 42 Common Core. It consists of a web plat
 
 The project is fully containerized using **Docker**. Everything is launched with a single command line to ensure an autonomous environment.
 
-### 1. Prerequisites: Google OIDC Secrets
-To enable authentication via Google, you must set up your credentials at the root of the repository:
+### 1. Prerequisites: Secrets & API Keys
+To enable authentication and alerting, you must set up your credentials in the `secrets` folder at the root of the repository:
+
 1. Create a folder named `secrets`.
-2. Add the following two files:
+2. Add the following files:
    - `secrets/google_auth_client_id.txt` (containing your Google Client ID)
    - `secrets/google_auth_secret_id.txt` (containing your Google Client Secret)
+   - `secrets/discord_webhook_url.txt` (containing your Discord Webhook URL for Prometheus alerts)
 
 ### 2. Deployment Commands
 * **Start the project:** `make up`

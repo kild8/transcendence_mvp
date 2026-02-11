@@ -11,6 +11,10 @@ services:
       - "--log.level=info"
     volumes:
       - alertmanager-data:/alertmanager
+      - alertmanager-vault-secrets:/vault/secrets:ro
+    depends_on:
+      vault-agent-alertmanager:
+        condition: service_healthy
     networks:
       - transcendence_nw
 
