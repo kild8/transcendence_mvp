@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
+exec > /dev/null
 
-if [ ! -d "/vault/data/.initialized" ]; then
 export VAULT_ADDR=https://vault-server:8200
 export VAULT_CACERT="/vault/certs/ca.crt"
 
@@ -23,8 +23,12 @@ ELASTICSEARCH_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
 KIBANA_SYSTEM_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
 LOGSTASH_INTERNAL_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
 
+KIBANA_API_USER=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
+KIBANA_API_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 12)
+
 KIBANA_ENCRYPTION_KEY=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 NODEJS_BACKEND_JWT_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
+
 
 #Waiting for the vault program to be ready to execute commands
 while true; do
@@ -48,6 +52,8 @@ vault operator unseal ${UNSEAL_KEY_1}
 vault operator unseal ${UNSEAL_KEY_2}
 
 vault login ${ROOT_TOKEN}
+
+vault audit enable file file_path=/vault/logs/audit.log logrotate_max_files=5 logrotate_max_size=104857600
 
 # POLICIES SETUP
 vault policy write oidc-auth-${MONITORING_USER_NAME} - << EOF
@@ -102,7 +108,7 @@ path "kv-secrets/+/google_auth_client_id" {
 path "kv-secrets/+/google_auth_secret_id" {
   capabilities = ["read"]
 }
-path "kv-secrets/nodejs_backend_jwt_secret" {
+path "kv-secrets/+/nodejs_backend_jwt_secret" {
   capabilities = ["read"]
 }
 EOF
@@ -123,6 +129,12 @@ path "kv-secrets/+/elasticsearch_kibana_system_password" {
 path "kv-secrets/+/elasticsearch_logstash_internal_password" {
   capabilities = ["read"]
 }
+path "kv-secrets/+/kibana_api_user" {
+  capabilities = ["read"]
+}
+path "kv-secrets/+/kibana_api_password" {
+  capabilities = ["read"]
+}
 EOF
 
 vault policy write kibana-policy - <<EOF
@@ -133,6 +145,12 @@ path "kv-secrets/+/kibana_encryption_key" {
   capabilities = ["read"]
 }
 path "kv-secrets/+/elasticsearch_kibana_system_password" {
+  capabilities = ["read"]
+}
+path "kv-secrets/+/kibana_api_user" {
+  capabilities = ["read"]
+}
+path "kv-secrets/+/kibana_api_password" {
   capabilities = ["read"]
 }
 EOF
@@ -363,6 +381,8 @@ vault kv put /kv-secrets/nodejs_backend_jwt_secret jwt_secret=${NODEJS_BACKEND_J
 vault kv put /kv-secrets/elasticsearch_elastic_password elastic_password=${ELASTICSEARCH_PASSWORD}
 vault kv put /kv-secrets/elasticsearch_kibana_system_password kibana_system_password=${KIBANA_SYSTEM_PASSWORD}
 vault kv put /kv-secrets/elasticsearch_logstash_internal_password logstash_internal_password=${LOGSTASH_INTERNAL_PASSWORD}
+vault kv put /kv-secrets/kibana_api_user kibana_api_user=${KIBANA_API_USER}
+vault kv put /kv-secrets/kibana_api_password kibana_api_password=${KIBANA_API_PASSWORD}
 
 #Sending the container/agents ids using shared docker volumes # Should automate for all agent container
 mkdir -p /vault_agents_ids
@@ -396,8 +416,10 @@ vault write -f auth/approle/role/filebeat/secret-id -format=json | jq -r '.data.
 vault write -f auth/approle/role/vault-server/secret-id -format=json | jq -r '.data.secret_id' > /vault_agents_ids/vault-server/secret-id
 vault write -f auth/approle/role/alertmanager/secret-id -format=json | jq -r '.data.secret_id' > /vault_agents_ids/alertmanager/secret-id
 
+# chown -R vault:vault /vault_agents_ids
+
 #Disconecting by removing the granted token
-rm /root/.vault-token
+# rm /root/.vault-token
 
 #Creating the access file to push outside of the vault container
 cat << EOF > "${REPORT_FILE}"
@@ -442,6 +464,5 @@ listed above at the "Sign in with Vault/OIDC" login prompt.
 ======================================================================
 EOF
 
-chmod 666 "${REPORT_FILE}"
-mkdir -p /vault/data/.initialized
-fi
+# chmod 666 "${REPORT_FILE}"
+touch "/vault/file/.initialized"

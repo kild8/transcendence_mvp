@@ -27,6 +27,7 @@ template {
     jq -r '.certificate' /vault/secrets/certificate.json > /vault/secrets/nginx-frontend.crt && \
     jq -r '.private_key' /vault/secrets/certificate.json > /vault/secrets/nginx-frontend.key && \
     jq -r '.issuing_ca'  /vault/secrets/certificate.json > /vault/secrets/ca.crt && \
-    chmod 644 /vault/secrets/nginx-frontend.* /vault/secrets/ca.crt
+    chmod 644 /vault/secrets/nginx-frontend.* /vault/secrets/ca.crt && \
+    chown vault:1000 /vault/secrets/nginx-frontend.* /vault/secrets/ca.crt
   EOH
 }

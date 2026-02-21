@@ -44,6 +44,9 @@ volumes:
   filebeat-vault-secrets:
   vault-server-vault-secrets:
   alertmanager-vault-secrets:
+  #Shared vault-server filebeat
+  vault-server-logs:
+
 
 # Shared networks definition
 networks:

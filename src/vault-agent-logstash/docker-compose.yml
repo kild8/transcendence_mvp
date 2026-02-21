@@ -7,6 +7,10 @@ services:
     restart: on-failure
     cap_add:
       - IPC_LOCK
+    environment:
+      - SKIP_SETCAP=true
+      - VAULT_LOG_FORMAT=json
+      - VAULT_LOG_LEVEL=info
     volumes:
       - vault-agent-logstash-data:/vault/file
       - vault-agent-logstash-logs:/vault/logs

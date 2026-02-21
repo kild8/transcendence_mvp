@@ -16,4 +16,4 @@ services:
       - "--path.sysfs=/host/sys"
       - "--path.rootfs=/rootfs"
       - "--log.format=json"
-      - "--collector.textfile.directory=/var/lib/node_exporter/textfile_collector"
+      - "--collector.textfile.directory=/home/textfile_collector"

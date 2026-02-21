@@ -1,4 +1,6 @@
 
+filebeat.shutdown_timeout: 5s
+
 filebeat.inputs:
   - type: filestream
     id: docker-logs
@@ -9,28 +11,55 @@ filebeat.inputs:
           format: docker
     paths:
       - '/var/lib/docker/containers/*/*.log'
+  - type: filestream
+    id: vault-server-log-volume
+    paths:
+      - /vault/logs/audit.log
     processors:
-      - add_docker_metadata:
-          host: "unix:///var/run/docker.sock"
-      - drop_fields:
+      - add_fields:
+          target: ""
           fields:
-            - container.id
-            - agent
-            - log
-            - host
-      - script:
-          lang: javascript
-          source: >
-            function process(event) {
-              var keep = ["com_docker_compose_service", "com_docker_compose_version", "com_docker_compose_project"];
-              var container_labels = event.Get("container.labels")
-              for (var i in container_labels) {
-                if (keep.indexOf(i) === -1) {
-                  delete container_labels[i];
-                }
-              }
-            }
+            log_id: "vault-server-audit"
 
+processors:
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
+  - add_fields:
+      when:
+        and:
+          - equals.container.name: "nginx-frontend"
+          - equals.stream: "stdout"
+      target: ""
+      fields:
+        log_id: "nginx-frontend-access"
+  - add_fields:
+      when:
+        and:
+          - equals.container.name: "nginx-frontend"
+          - equals.stream: "stderr"
+      target: ""
+      fields:
+        log_id: "nginx-frontend-error"
+  - copy_fields:
+      when:
+        not:
+          has_fields: ['log_id']
+      fields:
+        - from: container.name
+          to: log_id
+      fail_on_error: false
+      ignore_missing: true
+
+  - drop_fields:
+      fields:
+        - container
+        - agent
+        - log
+        - host
+        - ecs
+        - input
+        - stream
+      ignore_missing: true
 
 # output.file:
 #   path: "/tmp/filebeat-logs"

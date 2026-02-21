@@ -72,6 +72,9 @@ RUN mkdir -p /var/log/nginx \
 RUN apt-get update && apt-get install -y inotify-tools \
     && rm -rf /var/lib/apt/lists/*
 
+RUN groupadd -g 1000 nginxuser \
+    && useradd -r -u 1000 -g 1000 nginxuser
+
 COPY --from=build /app/dist /usr/share/nginx/html/dist
 
 COPY ./frontend_files/index.html /usr/share/nginx/html/index.html
@@ -86,7 +89,12 @@ COPY ./config/nginx.conf /etc/nginx/nginx.conf
 
 COPY --chmod=+x startup_scripts/. /usr/local/bin/.
 
+RUN mkdir /vault \
+	&& chown -R nginxuser:nginxuser /usr/share/nginx/html /var/log/nginx /etc/nginx /vault /var/cache/nginx /run
+
 EXPOSE 80
+
+USER nginxuser
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 

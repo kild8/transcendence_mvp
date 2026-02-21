@@ -6,6 +6,15 @@ server.port: 5601
 server.basePath: "/kibana"
 server.rewriteBasePath: true
 
+logging:
+  appenders:
+    console_appender:
+      type: console
+      layout:
+        type: json
+  root:
+    appenders: [console_appender]
+
 # Setup mutual TLS 
 elasticsearch.ssl.certificate: "/usr/share/kibana/config/secrets/kibana.crt"
 elasticsearch.ssl.key: "/usr/share/kibana/config/secrets/kibana.key"
@@ -23,5 +32,5 @@ xpack.security.authc.providers:
     order: 0
     realm: oidc-vault
     description: "Sign in with Vault"
-  # basic.basic1:
-  #   order: 1
+  basic.basic1:
+    order: 1

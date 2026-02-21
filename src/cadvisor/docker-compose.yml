@@ -3,6 +3,7 @@ services:
     image: ghcr.io/google/cadvisor:0.55.1
     container_name: cadvisor
     restart: on-failure
+    user: root
     privileged: true
     ports:
       - "8080:8080"

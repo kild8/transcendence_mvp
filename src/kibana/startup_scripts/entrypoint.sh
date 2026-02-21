@@ -15,6 +15,8 @@ export KIBANA_USER=kibana_system
 export KIBANA_PASSWORD=$(cat /usr/share/kibana/config/secrets/kibana_system_password)
 export XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=$(cat /usr/share/kibana/config/secrets/kibana_encryption_key)
 
+/usr/local/bin/api_init.sh &
+
 kibana_vars=(
     apm_oss.apmAgentConfigurationIndex
     apm_oss.errorIndices

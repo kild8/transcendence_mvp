@@ -108,6 +108,8 @@ if [ "$1" = 'vault' ]; then
     fi
 fi
 
+if [ ! -f "/vault/file/.initialized" ]; then
 /usr/local/bin/vault-init.sh &
+fi
 
 exec "$@"

@@ -1,13 +1,18 @@
 #!/bin/bash
 set -e
 
-export ELASTIC_PASSWORD=$(cat /usr/share/elasticsearch/config/secrets/elastic_password)
 export VAULT_CLIENT_ID=$(cat /usr/share/elasticsearch/config/secrets/client-id)
 
+if [ ! -f "/usr/share/elasticsearch/data/.initialized" ]; then
+export ELASTIC_PASSWORD=$(cat /usr/share/elasticsearch/config/secrets/elastic_password)
 VAULT_CLIENT_SECRET=$(cat /usr/share/elasticsearch/config/secrets/client-secret)
 echo ${VAULT_CLIENT_SECRET} | /usr/share/elasticsearch/bin/elasticsearch-keystore add -x -f xpack.security.authc.realms.oidc.oidc-vault.rp.client_secret
+touch /usr/share/elasticsearch/data/.initialized
+fi
 
+if [ ! -f "/usr/share/elasticsearch/data/.user_initialized" ]; then
 /usr/local/bin/users_init.sh &
+fi
 # Files created by Elasticsearch should always be group writable too
 umask 0002
 

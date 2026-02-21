@@ -8,6 +8,7 @@ DOCKER_COMPOSE_COMMAND	:=	SECRETS_DIR_PATH=$(SECRETS_DIR_PATH) \
 
 RESTART_TARGET			?=	none
 
+
 up:
 	@$(DOCKER_COMPOSE_COMMAND) up -d --build
 	@echo Done
@@ -25,9 +26,9 @@ clear-volumes:
 	fi
 	@echo Done
 peek:
-	@docker container ls -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-	@docker network ls --format "table {{.Name}}\t{{.Driver}}" | grep -v -E '^(bridge|host|none|Network_Name)'
 	@docker volume ls
+	@docker network ls --format "table {{.Name}}\t{{.Driver}}" | grep -v -E '^(bridge|host|none|Network_Name)'
+	@docker container ls -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 dev-start:
 	@$(DOCKER_COMPOSE_COMMAND) start $(RESTART_TARGET)

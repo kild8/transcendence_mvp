@@ -23,17 +23,17 @@ auto_auth {
 template {
   source      = "/vault/templates/google_auth_client_id.tmpl"
   destination = "/vault/secrets/google_auth_client_id"
-  command     = "chown vault:1000 /vault/secrets/google_auth_client_id"
+  command     = "chown vault:1001 /vault/secrets/google_auth_client_id"
 }
 
 template {
   source      = "/vault/templates/google_auth_secret_id.tmpl"
   destination = "/vault/secrets/google_auth_secret_id"
-  command     = "chown vault:1000 /vault/secrets/google_auth_secret_id"
+  command     = "chown vault:1001 /vault/secrets/google_auth_secret_id"
 }
 
 template {
   source      = "/vault/templates/jwt_secret.tmpl"
   destination = "/vault/secrets/jwt_secret"
-  command     = "chown vault:1000 /vault/secrets/jwt_secret"
+  command     = "chown vault:1001 /vault/secrets/jwt_secret"
 }

@@ -15,5 +15,7 @@ RUN mkdir -p /vault/auth_token \
     && chown vault:vault /vault/approle \
     && chmod 700 /vault/approle \
     && mkdir -p /vault/secrets \
-    && chown vault:1000 /vault/secrets \
+    && chown vault:1001 /vault/secrets \
     && chmod 750 /vault/secrets
+
+USER vault

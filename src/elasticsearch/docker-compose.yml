@@ -5,8 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: elasticsearch
     restart: on-failure
-    cap_add:
-      - IPC_LOCK
+#    cap_add:
+#     - IPC_LOCK
     environment:
       ES_JAVA_OPTS: -Xms512m -Xmx512m
     volumes:
@@ -19,7 +19,7 @@ services:
       vault-agent-elasticsearch:
         condition: service_healthy
     healthcheck:
-      test: test -f /usr/share/elasticsearch/.healthy
+      test: test -f "/usr/share/elasticsearch/data/.user_initialized" -a -f "/usr/share/elasticsearch/data/.initialized"
       interval: 10s
       retries: 30
     networks:

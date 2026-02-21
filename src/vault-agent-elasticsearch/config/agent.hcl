@@ -60,3 +60,15 @@ template {
   destination = "/vault/secrets/logstash_internal_password"
   command     = "chown vault:1000 /vault/secrets/logstash_internal_password"
 }
+
+template {
+  source      = "/vault/templates/kibana_api_user.tmpl"
+  destination = "/vault/secrets/kibana_api_user"
+  command     = "chown vault:1000 /vault/secrets/kibana_api_user"
+}
+
+template {
+  source      = "/vault/templates/kibana_api_password.tmpl"
+  destination = "/vault/secrets/kibana_api_password"
+  command     = "chown vault:1000 /vault/secrets/kibana_api_password"
+}

@@ -33,6 +33,6 @@ do
         VAULT_PID=$(pgrep -f "vault server")
 
         kill -HUP ${VAULT_PID}
-        touch /vault/file/.vault_certs_healthy
+        touch /vault/file/.vault_certs_initialized
     fi
 done
