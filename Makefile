@@ -10,6 +10,7 @@ RESTART_TARGET			?=	none
 
 
 up:
+	@mkdir -p $(VAULT_ACCESS_DIR_PATH) && chmod 777 $(VAULT_ACCESS_DIR_PATH)
 	@$(DOCKER_COMPOSE_COMMAND) up -d --build
 	@echo Done
 

@@ -30,6 +30,7 @@ log_indexes=(
     "ls-vault-agent-vault-server"
     "ls-vault-server"
     "ls-vault-server-audit"
+    "ls"
 )
 
 for name in "${log_indexes[@]}"; do

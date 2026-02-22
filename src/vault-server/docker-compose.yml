@@ -24,7 +24,7 @@ services:
       - vault-agent-vault-server-id:/vault_agents_ids/vault-server
       - vault-agent-alertmanager-id:/vault_agents_ids/alertmanager
       - vault-server-vault-secrets:/vault/secrets:ro
-      - ${VAULT_ACCESS_DIR_PATH}:/vault/access
+      - ${VAULT_ACCESS_DIR_PATH}:/vault/access:rw
     command:
       - server
     networks:
