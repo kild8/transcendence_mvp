@@ -1,13 +1,21 @@
 import { elFromHTML } from '../utils.js';
 import { navigateTo } from '../router.js';
+import { t } from '../lang/langIndex.js';
+import { state } from '../state.js';
 
 export function homeContent(): HTMLElement {
   const html = `
     <section class="mt-6 flex flex-col gap-6 items-center">
       <div class="w-full flex flex-col sm:flex-row gap-4">
-        <button id="btn-versus" class="btn">Versus local</button>
-        <button id="btn-tournament" class="btn">Tournoi local</button>
-        <button id="btn-online" class="btn">Online</button>
+        <button id="btn-versus" class="btn">
+          ${t(state.lang, "Home.BTN_VERSUS")}
+        </button>
+        <button id="btn-tournament" class="btn">
+          ${t(state.lang, "Home.BTN_TOURNAMENT")}
+        </button>
+        <button id="btn-online" class="btn">
+          ${t(state.lang, "Home.BTN_ONLINE")}
+        </button>
       </div>
     </section>
   `;

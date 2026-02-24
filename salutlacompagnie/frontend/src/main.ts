@@ -31,7 +31,8 @@ async function checkAuth() {
         id: data.user.id,
         name: data.user.name,
         email: data.user.email,
-        avatar: data.user.avatar
+        avatar: data.user.avatar,
+        language: "de"
       };
       // open presence websocket client (keeps user online)
       try {

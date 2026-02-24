@@ -12,9 +12,15 @@ export const state = {
       name: string;
       email: string;
       avatar: string;
+      language: string;
     }
 
   },
   WINNING_SCORE: 2,
-  MAX_TOURNAMENT_PLAYERS: 8
+  MAX_TOURNAMENT_PLAYERS: 8,
+  
+  // getter pour la langue actuelle
+  get lang(): "en" | "fr" | "de" {
+    return this.appState.currentUser?.language as "en" | "fr" | "de" || "en";
+  }
 };
