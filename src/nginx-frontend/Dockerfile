@@ -6,78 +6,11 @@ RUN npm install
 COPY ./frontend_files/. .
 RUN npm run build
 
-FROM debian:11.11
+FROM nginx:1.24.0-alpine
 
-# Install nginx
-
-# Installer les dépendances nécessaires
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    gnupg2 \
-    ca-certificates \
-    lsb-release \
-    debian-archive-keyring \
- 	&& rm -rf /var/lib/apt/lists/*
-
-# Ajouter la clé officielle Nginx
-RUN curl -fsSL https://nginx.org/keys/nginx_signing.key \
-    | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg
-
-# Ajouter le dépôt Nginx pour Debian 11
-RUN echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian/ bullseye nginx" \
-    | tee /etc/apt/sources.list.d/nginx.list
-
-# Mettre à jour la liste des paquets
-RUN apt-get update
-
-RUN apt-get install -y nginx=1.24.0-1~bullseye
-
-# Install modsecurity
-RUN apt-get install -y apt-utils autoconf automake build-essential git libcurl4-openssl-dev libgeoip-dev liblmdb-dev libpcre++-dev libtool libxml2-dev libyajl-dev pkgconf wget zlib1g-dev libpcre2-dev
-
-RUN git clone --depth 1 -b v3/master --single-branch https://github.com/SpiderLabs/ModSecurity
-
-RUN cd ModSecurity \
-	&& git submodule init \
-	&& git submodule update \
-	&& ./build.sh \
-	&& ./configure \
-	&& make \
-	&& make install \
-	&& cd ..
-
-RUN git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git
-
-RUN wget https://nginx.org/download/nginx-1.24.0.tar.gz \
-	&& tar zxvf nginx-1.24.0.tar.gz \
-	&& rm nginx-1.24.0.tar.gz
-
-RUN cd nginx-1.24.0 \
-	&& ./configure --with-compat --add-dynamic-module=../ModSecurity-nginx \
-	&& make modules \
-	&& cp objs/ngx_http_modsecurity_module.so /etc/nginx/modules \
-	&& cd ..
-
-RUN mkdir /etc/nginx/modsec \
-	&& wget -P /etc/nginx/modsec/ https://raw.githubusercontent.com/SpiderLabs/ModSecurity/v3/master/modsecurity.conf-recommended \
-	&& mv /etc/nginx/modsec/modsecurity.conf-recommended /etc/nginx/modsec/modsecurity.conf \
-	&& cp ModSecurity/unicode.mapping /etc/nginx/modsec \
-	&& sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsec/modsecurity.conf
-
-RUN rm -rf /ModSecurity /ModSecurity-nginx /nginx-1.24.0
-
-RUN git clone https://github.com/coreruleset/coreruleset.git /etc/nginx/modsec/coreruleset \
-	&& cp /etc/nginx/modsec/coreruleset/crs-setup.conf.example /etc/nginx/modsec/coreruleset/crs-setup.conf
-
-RUN mkdir -p /var/log/nginx \
- && ln -sf /dev/stdout /var/log/nginx/access.log \
- && ln -sf /dev/stderr /var/log/nginx/error.log
-
-RUN apt-get update && apt-get install -y inotify-tools \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN groupadd -g 1000 nginxuser \
-    && useradd -r -u 1000 -g 1000 nginxuser
+RUN apk add --no-cache inotify-tools \
+    && addgroup -g 1000 nginxuser \
+    && adduser -u 1000 -G nginxuser -S -D nginxuser
 
 COPY --from=build /app/dist /usr/share/nginx/html/dist
 
@@ -86,10 +19,6 @@ COPY ./frontend_files/index.html /usr/share/nginx/html/index.html
 RUN rm /etc/nginx/conf.d/default.conf
 
 COPY ./frontend_files/default-avatar.png /usr/share/nginx/html/default-avatar.png
-
-COPY ./config/main.conf /etc/nginx/modsec/main.conf
-
-COPY ./config/modsecurity.conf /etc/nginx/modsec/modsecurity.conf
 
 COPY ./config/nginx.conf /etc/nginx/nginx.conf
 

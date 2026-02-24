@@ -15,12 +15,8 @@ services:
       - vault-server-data:/vault/file
       - vault-server-logs:/vault/logs
       - vault-agent-nginx-frontend-id:/vault_agents_ids/nginx-frontend
-      - vault-agent-elasticsearch-id:/vault_agents_ids/elasticsearch
-      - vault-agent-kibana-id:/vault_agents_ids/kibana
       - vault-agent-nodejs-backend-id:/vault_agents_ids/nodejs-backend
       - vault-agent-grafana-id:/vault_agents_ids/grafana
-      - vault-agent-logstash-id:/vault_agents_ids/logstash
-      - vault-agent-filebeat-id:/vault_agents_ids/filebeat
       - vault-agent-vault-server-id:/vault_agents_ids/vault-server
       - vault-agent-alertmanager-id:/vault_agents_ids/alertmanager
       - vault-server-vault-secrets:/vault/secrets:ro
@@ -50,3 +46,4 @@ secrets:
 
 volumes:
   vault-server-data:
+  vault-server-logs:

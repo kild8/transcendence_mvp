@@ -20,8 +20,6 @@ services:
         condition: service_started
       grafana:
         condition: service_started
-      kibana:
-        condition: service_started
       prometheus:
         condition: service_started
       vault-server:

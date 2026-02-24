@@ -1,3 +1,0 @@
-{{- with secret "pki/issue/filebeat" "common_name=filebeat" "private_key_format=pkcs8" -}}
-{{ .Data | toJSON }}
-{{- end -}}

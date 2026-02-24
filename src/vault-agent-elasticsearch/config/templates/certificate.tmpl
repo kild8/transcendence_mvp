@@ -1,3 +1,0 @@
-{{- with secret "pki/issue/elasticsearch" "common_name=elasticsearch" "private_key_format=pkcs8" -}}
-{{ .Data | toJSON }}
-{{- end -}}
