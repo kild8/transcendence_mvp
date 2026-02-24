@@ -120,7 +120,7 @@ async function getUserFromReq(req) {
 async function authPreHandler(req, reply) {
   const user = await getUserFromReq(req);
   if (!user) {
-    return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+    return reply.status(401).send({ ok: false, error: 'Server.UNAUTHORIZED' });
   }
   // attache user à la requête pour l'utiliser dans le handler
   req.user = user;
@@ -135,24 +135,24 @@ fastify.post('/api/auth/register', async (req, reply) => {
     const { name, email, password } = req.body || {};
 
     if (!name || !email || !password) {
-      return reply.status(400).send({ ok: false, error: 'name, email and password are required' });
+      return reply.status(400).send({ ok: false, error: 'Server.NAME_EMAIL_PASSWORD_REQUIRED' });
     }
 
     // basic email format validation
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRe.test(String(email).toLowerCase())) {
-      return reply.status(400).send({ ok: false, error: 'Invalid email format' });
+      return reply.status(400).send({ ok: false, error: 'Server.INVALID_EMAIL_FORMAT' });
     }
 
     if (String(password).length < 8) {
-      return reply.status(400).send({ ok: false, error: 'Password must be at least 8 characters' });
+      return reply.status(400).send({ ok: false, error: 'Server.PASSWORD_TOO_SHORT' });
     }
 
     // unique constraints (name/email)
     const existing = db.prepare('SELECT * FROM users WHERE email = ? OR name = ?').get(email, name);
     if (existing) {
-      if (existing.email === email) return reply.status(400).send({ ok: false, error: 'Email already in use' });
-      return reply.status(400).send({ ok: false, error: 'Name already in use' });
+      if (existing.email === email) return reply.status(400).send({ ok: false, error: 'Server.EMAIL_ALREADY_IN_USE' });
+      return reply.status(400).send({ ok: false, error: 'Server.NAME_ALREADY_IN_USE' });
     }
 
     // hash password
@@ -170,7 +170,7 @@ fastify.post('/api/auth/register', async (req, reply) => {
     return reply.send({ ok: true, user });
   } catch (err) {
     fastify.log.error({ err }, 'register failed');
-    return reply.status(500).send({ ok: false, error: 'Server error' });
+    return reply.status(500).send({ ok: false, error: 'Server.SERVER_ERROR' });
   }
 });
 
@@ -180,7 +180,7 @@ fastify.post('/api/auth/login', async (req, reply) => {
     const { identifier, password } = req.body || {}; // identifier = email OR name
 
     if (!identifier || !password) {
-      return reply.status(400).send({ ok: false, error: 'identifier and password are required' });
+      return reply.status(400).send({ ok: false, error: 'Server.IDENTIFIER_PASSWORD_REQUIRED' });
     }
 
     let user = null;
@@ -192,11 +192,11 @@ fastify.post('/api/auth/login', async (req, reply) => {
 
     if (!user || !user.password_hash) {
       // user not found or has no local password (e.g., registered via Google)
-      return reply.status(401).send({ ok: false, error: 'Invalid credentials' });
+      return reply.status(401).send({ ok: false, error: 'Server.INVALID_CREDENTIALS' });
     }
 
     const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) return reply.status(401).send({ ok: false, error: 'Invalid credentials' });
+    if (!match) return reply.status(401).send({ ok: false, error: 'Server.INVALID_CREDENTIALS' });
 
     const publicUser = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(user.id);
     const payload = { id: publicUser.id, name: publicUser.name, email: publicUser.email };
@@ -206,7 +206,7 @@ fastify.post('/api/auth/login', async (req, reply) => {
     return reply.send({ ok: true, user: publicUser });
   } catch (err) {
     fastify.log.error({ err }, 'login failed');
-    return reply.status(500).send({ ok: false, error: 'Server error' });
+    return reply.status(500).send({ ok: false, error: 'Server.SERVER_ERROR' });
   }
 });
 
@@ -302,7 +302,7 @@ fastify.post("/api/start-tournament", async (req, reply) => {
 	const { players } = req.body || {};
       
 	if (!Array.isArray(players) || players.length < 2) {
-		return reply.status(400).send({ error: "Invalid players array (min 2)" });
+		return reply.status(400).send({ error: "Server.INVALID_PLAYERS_ARRAY" });
 	}
       
 	lastPlayers = players;
@@ -316,13 +316,13 @@ fastify.get("/api/players", async () => ({ players: lastPlayers }));
 // Ajouter un utilisateur (correct)
 fastify.post("/api/add-user", async (req, reply) => {
 	const { name, email } = req.body || {};
-	if (!name || !email) return reply.status(400).send({ error: "Name and email are required" });
+	if (!name || !email) return reply.status(400).send({ error: "Server.NAME_REQUIRED" });
 		try {
         db.prepare("INSERT INTO users (name, email) VALUES (?, ?)").run(name, email);
         const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
         return { ok: true, user };
 	} catch(e) {
-		return reply.status(400).send({ error: "User or email already exists" });
+		return reply.status(400).send({ error: "Server.USER_OR_EMAIL_IN_USE" });
 	}
 });
 
@@ -331,11 +331,11 @@ fastify.put('/api/user/me', { preHandler: authPreHandler }, async (req, reply) =
   try {
     const user = req.user; // authPreHandler attache user public (id, name, email...)
     const { name } = req.body || {};
-    if (!name || String(name).trim().length === 0) return reply.status(400).send({ ok: false, error: 'Name required' });
+    if (!name || String(name).trim().length === 0) return reply.status(400).send({ ok: false, error: 'Server.NAME_REQUIRED' });
 
     // check uniqueness
     const existing = db.prepare('SELECT id FROM users WHERE name = ? AND id != ?').get(name, user.id);
-    if (existing) return reply.status(400).send({ ok: false, error: 'Name already in use' });
+    if (existing) return reply.status(400).send({ ok: false, error: 'Server.NAME_ALREADY_IN_USE' });
 
     db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, user.id);
 
@@ -344,7 +344,7 @@ fastify.put('/api/user/me', { preHandler: authPreHandler }, async (req, reply) =
     return reply.send({ ok: true, user: updated });
   } catch (err) {
     fastify.log.error(err, 'update user failed');
-    return reply.status(500).send({ ok: false, error: 'Server error' });
+    return reply.status(500).send({ ok: false, error: 'Server.SERVER_ERROR' });
   }
 });
 
@@ -356,11 +356,11 @@ fastify.get("/api/users", async () => {
 // Vérifier si user existe
 fastify.post("/api/login", async (req, reply) => {
 	const { name } = req.body || {};
-	if (!name) return reply.status(400).send({ error: "Name is required" });
+	if (!name) return reply.status(400).send({ error: "Server.NAME_REQUIRED" });
 
 	const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
 	if (!user) {
-		return reply.status(404).send({ error: "User not found" });
+		return reply.status(404).send({ error: "Server.USER_NOT_FOUND" });
 	}
 	return { ok: true, user };
 });
@@ -370,7 +370,7 @@ fastify.get("/api/user/:name", async (req, reply) => {
   const name = req.params.name;
   const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
 
-  if (!user) return { ok: false, error: "User not found" };
+  if (!user) return { ok: false, error: "Server.USER_NOT_FOUND" };
 
   return { ok: true, user };
 });
@@ -400,7 +400,7 @@ fastify.post("/api/upload-avatar",
 
       if (!filePart) {
         if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-        return reply.status(400).send({ ok: false, error: "Avatar manquant" });
+        return reply.status(400).send({ ok: false, error: "Server.AVATAR_MISSING" });
       }
 
       // récupérer l'utilisateur depuis la DB (sécurité)
@@ -410,7 +410,7 @@ fastify.post("/api/upload-avatar",
 
       if (!user) {
         if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-        return reply.status(404).send({ ok: false, error: "User not found" });
+        return reply.status(404).send({ ok: false, error: "Server.USER_NOT_FOUND" });
       }
 
       // filename final sécurisé
@@ -447,7 +447,7 @@ fastify.post("/api/upload-avatar",
       fastify.log.error({ err }, "upload-avatar failed");
       return reply.status(500).send({
         ok: false,
-        error: "Erreur serveur lors de l'upload"
+        error: "Server.UPLOAD_ERROR"
       });
     }
   }
@@ -472,7 +472,7 @@ fastify.post('/api/matches',{ preHandler: authPreHandler },
     } = req.body || {};
 
     if (!player1_id || !player2_id) {
-      return reply.status(400).send({ error: 'Invalid match data' });
+      return reply.status(400).send({ error: 'Server.INVALID_MATCH_DATA' });
     }
 
     const winner_id =
@@ -528,7 +528,7 @@ fastify.post('/api/matches/ws', async (req, reply) => {
   const secret = req.headers['x-ws-secret'];
 
   if (secret !== WS_SECRET) {
-    return reply.status(401).send({ error: 'Unauthorized WS' });
+    return reply.status(401).send({ error: 'Server.UNAUTHORIZED_WS' });
   }
 
   const {
@@ -539,14 +539,14 @@ fastify.post('/api/matches/ws', async (req, reply) => {
   } = req.body || {};
 
   if (!player1 || !player2) {
-    return reply.status(400).send({ error: 'Invalid match data' });
+    return reply.status(400).send({ error: 'Server.INVALID_MATCH_DATA' });
   }
 
   const p1 = db.prepare('SELECT id FROM users WHERE name = ?').get(player1);
   const p2 = db.prepare('SELECT id FROM users WHERE name = ?').get(player2);
 
   if (!p1 || !p2) {
-    return reply.status(404).send({ error: 'User not found' });
+    return reply.status(404).send({ error: 'Server.USER_NOT_FOUND' });
   }
 
   const winner_id = score_player1 > score_player2 ? p1.id : p2.id;

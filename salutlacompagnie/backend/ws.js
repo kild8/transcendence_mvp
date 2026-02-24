@@ -37,7 +37,7 @@ function initWebSocket(server) {
   console.log("WebSocket server initialized");
 
   wss.on("connection", (ws, req) => {
-    console.log("Un joueur s'est connecté");
+    console.log("a player has connected");
     // try to identify user from cookie JWT for presence
     try {
       const cookies = parseCookies(req.headers.cookie || '');
@@ -109,7 +109,7 @@ function initWebSocket(server) {
 function handleJoinRoom(ws, data) {
   const { roomId, pseudo } = data;
   const room = getRoom(roomId);
-  if (!room) return ws.send(JSON.stringify({ type: "room-error", message: "Room introuvable" }));
+  if (!room) return ws.send(JSON.stringify({ type: "room-error", message: "WS.ROOM_NOT_FOUND" }));
 
   // Si le joueur est déjà dans une autre room
   if (userRoomMap[pseudo] && userRoomMap[pseudo] !== roomId) {
@@ -119,13 +119,13 @@ function handleJoinRoom(ws, data) {
   // Vérifie s'il est déjà présent
   const existingParticipant = room.participants.find(p => p.pseudo === pseudo);
   if (existingParticipant) {
-    return ws.send(JSON.stringify({ type: "room-error", message: "Tu es déjà dans cette room" }));
+    return ws.send(JSON.stringify({ type: "room-error", message: "WS.ALREADY_IN_ROOM" }));
   }
 
   // Reconnexion ?
   if (room.disconnectedPlayer && room.disconnectedPlayer.pseudo === pseudo) {
     const role = room.disconnectedPlayer.role;
-    console.log("Reconnexion réussie :", pseudo);
+    console.log("Reconnect success :", pseudo);
 
     // Mettre à jour uniquement le WS du joueur existant
     if (room.players[role]) room.players[role].ws = ws;
@@ -180,7 +180,7 @@ function handleJoinRoom(ws, data) {
 
   // Nouvelle connexion
   if (room.participants.length >= room.maxPlayers) {
-    return ws.send(JSON.stringify({ type: "room-error", message: "Room pleine" }));
+    return ws.send(JSON.stringify({ type: "room-error", message: "WS.ROOM_FULL" }));
   }
 
   if (!room.host) room.host = pseudo;
@@ -200,7 +200,7 @@ function handleStartGame(ws, data) {
   if (!participant) return;
 
   if (room.host !== participant.pseudo) {
-    ws.send(JSON.stringify({ type: "room-error", message: "Seul le créateur de la room peut lancer la partie."}));
+    ws.send(JSON.stringify({ type: "room-error", message: "WS.ONLY_HOST_CAN_START"}));
     return;
   }
 
@@ -249,13 +249,13 @@ function handleStartTournament(ws, data) {
 
   // Bloquer si le tournoi a déjà commencé
   if (room.tournament && room.tournament.started) {
-    ws.send(JSON.stringify({ type: "room-error", message: "Le tournoi est déjà en cours" }));
+    ws.send(JSON.stringify({ type: "room-error", message: "WS.TOURNAMENT_ALREADY_STARTED" }));
     return;
   }
 
   const pseudos = room.participants.map(p => p.pseudo);
   if (pseudos.length < 2) {
-    ws.send(JSON.stringify({ type: "room-error", message: "Il faut au moins 2 joueurs pour démarrer le tournoi" }));
+    ws.send(JSON.stringify({ type: "room-error", message: "WS.NEED_MIN_2_PLAYERS" }));
     return;
   }
 
@@ -337,7 +337,7 @@ function handleDisconnect(ws) {
         role
       };
 
-      console.log("Déconnexion pendant la partie: ", room.disconnectedPlayer.pseudo);
+      console.log("Disconnected during the game: ", room.disconnectedPlayer.pseudo);
 
       // Notifier les autres joueurs
       room.participants.forEach(p => {
@@ -355,7 +355,7 @@ function handleDisconnect(ws) {
       room.disconnectTimeout = setTimeout(() => {
         if (!room.disconnectedPlayer) return;
 
-        console.log("Timeout dépassé, victoire par abandon");
+        console.log("Timeout exceeded, victory by default");
 
         room.lastGameResult = {
           winner: room.players[winnerRole]?.pseudo || null,
@@ -368,14 +368,14 @@ function handleDisconnect(ws) {
     }
 
     if (room.participants.length === 0) {
-      console.log("Room vide, suppression :", room.id);
+      console.log("Empty room, delete:", room.id);
       deleteRoom(room.id);
     }
 
     broadcastRoomUpdate();
   });
 
-  console.log("Un joueur s'est déconnecté");
+  console.log("a player has disconnected");
 }
 
 // --------- TOURNAMENT LOGIC ---------
@@ -421,7 +421,7 @@ function startNextTournamentMatch(room) {
     return;
   }
 
-  console.log("Démarrage du match :", p1, "vs", p2);
+  console.log("Starting match :", p1, "vs", p2);
 
   room.players.player1 = room.participants.find(p => p.pseudo === p1);
   room.players.player2 = room.participants.find(p => p.pseudo === p2);
@@ -563,7 +563,9 @@ function startGameLoop(room) {
               }
             },
             message: room.state === ROOM_STATE.PAUSED && room.disconnectedPlayer
-              ? `En attente de la reconnexion de ${room.disconnectedPlayer.pseudo}`
+              ? {
+                  key: 'WS.PLAYER_DISCONNECTED_WAITING', params:{ pseudo: room.disconnectedPlayer.pseudo }
+                }
               : undefined
           }));
         }

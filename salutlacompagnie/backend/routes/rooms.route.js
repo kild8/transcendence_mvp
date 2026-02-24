@@ -7,10 +7,10 @@ async function roomsRoutes(fastify, opts) {
     fastify.post("/api/rooms", async (req, reply) => {
         const { type, host } = req.body || {};
         if (!type) {
-            return reply.status(400).send({ error: "room type required" });
+            return reply.status(400).send({ error: "Rooms.ROOM_TYPE_REQUIRED" });
         }
         if (!host) {
-            return reply.status(400).send({ error: "host required" });
+            return reply.status(400).send({ error: "Rooms.HOST_REQUIRED" });
         }
         const room = createRoom({type, host});
         return reply.status(201).send(room);

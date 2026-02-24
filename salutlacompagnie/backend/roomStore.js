@@ -14,8 +14,8 @@ const ROOM_STATE = {
 
 function createRoom({ type, host}) {
     if (!host) {
-        console.error("createRoom appelé sans host", {type, host});
-        return { error: "NO_HOST" };
+        console.error("createRoom called with no host", {type, host});
+        return { error: "Rooms.NO_HOST" };
     }
     if (userRoomMap[host])
     {
