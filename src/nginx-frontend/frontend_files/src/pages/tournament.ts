@@ -24,7 +24,6 @@ export function tournamentContent(): HTMLElement {
             Joueurs prêts: <strong id="count">0</strong>
           </div>
           <button id="start" class="btn">Démarrer</button>
-          <button id="lan-mode" class="btn">LAN</button>
         </div>
       </div>
 

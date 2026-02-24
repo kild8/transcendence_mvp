@@ -4,10 +4,9 @@ mkdir -p /home/textfile_collector
 
 OUTPUT_FILE="/home/textfile_collector/expected_containers.prom"
 
-CONTAINERS="alertmanager cadvisor elasticsearch filebeat grafana kibana logstash \
-nginx-frontend node-exporter nodejs-backend prometheus vault-agent-alertmanager \
-vault-agent-elasticsearch vault-agent-filebeat vault-agent-grafana \
-vault-agent-kibana vault-agent-logstash vault-agent-nginx-frontend \
+CONTAINERS="alertmanager cadvisor grafana \
+nginx-frontend node-exporter nodejs-backend prometheus \
+vault-agent-alertmanager vault-agent-grafana vault-agent-nginx-frontend \
 vault-agent-nodejs-backend vault-agent-vault-server vault-server"
 
 echo "# HELP container_should_exist Containers that are expected to exist" > "$OUTPUT_FILE"

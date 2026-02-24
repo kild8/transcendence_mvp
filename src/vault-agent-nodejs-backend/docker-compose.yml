@@ -20,7 +20,13 @@ services:
     networks:
       - transcendence_nw
     healthcheck:
-      test: test -f /vault/secrets/google_auth_client_id -a -f /vault/secrets/google_auth_secret_id -a -f
+      test: 
+        - "CMD-SHELL"
+        - |
+          test -f /vault/secrets/google_auth_client_id && \
+          test -f /vault/secrets/google_auth_secret_id && \
+          test -f /vault/secrets/ws_secret && \
+          test -f /vault/secrets/jwt_secret
       interval: 3s
       retries: 12
 #port 8200

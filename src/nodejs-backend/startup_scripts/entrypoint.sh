@@ -2,6 +2,7 @@
 set -e
 
 export JWT_SECRET=$(cat /vault/secrets/jwt_secret)
+export WS_SECRET=$(cat /vault/secrets/ws_secret)
 export GOOGLE_CLIENT_ID=$(cat /vault/secrets/google_auth_client_id)
 export GOOGLE_CLIENT_SECRET=$(cat /vault/secrets/google_auth_secret_id)
 

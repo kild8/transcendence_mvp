@@ -1,21 +1,47 @@
 const rooms = {}
+const userRoomMap = {};
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 480;
+const ROOM_STATE = {
+    WAITING: "waiting",
+    COUNTDOWN: "countdown",
+    PLAYING: "playing",
+    PAUSED: "paused",
+    GAME_OVER: "game_over",
+    TOURNAMENT_OVER: "tournament_over"
+};
 
 
-function createRoom({ type, host }) {
+function createRoom({ type, host}) {
+    if (!host) {
+        console.error("createRoom appelé sans host", {type, host});
+        return { error: "NO_HOST" };
+    }
+    if (userRoomMap[host])
+    {
+        const oldRoomId = userRoomMap[host];
+        if (rooms[oldRoomId]) {
+            deleteRoom(oldRoomId);
+        } else {
+            delete userRoomMap[host];
+        }
+    }
     const roomId = "room_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
 
     const room = {
         id: roomId,
         type,
+        state: ROOM_STATE.WAITING,
         maxPlayers: type === "1v1" ? 2 : 8,
-        gameOver: false,
+        countdownSeconds: 10,
+        countdownStart: Date.now(),
+        host,
         participants: [],
         players: { player1: null, player2: null },
+        disconnectedTimout: null,
+        disconnectedPlayer: null,
         tournament: type === "tournament"
             ?   {
-                    host,
                     started: false,
                     inProgress: false,
                     players: [],
@@ -39,11 +65,11 @@ function createRoom({ type, host }) {
         tickId : null,
         lastInputs: { player1: null, player2: null },
         lastInputTimes: { player1: 0, player2: 0 },
-        timestamps: {start: null, end: null}
+        timestamps: {start: null, end: null},
     };
 
     rooms[roomId] = room;
-    pinolog.info({roomId: roomId, type: type, host: host}, "Room created");
+    userRoomMap[host] = roomId;
     return room;
 }
 
@@ -61,14 +87,49 @@ function getRoom(roomId) {
 }
 
 function deleteRoom(roomId) {
-    pinolog.info({roomId: roomId}, "Room deleted");
+    const room = rooms[roomId];
+    if (!room) return;
+
+    if (room.host) {
+        delete userRoomMap[room.host];
+    }
+
+    room.participants.forEach(p => {
+        delete userRoomMap[p.pseudo];
+    });
     delete rooms[roomId];
 }
+
+function removeUserFromRoom(pseudo) {
+    const roomId = userRoomMap[pseudo];
+    if (!roomId) return;
+
+    const room = rooms[roomId];
+    if (!room) {
+        delete userRoomMap[pseudo];
+        return;
+    }
+
+    const index = room.participants.findIndex(p => p.pseudo === pseudo);
+    if (index !== -1) room.participants.splice(index, 1);
+
+    if (room.host === pseudo) {
+        room.host = room.participants[0]?.pseudo || null;
+    }
+
+    delete userRoomMap[pseudo];
+
+    if (room.participants.length === 0) deleteRoom(roomId);
+}
+
 
 module.exports = {
     rooms,
     createRoom,
     listRooms,
     getRoom,
-    deleteRoom
+    deleteRoom,
+    userRoomMap,
+    removeUserFromRoom,
+    ROOM_STATE
 };

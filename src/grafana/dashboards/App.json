@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 0,
+  "id": 1,
   "links": [],
   "panels": [
     {
@@ -791,7 +791,7 @@
       "id": 7,
       "options": {
         "colorMode": "background_solid",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
@@ -1239,5 +1239,5 @@
   "timezone": "browser",
   "title": "App",
   "uid": "dfaku0jjnrdhcf53",
-  "version": 3
+  "version": 1
 }

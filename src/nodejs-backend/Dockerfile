@@ -33,7 +33,7 @@ COPY --chown=appuser:appuser ./backend_files/. .
 
 COPY --chmod=+x startup_scripts/. /usr/local/bin/.
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Exposer le port
 EXPOSE 3000
@@ -41,6 +41,6 @@ EXPOSE 3000
 USER appuser
 
 # Lancer le serveur
-CMD ["node", "server.js"]
+CMD ["server.js"]
 
 

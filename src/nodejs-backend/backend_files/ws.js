@@ -1,27 +1,66 @@
 const WebSocket = require("ws");
-const { getRoom, deleteRoom, rooms } = require("./roomStore");
+const { getRoom, deleteRoom, rooms, userRoomMap, removeUserFromRoom, ROOM_STATE } = require("./roomStore");
 const {
   createTournament,
   generateMatches,
   getNextMatch,
   recordMatchWinner
 } = require("./tournament.js");
+const fetch = require("node-fetch");
 
 const {  totalEndedGames, gamesInProgress, exitedGamesCounter, gamesDuration} = require("./metrics.js");
-const pinolog = require("./logger.js");
 
 const WINNING_SCORE = 5;
 const TICK_RATE = 30;
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 480;
 let wss;
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// presence tracking: Map<userId, countOfConnections>
+const presenceCounts = new Map();
+
+function parseCookies(cookieHeader) {
+  if (!cookieHeader) return {};
+  return cookieHeader.split(';').map(s => s.trim()).reduce((acc, kv) => {
+    const [k, ...rest] = kv.split('=');
+    acc[k] = decodeURIComponent(rest.join('='));
+    return acc;
+  }, {});
+}
+
+function getOnlineUserIds() {
+  return Array.from(presenceCounts.keys()).map(k => Number(k));
+}
 
 function initWebSocket(server) {
   wss = new WebSocket.Server({ server, path: "/ws" });
-  pinolog.info({path: "/ws"}, "WebSocket server initialized");
+  console.log("WebSocket server initialized");
 
-  wss.on("connection", (ws) => {
-    pinolog.info("Player connection to websocket server");
+  wss.on("connection", (ws, req) => {
+    console.log("Un joueur s'est connecté");
+    // try to identify user from cookie JWT for presence
+    try {
+      const cookies = parseCookies(req.headers.cookie || '');
+      const token = cookies.token;
+      if (token) {
+        const payload = jwt.verify(token, JWT_SECRET);
+        const userId = Number(payload.id);
+        ws._userId = userId;
+        // increment presence count
+        const prev = presenceCounts.get(userId) || 0;
+        presenceCounts.set(userId, prev + 1);
+        // broadcast presence to all clients
+        const pmsg = JSON.stringify({ type: 'presence', userId, online: true });
+        if (wss && wss.clients) {
+          wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(pmsg); });
+        }
+      }
+    } catch (e) {
+      // invalid token => ignore presence for this ws
+    }
+
     broadcastRoomUpdate();
     ws.socketRole = "default";
 
@@ -44,7 +83,25 @@ function initWebSocket(server) {
       }
     });
 
-    ws.on("close", () => handleDisconnect(ws));
+    ws.on("close", () => {
+      // handle presence decrement
+      try {
+        const userId = ws._userId;
+        if (userId) {
+          const prev = presenceCounts.get(userId) || 0;
+          if (prev <= 1) {
+            presenceCounts.delete(userId);
+            const pmsg = JSON.stringify({ type: 'presence', userId, online: false });
+            if (wss && wss.clients) {
+              wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(pmsg); });
+            }
+          } else {
+            presenceCounts.set(userId, prev - 1);
+          }
+        }
+      } catch (e) {}
+      handleDisconnect(ws);
+    });
   });
 
   return wss;
@@ -54,23 +111,85 @@ function initWebSocket(server) {
 function handleJoinRoom(ws, data) {
   const { roomId, pseudo } = data;
   const room = getRoom(roomId);
-  if (!room) {
-    pinolog.debug("Unknown room id");
-    return ws.send(JSON.stringify({ type: "room-error", message: "Room introuvable" }));
+  if (!room) return ws.send(JSON.stringify({ type: "room-error", message: "Room introuvable" }));
+
+  // Si le joueur est déjà dans une autre room
+  if (userRoomMap[pseudo] && userRoomMap[pseudo] !== roomId) {
+    removeUserFromRoom(pseudo);
   }
-  if (room.participants.find(p => p.ws === ws)) return;
+
+  // Vérifie s'il est déjà présent
+  const existingParticipant = room.participants.find(p => p.pseudo === pseudo);
+  if (existingParticipant) {
+    return ws.send(JSON.stringify({ type: "room-error", message: "Tu es déjà dans cette room" }));
+  }
+
+  // Reconnexion ?
+  if (room.disconnectedPlayer && room.disconnectedPlayer.pseudo === pseudo) {
+    const role = room.disconnectedPlayer.role;
+    console.log("Reconnexion réussie :", pseudo);
+
+    // Mettre à jour uniquement le WS du joueur existant
+    if (room.players[role]) room.players[role].ws = ws;
+
+    clearTimeout(room.disconnectTimeout);
+    room.disconnectTimeout = null;
+
+    // Rétablir le countdown si nécessaire
+    let remainingCountdown = null;
+    if (room.state === ROOM_STATE.COUNTDOWN) {
+      const elapsed = Math.floor((Date.now() - room.countdownStart) / 1000);
+      remainingCountdown = Math.max(0, room.countdownSeconds - elapsed);
+    }
+    // Restaurer l'état précédent
+    room.state = room.prevStateBeforeDisconnect || ROOM_STATE.PLAYING;
+    room.prevStateBeforeDisconnect = null;
+    room.remainingCountdown = null;
+    room.disconnectedPlayer = null;
+
+    // Ajoute le WS aux participants s'il n'est pas déjà là
+    room.participants.push({ ws, pseudo });
+    userRoomMap[pseudo] = roomId;
+
+    // Notifier le joueur reconnecté avec l'état actuel
+    ws.send(JSON.stringify({
+        type: "reconnected",
+        role,
+        state: {
+          ball: room.ball,
+          paddles: room.paddles,
+          scores: {
+            player1: room.paddles.player1.score,
+            player2: room.paddles.player2.score
+          },
+        }, player1: room.players.player1.pseudo, player2: room.players.player2.pseudo,
+        countdown: remainingCountdown
+      }));
+
+    // Notifier les autres joueurs
+    room.participants.forEach(p => {
+      if (p.ws.readyState === WebSocket.OPEN && p.pseudo !== pseudo) {
+        p.ws.send(JSON.stringify({
+          type: "player-reconnected",
+          pseudo
+        }));
+      }
+    });
+
+    broadcastRoomUpdate();
+    return;
+  }
+
+  // Nouvelle connexion
   if (room.participants.length >= room.maxPlayers) {
-    pinolog.debug("Room is full");
     return ws.send(JSON.stringify({ type: "room-error", message: "Room pleine" }));
   }
-  if (!room.host) {
-    room.host = pseudo;
-    pinolog.info({player: pseudo}, pseudo, "got promoted to room host")
-    // console.log("room host is: ", room.host);
-  }
+
+  if (!room.host) room.host = pseudo;
+
   room.participants.push({ ws, pseudo });
-  pinolog.info({roomId: roomId, player: pseudo, roomSize: room.participants.length}, "A player joined the room");
-  // console.log("Player joined room:", pseudo, "Room participants are now", room.participants.map(p => p.pseudo));
+  userRoomMap[pseudo] = roomId;
+
   ws.send(JSON.stringify({ type: "joined-room", roomId: room.id, roomType: room.type, pseudo, host: room.host }));
   broadcastRoomUpdate();
 }
@@ -98,6 +217,7 @@ function handleStartGame(ws, data) {
 function start1v1Match(room) {
   if (room.participants.length < 2) return;
 
+  room.state = ROOM_STATE.COUNTDOWN;
   const [player1, player2] = room.participants;
 
   room.players.player1 = player1;
@@ -109,15 +229,18 @@ function start1v1Match(room) {
   };
   room.lastInputs = { player1: null, player2: null };
   room.ball = { position: { x: 400, y: 240 }, velocity: { x: 6, y: 4}, size: 10 };
-  room.gameOver = false;
 
   [player1, player2].forEach(p => {
     if (p.ws.readyState === WebSocket.OPEN) {
       const role = p === player1 ? "player1" : "player2";
-      p.ws.send(JSON.stringify({ type: "start-game", roomId: room.id, role}));
+      p.ws.send(JSON.stringify({ type: "start-game", roomId: room.id, role, player1: room.players.player1.pseudo, player2: room.players.player2.pseudo }));
     }
   });
-  pinolog.info({roomId: room.id, type: room.type, player1: player1, player2: player2}, "match started");
+  room.countdownSeconds = 10;
+  room.countdownStart = Date.now();
+  room.prevStateBeforeDisconnect = null;
+  room.remainingCountdown = null;
+  room.disconnectedPlayer = null;
   startGameLoop(room);
 }
 
@@ -163,13 +286,6 @@ function handleStartTournament(ws, data) {
   if (!room.lastInputs) room.lastInputs = { player1: null, player2: null };
   if (!room.ball) room.ball = { position: { x: 400, y: 240 }, velocity: { x: 6, y: 4 }, size: 10 };
 
-  pinolog.info({
-    roomId: room.id, 
-    participantsNumber: room.participants.length,
-    participants: room.participants,
-    matches: room.tournament.matches},
-    "tournament started"
-  );
   // Lance le premier match
   startNextTournamentMatch(room);
 }
@@ -177,6 +293,7 @@ function handleStartTournament(ws, data) {
 function handlePlayerInput(ws, data) {
   const room = Object.values(rooms).find(r => Object.values(r.participants).some(p => p?.ws === ws));
   if (!room) return;
+  if (room.state !== ROOM_STATE.PLAYING) return;
   const role = room.players.player1?.ws === ws ? "player1" : room.players.player2?.ws === ws ? "player2" : null;
   if (!role) return;
   room.lastInputs[role] = data.type === "input" ? data.key : null;
@@ -184,44 +301,79 @@ function handlePlayerInput(ws, data) {
 
 function handleDisconnect(ws) {
   if (ws.socketRole === "lobby") return;
+
   Object.values(rooms).forEach(room => {
-    const participantIndex = room.participants.findIndex(p => p.ws === ws);
-    if (participantIndex === -1) return;
+    const idx = room.participants.findIndex(p => p.ws === ws);
+    if (idx === -1) return;
 
-    const disconnectedPlayer = room.participants[participantIndex];
-    room.participants.splice(participantIndex, 1);
+    const disconnectedPlayer = room.participants[idx];
+    room.participants.splice(idx, 1);
 
-    pinolog.info({roomId: room, type: room.type, player: disconnectedPlayer}, "player disconected");
-
+    // Reassign host si nécessaire
     if (room.host === disconnectedPlayer.pseudo) {
       room.host = room.participants.length > 0 ? room.participants[0].pseudo : null;
+      room.participants.forEach(p => {
+        if (p.ws.readyState === WebSocket.OPEN) {
+          p.ws.send(JSON.stringify({ type: "host-update", host: room.host }));
+        }
+      });
     }
 
-    room.participants.forEach(p => {
-      if (p.ws.readyState === WebSocket.OPEN) {
-        p.ws.send(JSON.stringify({
-          type: "host-update",
-          host: room.host
-        }));
-      }
-    });
+    let role = null;
+    if (room.players.player1?.ws === ws) role = "player1";
+    if (room.players.player2?.ws === ws) role = "player2";
 
-    let disconnectedRole = null;
-    if (room.players.player1?.ws === ws) disconnectedRole = "player1";
-    if (room.players.player2?.ws === ws) disconnectedRole = "player2";
-    if (disconnectedRole) {
-      const winnerRole = disconnectedRole === "player1" ? "player2" : "player1";
-      room.players[disconnectedRole] = null;
-      if (room.tickId && room.players[winnerRole]) {
-        // console.log("Victoire par abandon :", winnerRole);
+    if (role) {
+      const winnerRole = role === "player1" ? "player2" : "player1";
+
+      room.prevStateBeforeDisconnect = room.state;
+      room.state = ROOM_STATE.PAUSED;
+
+      if (room.prevStateBeforeDisconnect === ROOM_STATE.COUNTDOWN) {
+        const elapsed = Math.floor((Date.now() - room.countdownStart) / 1000);
+        room.remainingCountdown = Math.max(0, room.countdownSeconds - elapsed);
+      }
+
+      room.disconnectedPlayer = {
+        pseudo: room.players[role]?.pseudo,
+        role
+      };
+
+      console.log("Déconnexion pendant la partie: ", room.disconnectedPlayer.pseudo);
+
+      // Notifier les autres joueurs
+      room.participants.forEach(p => {
+        if (p.ws.readyState === WebSocket.OPEN) {
+          p.ws.send(JSON.stringify({
+            type: "player-disconnected",
+            pseudo: room.disconnectedPlayer.pseudo,
+            timeout: 10
+          }));
+        }
+      });
+
+      if (room.disconnectTimeout) clearTimeout(room.disconnectTimeout);
+
+      room.disconnectTimeout = setTimeout(() => {
+        if (!room.disconnectedPlayer) return;
+
+        console.log("Timeout dépassé, victoire par abandon");
+
+        room.lastGameResult = {
+          winner: room.players[winnerRole]?.pseudo || null,
+          loser: room.disconnectedPlayer.pseudo,
+          reason: "timeout"
+        };
+        room.players[role] = null;
         setGameOver(room, winnerRole);
-      }
+      }, 10_000);
     }
-     
+
     if (room.participants.length === 0) {
-      // console.log("Room vide, suppression :", room.id);
+      console.log("Room vide, suppression :", room.id);
       deleteRoom(room.id);
     }
+
     broadcastRoomUpdate();
   });
 
@@ -234,16 +386,16 @@ function startNextTournamentMatch(room) {
   const tournament = room.tournament;
   if (!tournament) return;
 
-  // console.log("START NEXT MATCH");
-  // console.log("Players:", tournament.players);
-  // console.log("Matches:", tournament.matches);
+  console.log("START NEXT MATCH");
+  console.log("Players:", tournament.players);
+  console.log("Matches:", tournament.matches);
 
   let match = getNextMatch(tournament);
-  // console.log("Next match:", match);
+  console.log("Next match:", match);
 
   if (!match) {
     if (tournament.nextRound.length === 1) {
-      // Tournoi terminé
+      room.state = ROOM_STATE.TOURNAMENT_OVER;
       const winner = tournament.nextRound[0];
       room.participants.forEach(p => {
         if (p.ws.readyState === WebSocket.OPEN)
@@ -252,18 +404,17 @@ function startNextTournamentMatch(room) {
       tournament.inProgress = false;
       return;
     } else if (tournament.nextRound.length > 1) {
-      // Nouveau tour
       tournament.players = [...tournament.nextRound];
       tournament.nextRound = [];
       generateMatches(tournament);
-      match = getNextMatch(tournament); // récupère le premier match du nouveau tour
+      match = getNextMatch(tournament);
     } else {
       tournament.inProgress = false;
       return;
     }
   }
 
-  if (!match) return; // sécurité
+  if (!match) return;
 
   const { p1, p2 } = match;
 
@@ -275,41 +426,40 @@ function startNextTournamentMatch(room) {
 
   console.log("Démarrage du match :", p1, "vs", p2);
 
-  // Assigner les joueurs
   room.players.player1 = room.participants.find(p => p.pseudo === p1);
   room.players.player2 = room.participants.find(p => p.pseudo === p2);
 
-  // Reset scores et inputs
   room.paddles.player1.score = 0;
   room.paddles.player2.score = 0;
   room.lastInputs.player1 = null;
   room.lastInputs.player2 = null;
-  room.gameOver = false;
   resetRoomBall(room);
 
-  // Notifier les joueurs du match et du start-game
-  [p1, p2].forEach(pseudo => {
-    const player = room.participants.find(p => p.pseudo === pseudo);
-    if (player?.ws.readyState === WebSocket.OPEN) {
+  room.participants.forEach(player => {
+    if (player.ws.readyState === WebSocket.OPEN) {
       player.ws.send(JSON.stringify({ type: "tournament-next-match", p1, p2 }));
-      const role = player === room.players.player1 ? "player1" : "player2";
+    }
+
+    if (player.pseudo === p1 || player.pseudo === p2) {
+      const role = player.pseudo === p1 ? "player1" : "player2";
       player.ws.send(JSON.stringify({ type: "start-game", roomId: room.id, role }));
     }
   });
 
-  pinolog.info({
-    roomId: room.id,
-    type: room.type,
-    player1: p1,
-    player2: p2},
-    "match started"
-  );
-  startGameLoop(room); // lance le jeu
+  room.state = ROOM_STATE.COUNTDOWN;
+  room.countdownSeconds = 10;
+  room.countdownStart = Date.now();
+  room.prevStateBeforeDisconnect = null;
+  room.remainingCountdown = null;
+  room.disconnectedPlayer = null;
+
+  startGameLoop(room);
 }
 
-function setGameOver(room, winnerRole) {
-  if (room.gameOver) return;
-  room.gameOver = true;
+
+async function setGameOver(room, winnerRole) {
+  if (room.state === ROOM_STATE.GAME_OVER) return;
+  room.state = ROOM_STATE.GAME_OVER;
 
   gamesInProgress.dec();
   room.timestamps.end = Date.now();
@@ -319,13 +469,19 @@ function setGameOver(room, winnerRole) {
   totalEndedGames.inc();
 
   const loserRole = winnerRole === "player1" ? "player2" : "player1";
-  const winner = room.players[winnerRole]?.pseudo || null;
-  const loser = room.players[loserRole]?.pseudo || null;
+  const winner =
+    room.lastGameResult?.winner ||
+    room.players[winnerRole]?.pseudo ||
+    null;
 
-  ["player1", "player2"].forEach(role => {
-    const p = room.players[role];
-    if (p?.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(JSON.stringify({
+  const loser =
+    room.lastGameResult?.loser ||
+    room.players[loserRole]?.pseudo ||
+    "abandon";
+
+  room.participants.forEach(player => {
+    if (player?.ws.readyState === WebSocket.OPEN) {
+      player.ws.send(JSON.stringify({
         type: "gameOver",
         winner,
         loser,
@@ -337,28 +493,128 @@ function setGameOver(room, winnerRole) {
     }
   });
 
-  pinolog.info({roomId: room.id, type: room.type, player1: room.players.player1, player2: room.players.player2, winner: winner}, "match ended");
   if (room.tickId) {
     clearInterval(room.tickId);
     room.tickId = null;
   }
 
+  room.prevStateBeforeDisconnect = null;
+  room.remainingCountdown = null;
+  room.disconnectedPlayer = null;
+  room.lastGameResult = null;
+
+  async function saveMatchToDB({ player1, player2, score1, score2 }) {
+    try {
+      const res = await fetch("http://localhost:3000/api/matches/ws", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-WS-SECRET": process.env.WS_SECRET || "dev_ws_secret"
+        },
+        body: JSON.stringify({
+          player1,
+          player2,
+          score_player1: score1,
+          score_player2: score2
+        })
+      });
+      const text = await res.text();
+      console.log("MATCH SAVE STATUS:", res.status, text);
+    } catch (err) {
+      console.error("Failed to save match:", err);
+    }
+  }
+
+  if (!room.players.player1 || !room.players.player2) {
+    console.warn("Match not saved: missing player");
+    return;
+  }
+
+  await saveMatchToDB({
+    player1: room.players.player1.pseudo,
+    player2: room.players.player2.pseudo,
+    score1: room.paddles.player1.score,
+    score2: room.paddles.player2.score
+  });
+
   if (room.type !== "tournament") {
     deleteRoom(room.id);
   } else {
+    if (room.disconnectedPlayer) {
+      removeUserFromRoom(room.disconnectedPlayer.pseudo);
+    }
     recordMatchWinner(room.tournament, winner);
-    setTimeout(() => startNextTournamentMatch(room), 1000);
+    startNextTournamentMatch(room);
   }
 }
+
 
 // --------- GAME LOOP ---------
 function startGameLoop(room) {
   if (room.tickId) return;
-
   room.timestamps.start = Date.now();
   gamesInProgress.inc();
   room.tickId = setInterval(() => {
-    if (room.gameOver) return;
+
+    // --- Si jeu en pause ou terminé ---
+    if ([ROOM_STATE.WAITING, ROOM_STATE.GAME_OVER, ROOM_STATE.PAUSED].includes(room.state)) {
+      ["player1", "player2"].forEach(role => {
+        const p = room.players[role];
+        if (p?.ws?.readyState === WebSocket.OPEN) {
+          p.ws.send(JSON.stringify({
+            type: "state",
+            countdown: room.state === ROOM_STATE.COUNTDOWN
+              ? Math.max(0, room.remainingCountdown ?? room.countdownSeconds)
+              : 0,
+            state: {
+              ball: room.ball,
+              paddles: room.paddles,
+              scores: {
+                player1: room.paddles.player1.score,
+                player2: room.paddles.player2.score
+              }
+            },
+            message: room.state === ROOM_STATE.PAUSED && room.disconnectedPlayer
+              ? `En attente de la reconnexion de ${room.disconnectedPlayer.pseudo}`
+              : undefined
+          }));
+        }
+      });
+      return;
+    }
+
+    // --- Countdown ---
+    if (room.state === ROOM_STATE.COUNTDOWN) {
+      const elapsed = (Date.now() - (room.countdownStart || Date.now())) / 1000;
+      const remaining = Math.max(0, room.countdownSeconds - Math.floor(elapsed));
+      room.remainingCountdown = remaining;
+
+      if (remaining <= 0) {
+        room.state = ROOM_STATE.PLAYING;
+        room.remainingCountdown = null;
+      }
+
+      ["player1", "player2"].forEach(role => {
+        const p = room.players[role];
+        if (p?.ws.readyState === WebSocket.OPEN) {
+          p.ws.send(JSON.stringify({
+            type: "state",
+            countdown: remaining,
+            state: {
+              ball: room.ball,
+              paddles: room.paddles,
+              scores: {
+                player1: room.paddles.player1.score,
+                player2: room.paddles.player2.score
+              }
+            }
+          }));
+        }
+      });
+      return;
+    }
+
+    // --- Joueurs et paddles ---
     ["player1", "player2"].forEach(role => {
       const input = room.lastInputs[role];
       const paddle = room.paddles[role];
@@ -367,27 +623,53 @@ function startGameLoop(room) {
       if (input === "ArrowDown") paddle.position.y = Math.min(paddle.position.y + paddle.speed, CANVAS_HEIGHT - paddle.height);
     });
 
+    // --- Ball movement ---
     const ball = room.ball;
     ball.position.x += ball.velocity.x;
     ball.position.y += ball.velocity.y;
 
     if (ball.position.y <= 0 || ball.position.y >= CANVAS_HEIGHT - ball.size) ball.velocity.y *= -1;
 
-    ["player1","player2"].forEach(role => {
+    ["player1", "player2"].forEach(role => {
       const p = room.paddles[role];
-      if (ball.position.x <= p.position.x + p.width &&
-          ball.position.x + ball.size >= p.position.x &&
-          ball.position.y + ball.size >= p.position.y &&
-          ball.position.y <= p.position.y + p.height) ball.velocity.x *= -1;
+      if (
+        ball.position.x <= p.position.x + p.width &&
+        ball.position.x + ball.size >= p.position.x &&
+        ball.position.y + ball.size >= p.position.y &&
+        ball.position.y <= p.position.y + p.height
+      ) ball.velocity.x *= -1;
     });
 
-    if (ball.position.x > CANVAS_WIDTH) { room.paddles.player1.score++; if(room.paddles.player1.score >= WINNING_SCORE) setGameOver(room,"player1"); resetRoomBall(room);}
-    if (ball.position.x < 0) { room.paddles.player2.score++; if(room.paddles.player2.score >= WINNING_SCORE) setGameOver(room,"player2"); resetRoomBall(room);}
+    // --- Score & GameOver ---
+    if (ball.position.x > CANVAS_WIDTH) {
+      room.paddles.player1.score++;
+      if (room.paddles.player1.score >= WINNING_SCORE) setGameOver(room, "player1");
+      resetRoomBall(room);
+    }
+    if (ball.position.x < 0) {
+      room.paddles.player2.score++;
+      if (room.paddles.player2.score >= WINNING_SCORE) setGameOver(room, "player2");
+      resetRoomBall(room);
+    }
 
-    ["player1","player2"].forEach(role => {
+    // --- Broadcast état ---
+    ["player1", "player2"].forEach(role => {
       const p = room.players[role];
-      if(p?.ws.readyState===WebSocket.OPEN) p.ws.send(JSON.stringify({ type:"state", state:{ball:room.ball,paddles:room.paddles,scores:{player1:room.paddles.player1.score,player2:room.paddles.player2.score}}}));
+      if (p?.ws.readyState === WebSocket.OPEN) {
+        p.ws.send(JSON.stringify({
+          type: "state",
+          state: {
+            ball: room.ball,
+            paddles: room.paddles,
+            scores: {
+              player1: room.paddles.player1.score,
+              player2: room.paddles.player2.score
+            }
+          }
+        }));
+      }
     });
+
   }, 1000 / TICK_RATE);
 }
 
@@ -417,4 +699,4 @@ function serializeRoom(room) {
   };
 }
 
-module.exports = { initWebSocket };
+module.exports = { initWebSocket, getOnlineUserIds };

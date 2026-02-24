@@ -1,5 +1,5 @@
 {
-  "name": "nodejs-backend",
+  "name": "mvp-backend",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -17,7 +17,6 @@
 	  "jsonwebtoken": "^9.0.2",
     "better-sqlite3": "^8.0.1",
     "bcrypt": "^5.1.0",
-    "pino": "^9.6.0",
     "prom-client": "^15.1.3"
   }
 }

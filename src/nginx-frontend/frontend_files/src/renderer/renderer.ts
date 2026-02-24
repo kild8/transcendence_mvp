@@ -11,7 +11,7 @@ import { addUserContent } from '../pages/add-user.js';
 import { listUsersContent } from '../pages/list-users.js';
 import { profileContent } from '../pages/profile.js';
 import { registerContent } from '../pages/register.js';
-import { roomsContent } from '../pages/rooms.js';
+import { onlineContent } from '../pages/online.js';
 
 export const app = document.getElementById('app')!;
 
@@ -22,7 +22,7 @@ export const protectedPages: Page[] = [
   'add-user',
   'list-users',
   'profile',
-  'rooms'
+  'online'
 ];
 
 export function render(page: Page) {
@@ -49,12 +49,9 @@ export function render(page: Page) {
   if (page === 'add-user') main.appendChild(addUserContent());
   if (page === 'list-users') main.appendChild(listUsersContent());
   if (page === 'profile') main.appendChild(profileContent());
-  if (page === 'rooms') main.appendChild(roomsContent());
+  if (page === 'online') main.appendChild(onlineContent());
 
   container.appendChild(main);
-
-  const footer = elFromHTML(`<footer class="mt-6 small text-center">Petit MVP • Vanilla TS + Tailwind</footer>`);
-  container.appendChild(footer);
 
   app.appendChild(container);
 }
@@ -63,8 +60,7 @@ function header(): HTMLElement {
   const html = `
     <header class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold">MVP — Mode de jeu</h1>
-        <p class="small mt-1">Choisis un mode puis sélectionne les pseudos.</p>
+        <h1 class="text-2xl font-semibold">Transcendence PONG</h1>
       </div>
       <div id="header-right" class="flex items-center gap-3"></div>
     </header>
@@ -72,23 +68,38 @@ function header(): HTMLElement {
   const node = elFromHTML(html);
   const right = node.querySelector('#header-right') as HTMLElement;
 
-  // Si l'utilisateur est connecté -> afficher son nom + profile + logout
+  // Si l'utilisateur est connecté -> afficher son avatar + nom + profile + logout
   if (state.appState.currentUser) {
     const name = state.appState.currentUser.name || 'Utilisateur';
+    // compute avatar src:
+    const rawAvatar = (state.appState.currentUser as any).avatar;
+    const avatarSrc = (function () {
+      if (!rawAvatar) return '/default-avatar.png';
+      // si c'est déjà un chemin (contient /) on le prend tel quel (relatif ou absolu)
+      if (String(rawAvatar).includes('/')) {
+        return String(rawAvatar).startsWith('/') ? String(rawAvatar) : `/${String(rawAvatar)}`;
+      }
+      // sinon on suppose que c'est un filename stocké dans /api/uploads/
+      return `/api/uploads/${String(rawAvatar)}`;
+    })();
+
     right.innerHTML = `
-      <div class="small">Bonjour, <strong id="hdr-username">${escapeHtml(name)}</strong></div>
-      <button id="hdr-profile" class="btn small">Profil</button>
-      <button id="hdr-logout" class="btn small">Se déconnecter</button>
+      <div class="flex items-center gap-3">
+        <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full cursor-pointer" />
+        <div class="small">Bonjour, <strong id="hdr-username">${escapeHtml(name)}</strong></div>
+        <button id="hdr-profile" class="btn small">Profil</button>
+        <button id="hdr-logout" class="btn small">Se déconnecter</button>
+      </div>
     `;
 
     const profileBtn = node.querySelector('#hdr-profile') as HTMLButtonElement;
     const logoutBtn = node.querySelector('#hdr-logout') as HTMLButtonElement;
     const usernameEl = node.querySelector('#hdr-username') as HTMLElement;
+    const avatarEl = node.querySelector('#hdr-avatar') as HTMLImageElement | null;
 
     profileBtn.addEventListener('click', (e) => {
       e.preventDefault();
       navigateTo('profile');
-      // on réaffiche la page (render est la fonction exportée dans ce module)
       render(getHashPage());
     });
 
@@ -99,34 +110,46 @@ function header(): HTMLElement {
       render(getHashPage());
     });
 
+    // clique sur l'avatar renvoie aussi au profile
+    if (avatarEl) {
+      avatarEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateTo('profile');
+        render(getHashPage());
+      });
+      // en cas d'erreur de chargement, fallback
+      avatarEl.onerror = () => { avatarEl.src = '/default-avatar.png'; };
+    }
+
     logoutBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       try {
-        // envoie le POST pour supprimer le cookie côté serveur
         await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
       } catch (err) {
         console.warn('Logout failed', err);
-        // on continue quand même côté front
       }
-      // vider l'état côté client
+      if (state.appState.ws) {
+        state.appState.ws.close();
+        state.appState.ws = null;
+      }
+      try {
+        const lw = (state as any).appState.lobbyWs;
+        if (lw && typeof lw.close === 'function') lw.close();
+        delete (state as any).appState.lobbyWs;
+      } catch (e) {}
+      try {
+        const pc = (window as any).__presenceClient;
+        if (pc && typeof pc.close === 'function') pc.close();
+        (window as any).__presenceClient = null;
+      } catch (e) {}
       state.appState.currentUser = null;
-      // aller au login et rerender
       navigateTo('login');
       render(getHashPage());
     });
 
   } else {
-    // non connecté -> proposer login / register
-    right.innerHTML = `
-      <a id="hdr-login" class="btn small" href="#login">Connexion</a>
-      <a id="hdr-register" class="btn small" href="#register">S'inscrire</a>
-    `;
-    // on laisse les hashes gérer la navigation (ou on peut ajouter des listeners si besoin)
-    // mais ajoutons des listeners pour s'assurer que render est appelé immédiatement
-    const lLogin = node.querySelector('#hdr-login') as HTMLAnchorElement;
-    const lRegister = node.querySelector('#hdr-register') as HTMLAnchorElement;
-    lLogin.addEventListener('click', (e) => { e.preventDefault(); navigateTo('login'); render(getHashPage()); });
-    lRegister.addEventListener('click', (e) => { e.preventDefault(); navigateTo('register'); render(getHashPage()); });
+    // non connecté -> ne rien afficher dans l'entête
+    right.innerHTML = '';
   }
 
   return node;
@@ -141,18 +164,3 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-
-
-// function header(): HTMLElement {
-//   const html = `
-//     <header class="flex items-center justify-between">
-//       <div>
-//         <h1 class="text-2xl font-semibold">MVP — Mode de jeu</h1>
-//         <p class="small mt-1">Choisis un mode puis sélectionne les pseudos.</p>
-//       </div>
-//       <div class="small">Critère en haut</div>
-//     </header>
-//   `;
-//   return elFromHTML(html);
-// }
-

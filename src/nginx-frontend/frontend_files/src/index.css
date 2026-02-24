@@ -89,3 +89,8 @@ button.bg-white,
   background: var(--card) !important;
   color: var(--accent) !important;
 }
+
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(100vh) rotate(360deg); }
+}

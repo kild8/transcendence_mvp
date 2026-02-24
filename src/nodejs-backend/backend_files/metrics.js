@@ -1,5 +1,4 @@
 const promClient = require('prom-client');
-const pinolog = require('./logger.js');
 
 promClient.collectDefaultMetrics(); // CPU, mémoire, event loop, GC…
 

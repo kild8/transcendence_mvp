@@ -20,7 +20,7 @@ MONITORING_ADMIN_EMAIL=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 8)@monitoring.
 MONITORING_ADMIN_PHONE=+336$(tr -dc '0-9' < /dev/urandom | head -c 9)
 
 NODEJS_BACKEND_JWT_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
-
+NODEJS_BACKEND_WS_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 
 #Waiting for the vault program to be ready to execute commands
 while true; do
@@ -84,6 +84,9 @@ path "kv-secrets/+/google_auth_secret_id" {
   capabilities = ["read"]
 }
 path "kv-secrets/+/nodejs_backend_jwt_secret" {
+  capabilities = ["read"]
+}
+path "kv-secrets/+/nodejs_backend_ws_secret" {
   capabilities = ["read"]
 }
 EOF
@@ -249,6 +252,7 @@ vault kv put /kv-secrets/google_auth_client_id google_auth_client_id=$(cat /run/
 vault kv put /kv-secrets/google_auth_secret_id google_auth_secret_id=$(cat /run/secrets/google_auth_secret_id)
 vault kv put /kv-secrets/discord_webhook_url discord_webhook_url=$(cat /run/secrets/discord_webhook_url)
 vault kv put /kv-secrets/nodejs_backend_jwt_secret jwt_secret=${NODEJS_BACKEND_JWT_SECRET}
+vault kv put /kv-secrets/nodejs_backend_ws_secret ws_secret=${NODEJS_BACKEND_WS_SECRET}
 
 #Sending the container/agents ids using shared docker volumes # Should automate for all agent container
 mkdir -p /vault_agents_ids

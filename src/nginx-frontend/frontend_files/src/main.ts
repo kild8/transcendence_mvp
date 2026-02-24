@@ -3,6 +3,7 @@
  * Build: tsc -> dist/main.js ; tailwindcss -> dist/style.css
  */
 
+import { createPresenceSocket } from './wsClient.js';
 import { render } from './renderer/renderer.js';
 import { getHashPage } from './router.js';
 import { state } from './state.js';
@@ -29,8 +30,23 @@ async function checkAuth() {
       state.appState.currentUser = {
         id: data.user.id,
         name: data.user.name,
-        email: data.user.email
+        email: data.user.email,
+        avatar: data.user.avatar
       };
+      // open presence websocket client (keeps user online)
+      try {
+        if (!state.appState.ws) {
+          const presenceClient = createPresenceSocket(() => {
+            console.log('presence socket opened');
+          }, () => {
+            console.log('presence socket closed');
+          });
+          // store the client (has .close())
+          state.appState.ws = presenceClient as any;
+        }
+      } catch (e) {
+        console.warn('Failed to open presence socket', e);
+      }
       return true;
     }
   } catch (e) {
@@ -52,3 +68,13 @@ async function checkAuth() {
   }
   render(getHashPage());
 })();
+
+// close presence socket on unload
+window.addEventListener('beforeunload', () => {
+  try {
+    if (state.appState.ws) {
+      state.appState.ws.close();
+      state.appState.ws = null;
+    }
+  } catch (e) {}
+});

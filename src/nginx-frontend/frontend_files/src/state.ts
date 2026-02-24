@@ -11,6 +11,7 @@ export const state = {
       id: number;
       name: string;
       email: string;
+      avatar: string;
     }
 
   },

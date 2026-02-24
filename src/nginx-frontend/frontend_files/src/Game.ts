@@ -148,6 +148,8 @@ class Game {
     private rightName: string;
     private winningScore: number;
     private onGameOver?: OnGameOver;
+    private countdown: number | null = 4;
+    private countdownStartTime: number = performance.now();
 
     constructor(canvasId: string, leftName = 'Joueur 1', rightName = 'Joueur 2', winningScore = 2, onGameOver?: OnGameOver) {
         this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -190,6 +192,13 @@ class Game {
     }
 
     update() {
+        if (this.countdown !== null)
+        {
+            const elapsed = (performance.now() - this.countdownStartTime) / 1000;
+            const remaining = 4 - Math.floor(elapsed);
+            this.countdown = remaining > 0 ? remaining : null;
+            return;
+        }
         if (this.keys["w"]) this.leftPaddle.moveUp();
         if (this.keys["s"]) this.leftPaddle.moveDown(this.canvas.height);
         if (this.keys["ArrowUp"]) this.rightPaddle.moveUp();
@@ -226,6 +235,24 @@ class Game {
         this.ctx.fillText(`${this.leftName}  ${this.leftPaddle.score}`, 20, 30);
         this.ctx.textAlign = "right";
         this.ctx.fillText(`${this.rightPaddle.score}  ${this.rightName}`, this.canvas.width - 20, 30);
+        
+        
+        if (this.countdown !== null) {
+            this.ctx.fillStyle = "rgba(0,0,0,0.6)";
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            this.ctx.fillStyle = "white";
+            this.ctx.font = "80px monospace";
+            this.ctx.textAlign = "center";
+            this.ctx.textBaseline = "middle";
+
+            this.ctx.fillText(
+                this.countdown === 1 ? "GO" : String(this.countdown - 1),
+                this.canvas.width / 2,
+                this.canvas.height / 2
+            );
+        }
+    
     }
 
     loop = () => {

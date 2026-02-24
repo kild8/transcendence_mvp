@@ -37,3 +37,9 @@ template {
   destination = "/vault/secrets/jwt_secret"
   command     = "chown vault:1001 /vault/secrets/jwt_secret"
 }
+
+template {
+  source      = "/vault/templates/ws_secret.tmpl"
+  destination = "/vault/secrets/ws_secret"
+  command     = "chown vault:1001 /vault/secrets/ws_secret"
+}
