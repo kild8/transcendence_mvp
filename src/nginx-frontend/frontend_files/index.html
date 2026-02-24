@@ -1,16 +1,40 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MVP — Vanilla TS + Tailwind</title>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ModSecurity Test</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 24px; max-width:900px; }
+    code { background:#f4f4f4; padding:2px 6px; border-radius:4px; }
+    .links a { display:block; margin:8px 0; text-decoration:none; }
+    .warn { color:#b22222; font-weight:700; }
+  </style>
+</head>
+<body>
+  <h1>ModSecurity WAF — Page de test</h1>
+  <p>Page destinée à déclencher des règles ModSecurity / OWASP CRS en <strong>mode blocage</strong>.</p>
 
-    <link rel="stylesheet" href="/dist/style.css" />
-  </head>
-  <body class="bg-black text-white font-mono">
-    <div id="app" class="min-h-screen flex items-start justify-center p-6"></div>
-    <script src="/dist/Game.js"></script>
-    <script type="module" src="/dist/main.js"></script>
-  </body>
+  <h2>Tests (clique pour exécuter)</h2>
+  <div class="links">
+    <p><span class="warn">XSS (payload encodé dans l'URL) — test basique :</span></p>
+    <a href="/?test=%3Cscript%3Ealert('XSS')%3C%2Fscript%3E" rel="noopener noreferrer">/?test=%3Cscript%3Ealert('XSS')%3C%2Fscript%3E</a>
+
+    <p><span class="warn">SQL Injection (simple payload encodé) :</span></p>
+    <a href="/?id=1%27%20OR%20%271%27%3D%271" rel="noopener noreferrer">/?id=1%27%20OR%20%271%27%3D%271</a>
+
+  </div>
+
+  <h2>Commandes curl utiles</h2>
+  <pre>
+    <code># Scan sqlmap
+        curl -k -A sqlmap  https://web-static.lab.clinux.fr
+    </code>
+    <code># Protection /admin
+        curl -k https://web-static.lab.clinux.fr/admin
+    </code>
+  </pre>
+
+  <p style="margin-top:20px;">Amuse-toi (ou pleure), et check les logs. 😈🔍</p>
+</body>
 </html>

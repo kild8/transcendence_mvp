@@ -64,11 +64,15 @@ RUN mkdir /etc/nginx/modsec \
 	&& cp ModSecurity/unicode.mapping /etc/nginx/modsec \
 	&& sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsec/modsecurity.conf
 
+RUN rm -rf /ModSecurity /ModSecurity-nginx /nginx-1.24.0
+
+RUN git clone https://github.com/coreruleset/coreruleset.git /etc/nginx/modsec/coreruleset \
+	&& cp /etc/nginx/modsec/coreruleset/crs-setup.conf.example /etc/nginx/modsec/coreruleset/crs-setup.conf
+
 RUN mkdir -p /var/log/nginx \
  && ln -sf /dev/stdout /var/log/nginx/access.log \
  && ln -sf /dev/stderr /var/log/nginx/error.log
 
-#Download utilities
 RUN apt-get update && apt-get install -y inotify-tools \
     && rm -rf /var/lib/apt/lists/*
 
@@ -83,7 +87,9 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 COPY ./frontend_files/default-avatar.png /usr/share/nginx/html/default-avatar.png
 
-COPY ./config/modsec.conf /etc/nginx/modsec/main.conf
+COPY ./config/main.conf /etc/nginx/modsec/main.conf
+
+COPY ./config/modsecurity.conf /etc/nginx/modsec/modsecurity.conf
 
 COPY ./config/nginx.conf /etc/nginx/nginx.conf
 
