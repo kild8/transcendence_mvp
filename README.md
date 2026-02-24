@@ -30,7 +30,6 @@ Once the containers are running, the following services are accessible via **loc
 | :--- | :--- | :--- |
 | **Web Application** | [https://localhost](https://localhost) | Main Single-Page Application (SPA). |
 | **Grafana** | [https://localhost/grafana](https://localhost/grafana) | Real-time system monitoring dashboard. |
-| **Kibana** | [https://localhost/kibana](https://localhost/kibana) | Log visualization and analysis (ELK Stack). |
 | **Vault** | [https://localhost/vault](https://localhost/vault) | Secure secret management and OIDC authority. |
 
 > **⚠️ Important:** On the first launch, **HashiCorp Vault** automatically generates access credentials. You can find the Root Token, Unseal keys, and monitoring admin accounts in the `vault_access/` folder at the root of the project.
@@ -45,12 +44,10 @@ This project adheres to the specific technical constraints defined in the subjec
 * **Backend:** Developed with the **Fastify (Node.js)** framework.
 * **Database:** Data persistence managed via **SQLite**.
 * **DevOps & Monitoring:**
-    * Infrastructure setup for log management using the **ELK Stack** (Elasticsearch, Logstash, Kibana).
     * System health and metrics monitoring with **Prometheus and Grafana**.
 * **Security:**
     * Secrets (API keys, credentials, env variables) managed by **HashiCorp Vault**.
-    * Protection against SQL injections and XSS attacks.
-    * All connections secured via **httpsS**.
+    * All connections secured via **https**.
 
 ---
 
