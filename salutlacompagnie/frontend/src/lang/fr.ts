@@ -111,6 +111,7 @@ export default {
     TITLE: "Profil",
     CHANGE_AVATAR: "Changer l’avatar",
     NEW_NAME_PLACEHOLDER: "Nouveau pseudo",
+    LANGUAGE: "Langue",
     SAVE: "Sauvegarder",
     REMOVE: "Supprimer",
     CANCEL: "Annuler",
@@ -145,7 +146,10 @@ export default {
     NO_MATCHES: "Aucune partie trouvée",
     HISTORY_LOAD_ERROR: "Erreur lors du chargement de l'historique",
     ACCEPT: "Accepter",
-    REJECT: "Refuser"
+    REJECT: "Refuser",
+    LANG_SAVING: "En cours…",
+    LANG_SAVE_ERROR: "Erreur lors de la sauvegarde",
+    LANG_SAVED: "Langue mise à jour ✔️"
   },
     Register: {
     //reguster.ts

@@ -108,6 +108,7 @@ export default {
     TITLE: "Profile",
     CHANGE_AVATAR: "Change Avatar",
     NEW_NAME_PLACEHOLDER: "New username",
+    LANGUAGE: "Language",
     SAVE: "Save",
     CANCEL: "Cancel",
     REMOVE: "Remove",
@@ -142,7 +143,10 @@ export default {
     NO_MATCHES: "No matches found",
     HISTORY_LOAD_ERROR: "Error loading history",
     ACCEPT: "Accept",
-    REJECT: "Reject"
+    REJECT: "Reject",
+    LANG_SAVING: "Saving…",
+    LANG_SAVE_ERROR: "Error saving",
+    LANG_SAVED: "Language updated ✔️"
   },
     Register: {
     //register.ts

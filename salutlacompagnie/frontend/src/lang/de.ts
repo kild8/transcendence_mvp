@@ -111,6 +111,7 @@ WS: {
     TITLE: "Profil",
     CHANGE_AVATAR: "Avatar ändern",
     NEW_NAME_PLACEHOLDER: "Neuer Benutzername",
+    LANGUAGE: "Sprache",
     SAVE: "Speichern",
     REMOVE: "Entfernen",
     CANCEL: "Abbrechen",
@@ -145,7 +146,10 @@ WS: {
     NO_MATCHES: "Keine Spiele gefunden",
     HISTORY_LOAD_ERROR: "Fehler beim Laden des Verlaufs",
     ACCEPT: "Akzeptieren",
-    REJECT: "Ablehnen"
+    REJECT: "Ablehnen",
+    LANG_SAVING: "Speichern…",
+    LANG_SAVE_ERROR: "Fehler beim Speichern",
+    LANG_SAVED: "Sprache aktualisiert ✔️"
   },
   Register: {
     //register.ts

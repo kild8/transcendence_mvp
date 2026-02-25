@@ -67,7 +67,7 @@ export function loginContent(): HTMLElement {
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        errorEl.textContent = data.error || t(state.lang, "Login.ERROR_LOGIN_FAILED");
+        errorEl.textContent = data.error ? t(state.lang, data.error) : t(state.lang, "Login.ERROR_LOGIN_FAILED");
         return;
       }
 

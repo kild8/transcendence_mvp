@@ -110,7 +110,7 @@ export function onlineContent(): HTMLElement {
         body: JSON.stringify({ type, host: pseudo }),
       });
       const room = await res.json();
-      if (!room?.id) return alert(t(state.lang, "Online.ERROR_CREATE_ROOM"));
+      if (!res || !room?.id || room.error) return alert(room.error ? t(state.lang, room.error) : t(state.lang, "Online.ERROR_CREATE_ROOM"));
 
       joinRoom(room.id);
     }

@@ -65,7 +65,7 @@ export function registerContent(): HTMLElement {
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        errorEl.textContent = data.error || t(state.lang, "Register.ERROR_REGISTRATION");
+        errorEl.textContent = data.error ? t(state.lang, data.error) : t(state.lang, "Register.ERROR_REGISTRATION");
         return;
       }
 

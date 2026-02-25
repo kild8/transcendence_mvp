@@ -30,13 +30,13 @@ export function profileContent(): HTMLElement {
         </div>
 
         <div class="mb-2">
-          <label for="profile-language" class="small mr-2">Langue :</label>
+          <label for="profile-language" class="small mr-2">${t(state.lang, "Profile.LANGUAGE")}</label>
           <select id="profile-language" class="border rounded p-1 text-sm">
             <option value="en">EN</option>
             <option value="fr">FR</option>
             <option value="de">DE</option>
           </select>
-          <button id="save-language" class="btn small ml-2">Sauvegarder</button>
+          <button id="save-language" class="btn small ml-2">${t(state.lang, "Profile.SAVE")}</button>
           <div id="lang-msg" class="small text-red-600 mt-1"></div>
         </div>
 
@@ -207,7 +207,7 @@ export function profileContent(): HTMLElement {
       }
       const data = await res.json();
       if (!data.ok) {
-        profileMsg.textContent = data.error ? data.error : t(state.lang, "Profile.SERVER_ERROR");
+        profileMsg.textContent = data.error ? t(state.lang, data.error) : t(state.lang, "Profile.SERVER_ERROR");
         return;
       }
       const url = data.url ? data.url : `/api/uploads/${data.avatar}`;
@@ -265,7 +265,7 @@ export function profileContent(): HTMLElement {
       }
       const data = await res.json();
       if (!data.ok) {
-        profileMsg.textContent = data.error ? data.error : t(state.lang, "Profile.SERVER_ERROR");
+        profileMsg.textContent = data.error ? t(state.lang, data.error) : t(state.lang, "Profile.SERVER_ERROR");
         return;
       }
       // update UI & state (currentUser exists here)
@@ -294,7 +294,7 @@ export function profileContent(): HTMLElement {
       if (!currentUser) return;
       const newLang = (profileLangSelect.value || 'en') as 'en' | 'fr' | 'de';
       saveLangBtn.disabled = true;
-      if (langMsg) { langMsg.textContent = 'En cours...'; }
+      if (langMsg) { langMsg.textContent = t(state.lang, "Profile.LANG_SAVING"); }
       try {
         const res = await fetch('/api/user/me', {
           method: 'PUT',
@@ -303,14 +303,14 @@ export function profileContent(): HTMLElement {
           body: JSON.stringify({ language: newLang })
         });
         if (!res.ok) {
-          const t = await res.text();
-          console.error('save language failed', res.status, t);
-          if (langMsg) langMsg.textContent = 'Erreur lors de la sauvegarde';
+          const text = await res.text();
+          console.error('save language failed', res.status, text);
+          if (langMsg) langMsg.textContent = t(state.lang, "Profile.LANG_SAVE_ERROR");
           return;
         }
         const data = await res.json();
         if (!data.ok) {
-          if (langMsg) langMsg.textContent = data.error || 'Erreur serveur';
+          if (langMsg) langMsg.textContent = data.error? t(state.lang, data.error) : t(state.lang, "PROFILE.NETWORK_ERROR");
           return;
         }
         // update local state and UI: persisted language and session language
@@ -321,7 +321,7 @@ export function profileContent(): HTMLElement {
           (state as any).appState.currentUser.language_session = data.user.language;
           try { localStorage.setItem('language_session', data.user.language); } catch (e) { /* ignore */ }
         }
-        if (langMsg) { langMsg.textContent = 'Langue mise à jour ✔️'; }
+        if (langMsg) { langMsg.textContent = t(state.lang, "Profile.LANG_SAVED"); }
         // also update header select if present
         try {
           const hdr = document.getElementById('hdr-lang') as HTMLSelectElement | null;
@@ -331,7 +331,7 @@ export function profileContent(): HTMLElement {
         try { navigateTo(getHashPage()); } catch (e) { /* ignore */ }
       } catch (err) {
         console.error('save language error', err);
-        if (langMsg) langMsg.textContent = 'Erreur réseau';
+        if (langMsg) langMsg.textContent = t(state.lang, "PROFILE.NETWORK_ERROR");
       } finally {
         saveLangBtn.disabled = false;
         setTimeout(() => { if (langMsg) langMsg.textContent = ''; }, 2500);
@@ -488,7 +488,7 @@ export function profileContent(): HTMLElement {
           friendSearchResult.innerHTML = `<div class="small text-green-600">${t(state.lang, "Profile.REQUEST_SENT")}</div>`;
           await loadFriendsList();
         } else {
-          friendSearchResult.innerHTML = `<div class="small text-red-600">${escapeHtml(j.error || t(state.lang, "Profile.SERVER_ERROR"))}</div>`;
+          friendSearchResult.innerHTML = `<div class="small text-red-600">${escapeHtml(j.error ? t(state.lang, j.error) : t(state.lang, "Profile.SERVER_ERROR"))}</div>`;
         }
       } catch (err) {
         friendSearchResult.innerHTML = `<div class="small text-red-600">${t(state.lang, "Profile.NETWORK_ERROR")}</div>`;
