@@ -1,4 +1,5 @@
 import { elFromHTML } from '../utils.js';
+import { getHashPage } from '../router.js';
 import { navigateTo } from '../router.js';
 import { state } from '../state.js'; // si ton projet exporte state (optionnel mais pratique)
 import { t } from "../lang/langIndex.js";
@@ -26,6 +27,17 @@ export function profileContent(): HTMLElement {
         <div class="mb-2">
           <strong id="profile-name" class="text-lg"></strong>
           <button id="edit-name" class="btn small ml-2">${t(state.lang, "Profile.EDIT")}</button>
+        </div>
+
+        <div class="mb-2">
+          <label for="profile-language" class="small mr-2">Langue :</label>
+          <select id="profile-language" class="border rounded p-1 text-sm">
+            <option value="en">EN</option>
+            <option value="fr">FR</option>
+            <option value="de">DE</option>
+          </select>
+          <button id="save-language" class="btn small ml-2">Sauvegarder</button>
+          <div id="lang-msg" class="small text-red-600 mt-1"></div>
         </div>
 
         <div id="edit-name-form" class="hidden mb-2">
@@ -125,7 +137,18 @@ export function profileContent(): HTMLElement {
 
       // optionally keep global state in sync (guarded)
       if ((state as any)?.appState) {
-        (state as any).appState.currentUser = { id: currentUser.id, name: currentUser.name, email: currentUser.email, avatar: currentUser.avatar };
+        // preserve any existing session-level preference (set by header),
+        // otherwise prefer a stored localStorage session value, then fallback to persisted user.language
+        const existingSession = (state as any).appState.currentUser && (state as any).appState.currentUser.language_session;
+        const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
+        (state as any).appState.currentUser = {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          avatar: currentUser.avatar,
+          language: (currentUser as any).language,
+          language_session: existingSession || storedSession || (currentUser as any).language
+        } as any;
       }
 
       // fill UI (currentUser is guaranteed non-null here)
@@ -135,6 +158,16 @@ export function profileContent(): HTMLElement {
       const avatarFilename = currentUser.avatar ? String(currentUser.avatar).split('/').pop() : null;
       avatarEl.src = avatarFilename ? `/api/uploads/${avatarFilename}` : '/default-avatar.png';
       profileMsg.textContent = '';
+
+      // initialize language select if present — show the persisted user preference (don't auto-save session)
+      try {
+        const sel = node.querySelector('#profile-language') as HTMLSelectElement | null;
+        if (sel && currentUser) {
+          // prefer persisted user.language (what is stored as preference), then fallback to session
+          const sessionLang = (state as any).appState.currentUser && (state as any).appState.currentUser.language_session;
+          sel.value = (currentUser as any).language || sessionLang || 'en';
+        }
+      } catch (e) {}
 
       // load matches to compute wins/losses, but don't show history yet
       await loadMatchesSummary();
@@ -249,6 +282,62 @@ export function profileContent(): HTMLElement {
       setTimeout(() => { nameMsg.textContent = ''; }, 2500);
     }
   });
+
+  // --- language save ---
+  const profileLangSelect = node.querySelector('#profile-language') as HTMLSelectElement | null;
+  const saveLangBtn = node.querySelector('#save-language') as HTMLButtonElement | null;
+  const langMsg = node.querySelector('#lang-msg') as HTMLElement | null;
+
+  if (saveLangBtn && profileLangSelect) {
+    saveLangBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+      const newLang = (profileLangSelect.value || 'en') as 'en' | 'fr' | 'de';
+      saveLangBtn.disabled = true;
+      if (langMsg) { langMsg.textContent = 'En cours...'; }
+      try {
+        const res = await fetch('/api/user/me', {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: newLang })
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          console.error('save language failed', res.status, t);
+          if (langMsg) langMsg.textContent = 'Erreur lors de la sauvegarde';
+          return;
+        }
+        const data = await res.json();
+        if (!data.ok) {
+          if (langMsg) langMsg.textContent = data.error || 'Erreur serveur';
+          return;
+        }
+        // update local state and UI: persisted language and session language
+        currentUser = { ...currentUser, language: data.user.language } as any;
+        if ((state as any)?.appState?.currentUser) {
+          (state as any).appState.currentUser.language = data.user.language;
+          // also update session-level selection so header/other pages reflect user's choice immediately
+          (state as any).appState.currentUser.language_session = data.user.language;
+          try { localStorage.setItem('language_session', data.user.language); } catch (e) { /* ignore */ }
+        }
+        if (langMsg) { langMsg.textContent = 'Langue mise à jour ✔️'; }
+        // also update header select if present
+        try {
+          const hdr = document.getElementById('hdr-lang') as HTMLSelectElement | null;
+          if (hdr) hdr.value = data.user.language;
+        } catch (e) {}
+        // re-render to apply translations
+        try { navigateTo(getHashPage()); } catch (e) { /* ignore */ }
+      } catch (err) {
+        console.error('save language error', err);
+        if (langMsg) langMsg.textContent = 'Erreur réseau';
+      } finally {
+        saveLangBtn.disabled = false;
+        setTimeout(() => { if (langMsg) langMsg.textContent = ''; }, 2500);
+      }
+    });
+  }
 
   // --- matches summary & history ---
   async function loadMatchesSummary() {

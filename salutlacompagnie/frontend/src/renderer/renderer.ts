@@ -88,6 +88,11 @@ function header(): HTMLElement {
       <div class="flex items-center gap-3">
         <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full cursor-pointer" />
         <div class="small">${t(state.lang, "Renderer.HELLO")} <strong id="hdr-username">${escapeHtml(name)}</strong></div>
+        <select id="hdr-lang" class="border rounded p-1 text-sm" title="Langue">
+          <option value="en">EN</option>
+          <option value="fr">FR</option>
+          <option value="de">DE</option>
+        </select>
         <button id="hdr-profile" class="btn small">${t(state.lang, "Renderer.PROFILE")}</button>
         <button id="hdr-logout" class="btn small">${t(state.lang, "Renderer.LOGOUT")}</button>
       </div>
@@ -97,6 +102,8 @@ function header(): HTMLElement {
     const logoutBtn = node.querySelector('#hdr-logout') as HTMLButtonElement;
     const usernameEl = node.querySelector('#hdr-username') as HTMLElement;
     const avatarEl = node.querySelector('#hdr-avatar') as HTMLImageElement | null;
+    const langSelect = node.querySelector('#hdr-lang') as HTMLSelectElement | null;
+
 
     profileBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -120,6 +127,24 @@ function header(): HTMLElement {
       });
       // en cas d'erreur de chargement, fallback
       avatarEl.onerror = () => { avatarEl.src = '/default-avatar.png'; };
+    }
+
+    // language selector: do NOT persist immediately to backend. Only update a session-level preference
+    // The profile page saves the persisted user preference (language) and should also update language_session.
+    if (langSelect) {
+      try { langSelect.value = state.lang; } catch (e) { /* ignore */ }
+      langSelect.addEventListener('change', async () => {
+        const newLang = (langSelect.value || 'en') as 'en' | 'fr' | 'de';
+        // update only the UI/session value so translations re-render without touching the backend
+        if (state.appState.currentUser) {
+          (state.appState.currentUser as any).language_session = newLang;
+        }
+        try {
+          // persist the session preference locally so pages that re-fetch the user don't overwrite it
+          try { localStorage.setItem('language_session', newLang); } catch (e) { /* ignore */ }
+        } catch (e) {}
+        try { render(getHashPage()); } catch (e) { /* ignore */ }
+      });
     }
 
     logoutBtn.addEventListener('click', async (e) => {

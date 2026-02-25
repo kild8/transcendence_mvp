@@ -44,6 +44,7 @@ db.prepare(`
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT,         -- NULL for Google OAuth
     avatar TEXT,
+    language TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en','fr','de')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `).run();
@@ -83,6 +84,23 @@ db.prepare('CREATE INDEX IF NOT EXISTS idx_friends_requester ON friends(requeste
 db.prepare('CREATE INDEX IF NOT EXISTS idx_friends_addressee ON friends(addressee_id)').run();
 
 
+//AIKO
+// Helper wrapper for sync better-sqlite3 queries used across handlers
+function dbQueryWrap(query, mode = 'get', params = []) {
+  try {
+    const stmt = db.prepare(query);
+    if (mode === 'get') return stmt.get(...(params || []));
+    if (mode === 'all') return stmt.all(...(params || []));
+    if (mode === 'run') return stmt.run(...(params || []));
+    throw new Error(`Unsupported dbQueryWrap mode: ${mode}`);
+  } catch (err) {
+    // fastify might not be in scope when this module is required very early,
+    // guard logging if available
+    try { if (fastify && fastify.log) fastify.log.error({ err, query, params }, 'dbQueryWrap error'); } catch (e) {}
+    throw err;
+  }
+}
+
     // ------------------------------------------------------
     //                      ROUTES API
     // ------------------------------------------------------
@@ -104,7 +122,7 @@ async function getUserFromReq(req) {
 
     // récupère l'utilisateur sans le password_hash (sécurité)
     const user = db.prepare(
-      `SELECT id, name, email, avatar, created_at
+      `SELECT id, name, email, avatar, language, created_at
        FROM users WHERE id = ?`
     ).get(payload.id);
 
@@ -326,25 +344,77 @@ fastify.post("/api/add-user", async (req, reply) => {
 	}
 });
 
-// PUT /api/user/me  -> change the authenticated user's name
+//AIKO
+// to change value of name or language to the database
 fastify.put('/api/user/me', { preHandler: authPreHandler }, async (req, reply) => {
+  req.log.debug("Route Healthy");
+
   try {
-    const user = req.user; // authPreHandler attache user public (id, name, email...)
-    const { name } = req.body || {};
-    if (!name || String(name).trim().length === 0) return reply.status(400).send({ ok: false, error: 'Server.NAME_REQUIRED' });
+    const user = req.user;
+    const { name, language } = req.body || {};
 
-    // check uniqueness
-    const existing = db.prepare('SELECT id FROM users WHERE name = ? AND id != ?').get(name, user.id);
-    if (existing) return reply.status(400).send({ ok: false, error: 'Server.NAME_ALREADY_IN_USE' });
+    /* ---------------- NAME UPDATE ---------------- */
 
-    db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, user.id);
+    if (name !== undefined) {
+      if (!name || String(name).trim().length === 0) {
+        req.log.debug('Name required');
+        return reply.status(400).send({ ok: false, error: 'Name required' });
+      }
 
-    // respond with updated public user
-    const updated = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(user.id);
+      const existing = dbQueryWrap(
+        'SELECT id FROM users WHERE name = ? AND id != ?',
+        "get",
+        [name, user.id]
+      );
+
+      if (existing) {
+        req.log.debug({ name }, 'Name already in use');
+        return reply.status(400).send({ ok: false, error: 'Name already in use' });
+      }
+
+      dbQueryWrap('UPDATE users SET name = ? WHERE id = ?', "run", [name, user.id]);
+
+      req.log.info(
+        { userId: user.id, oldName: user.name, newName: name },
+        "Username updated"
+      );
+    }
+
+    /* ---------------- LANGUAGE UPDATE ---------------- */
+
+    if (language !== undefined) {
+      const allowed = ['en', 'fr', 'de'];
+
+      if (!allowed.includes(language)) {
+        req.log.debug({ language }, 'Invalid language');
+        return reply.status(400).send({ ok: false, error: 'Invalid language' });
+      }
+
+      dbQueryWrap(
+        'UPDATE users SET language = ? WHERE id = ?',
+        "run",
+        [language, user.id]
+      );
+
+      req.log.info(
+        { userId: user.id, language },
+        "Language updated"
+      );
+    }
+
+    /* ---------------- RESPONSE ---------------- */
+
+    const updated = dbQueryWrap(
+      'SELECT id, name, email, avatar, language, created_at FROM users WHERE id = ?',
+      "get",
+      [user.id]
+    );
+
     return reply.send({ ok: true, user: updated });
+
   } catch (err) {
-    fastify.log.error(err, 'update user failed');
-    return reply.status(500).send({ ok: false, error: 'Server.SERVER_ERROR' });
+    req.log.error({ err }, "User update failed");
+    return reply.status(500).send({ ok: false, error: 'Server error' });
   }
 });
 

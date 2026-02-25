@@ -73,7 +73,8 @@ export function registerContent(): HTMLElement {
       const meRes = await fetch('/api/me');
       const meData = await meRes.json();
       if (meData.ok) {
-        state.appState.currentUser = meData.user;
+        const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
+        state.appState.currentUser = { ...meData.user, language_session: storedSession || meData.user.language || 'en' } as any;
         navigateTo('home');
         render(getHashPage());
       }

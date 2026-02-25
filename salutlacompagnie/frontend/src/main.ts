@@ -27,12 +27,15 @@ async function checkAuth() {
     const data = await res.json();
 
     if (data.ok) {
+      // prefer a stored session-level language if available (user may have changed it via header)
+      const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
       state.appState.currentUser = {
         id: data.user.id,
         name: data.user.name,
         email: data.user.email,
         avatar: data.user.avatar,
-        language: "de"
+        language: data.user.language || 'en',
+        language_session: storedSession || data.user.language || 'en'
       };
       // open presence websocket client (keeps user online)
       try {

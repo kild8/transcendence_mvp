@@ -13,6 +13,7 @@ export const state = {
       email: string;
       avatar: string;
       language: string;
+      language_session?: string;
     }
 
   },
@@ -21,6 +22,9 @@ export const state = {
   
   // getter pour la langue actuelle
   get lang(): "en" | "fr" | "de" {
-    return this.appState.currentUser?.language as "en" | "fr" | "de" || "en";
+    // prefer language_session (temporary / UI preference from header), fall back to persisted user.language, then 'en'
+    const cs = this.appState.currentUser as any;
+    const l = (cs?.language_session || cs?.language) as "en" | "fr" | "de" | undefined;
+    return l || 'en';
   }
 };
