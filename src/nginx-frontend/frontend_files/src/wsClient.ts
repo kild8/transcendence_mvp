@@ -1,7 +1,7 @@
 // Minimal presence WebSocket client (auto-reconnect simple)
 export function createPresenceSocket(onOpen?: () => void, onClose?: (ev?: CloseEvent) => void) {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const url = `${proto}://${window.location.hostname}/ws`; // adapte si backend sur un autre host/port
+  const url = `${proto}://${window.location.hostname}:8443/ws`; // adapte si backend sur un autre host/port
   let ws: WebSocket | null = null;
   let closedByClient = false;
   let retry = 0;

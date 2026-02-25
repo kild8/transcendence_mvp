@@ -60,7 +60,7 @@ export function onlineContent(): HTMLElement {
   initPseudo();
   //--------- Websocket Lobby pour voir les rooms en direct
   //--------- Reste ouvert tant que la page rooms est ouverte
-  const lobbyWs = new WebSocket(`wss://${window.location.hostname}/ws`);
+  const lobbyWs = new WebSocket(`wss://${window.location.hostname}:8443/ws`);
   // store on global state so logout can close it if needed
   try { (window as any).state = (window as any).state || {}; } catch (e) {}
   (window as any).state = (window as any).state || {};
@@ -126,7 +126,7 @@ export function onlineContent(): HTMLElement {
     if (!pseudo) return alert("Pseudo manquant, veuillez vous reconnecter.");
     
     sessionStorage.setItem("pseudo", pseudo);
-    const ws = new WebSocket(`wss://${window.location.hostname}/ws`);
+    const ws = new WebSocket(`wss://${window.location.hostname}:8443/ws`);
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "register-socket", role: "game" }));
       ws.send(JSON.stringify({ type: "join-room", roomId, pseudo }));

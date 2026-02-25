@@ -190,7 +190,7 @@ vault write identity/oidc/key/my-key \
     algorithm="RS256"
 
 vault write identity/oidc/client/grafana \
-    redirect_uris="https://localhost/grafana/login/generic_oauth" \
+    redirect_uris="https://localhost:8443/grafana/login/generic_oauth" \
     assignments="grafana-assignment" \
     key="my-key" \
     id_token_ttl="30m" \
