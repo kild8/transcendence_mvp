@@ -1,3 +1,6 @@
+import { t } from "./lang/langIndex.js";
+import { state } from "./state.js";
+
 interface Vector2D { x: number; y: number; }
 interface PaddleState { position: Vector2D; width: number; height: number; score: number; }
 interface BallState { position: Vector2D; velocity: Vector2D; size: number; }
@@ -98,7 +101,7 @@ export class PongGameLan {
             this.ctx.textBaseline = "middle";
 
             this.ctx.fillText(
-                this.countdown === 1 ? "GO" : String(this.countdown - 1),
+                this.countdown === 1 ? t(state.lang, "GameLan.GO") : String(this.countdown - 1),
                 this.canvas.width / 2,
                 this.canvas.height / 2
             );

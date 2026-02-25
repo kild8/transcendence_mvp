@@ -1,13 +1,15 @@
 import { elFromHTML } from '../utils.js';
 import { navigateTo } from '../router.js';
+import { t } from '../lang/langIndex.js';
+import { state } from '../state.js';
 
 export function addUserContent(): HTMLElement {
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center">
-      <input id="input-name" placeholder="Nom de l'utilisateur" class="border p-2 rounded" />
-      <input id="input-email" placeholder="Email" class="border p-2 rounded" />
-      <button id="btn-submit" class="btn">Ajouter</button>
-      <button id="btn-back" class="btn small">← Retour</button>
+      <input id="input-name" placeholder=${t(state.lang, "ADD_USER.NAME_PLACEHOLDER")} class="border p-2 rounded" />
+      <input id="input-email" placeholder=${t(state.lang, "ADD_USER.EMAIL_PLACEHOLDER")} class="border p-2 rounded" />
+      <button id="btn-submit" class="btn">${t(state.lang, "ADD_USER.BUTTON_ADD")}</button>
+      <button id="btn-back" class="btn small">${t(state.lang, "ADD_USER.BUTTON_BACK")}</button>
       <div id="msg" class="mt-2 small text-green-700"></div>
     </section>
   `;
@@ -20,7 +22,7 @@ export function addUserContent(): HTMLElement {
   node.querySelector('#btn-submit')!.addEventListener('click', async () => {
     const name = inputName.value.trim();
     const email = inputEmail.value.trim();
-    if (!name || !email) { msg.textContent = "Nom et email requis"; return; }
+    if (!name || !email) { msg.textContent = t(state.lang, "ADD_USER.MSG_NAME_EMAIL_REQUIRED"); return; }
 
     try {
       const res = await fetch('/api/add-user', {
@@ -30,12 +32,15 @@ export function addUserContent(): HTMLElement {
       });
       const data = await res.json();
       if (data.ok) {
-        msg.textContent = `Utilisateur ajouté : ${data.user.name} (${data.user.email})`;
+        msg.textContent = t(state.lang, "ADD_USER.MSG_USER_ADDED", {name: data.user.name, email: data.user.email});
         inputName.value = ''; inputEmail.value = '';
       } else {
-        msg.textContent = `Erreur : ${data.error || 'unknown'}`;
+        msg.textContent = t(state.lang, "ADD_USER.MSG_ERROR", {error: data.error || "unknown" });
       }
-    } catch(e) { msg.textContent = `Erreur réseau : ${e}`; }
+    } catch(e) { 
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      msg.textContent = t(state.lang, "ADD_USER.MSG_NETWORK_ERROR", {error: errorMessage});
+    }
   });
 
   node.querySelector('#btn-back')!.addEventListener('click', () => navigateTo('home'));

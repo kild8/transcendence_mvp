@@ -2,6 +2,7 @@ import { state } from "../state.js";
 import { app, render } from "./renderer.js"
 import { elFromHTML } from "../utils.js";
 import { navigateTo, getHashPage } from "../router.js";
+import { t } from "../lang/langIndex.js";
 
 export function renderVictory(winner: string, loser: string, score: string, leftName?: string, rightName?: string) {
   // assure stop instance active
@@ -13,11 +14,11 @@ export function renderVictory(winner: string, loser: string, score: string, left
   app.innerHTML = '';
   const html = `
     <div class="card text-center py-10">
-      <h2 class="text-2xl font-semibold mb-4">Victoire</h2>
-      <p class="text-lg mb-4"><strong>${winner}</strong> a gagné contre <strong>${loser}</strong> ! </p>
+      <h2 class="text-2xl font-semibold mb-4">${t(state.lang, "RenderVictory.TITLE")}</h2>
+      <p class="text-lg mb-4"><strong>${winner}</strong> ${t(state.lang, "Versus.WON_AGAINST")} <strong>${loser}</strong> ! </p>
       <div class="flex justify-center gap-4 mt-4">
-        <button id="replay" class="btn">Rejouer</button>
-        <button id="back" class="btn">Retour au menu</button>
+        <button id="replay" class="btn">${t(state.lang, "Versus.REPLAY")}</button>
+        <button id="back" class="btn">${t(state.lang, "Versus.BACK_MENU")}</button>
       </div>
     </div>
   `;
@@ -39,7 +40,7 @@ export function renderVictory(winner: string, loser: string, score: string, left
       // recreate canvas view and new game with same players
       const canvasHtml = `
         <div>
-          <button id="back-to-menu" class="small mb-3">← Retour au menu</button>
+          <button id="back-to-menu" class="small mb-3">${t(state.lang, "Versus.BACK_MENU")}</button>
           <canvas id="pong-canvas" width="800" height="480" style="display:block;margin:0 auto;border:1px solid #111;"></canvas>
         </div>
       `;
@@ -51,7 +52,7 @@ export function renderVictory(winner: string, loser: string, score: string, left
 
       const GameClassLocal = (window as any).PongGame;
       if (!GameClassLocal) {
-        alert('Le jeu n\'a pas été chargé (Game.js manquant).');
+        alert(t(state.lang, "Versus.GAME_MISSING"));
         return;
       }
 

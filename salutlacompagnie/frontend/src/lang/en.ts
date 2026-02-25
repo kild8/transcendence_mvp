@@ -90,6 +90,7 @@ export default {
     CREATE_TOURNAMENT: "Create Tournament",
     AVAILABLE_ROOMS: "Available Rooms",
     BACK: "← Back",
+    ERROR_PSEUDO_FETCH: "Unable to retrieve your username. Please log in again.",
     WAITING_FOR_HOST: "Waiting for host...",
     MATCH_OVER: "Match over!",
     VICTORY: "🏆 Congratulations! 🏆",
@@ -109,6 +110,7 @@ export default {
     NEW_NAME_PLACEHOLDER: "New username",
     SAVE: "Save",
     CANCEL: "Cancel",
+    REMOVE: "Remove",
     EDIT: "Edit",
     EMAIL: "Email",
     ADDED_ON: "Added on: {date}",
@@ -118,18 +120,24 @@ export default {
     FRIENDS: "Friends",
     SEARCH_USER_PLACEHOLDER: "Search user by username",
     SEARCH: "Search",
+    SEARCHING: "Searching...",
     REQUESTS: "Requests",
     USER_NOT_FOUND: "User not found",
     ADD: "Add",
+    INCOMING_REQUESTS: "Incoming requests",
     REQUEST_SENT: "Request sent ✔️",
     ERROR: "Error: {error}",
     NETWORK_ERROR: "Network error",
     USER_NOT_LOADED: "User not loaded",
     IMAGE_REQUIRED: "Choose an image",
     UPLOAD_IN_PROGRESS: "Upload in progress...",
+    UPLOAD_FAILED: "Upload failed",
+    SERVER_ERROR: "Server error",
     AVATAR_UPDATED: "Avatar updated ✔️",
     NAME_EMPTY: "Username cannot be empty",
     NAME_UPDATED: "Username updated ✔️",
+    NAME_UPDATE_FAIL: "Error updating name",
+    MATCH_HISTORY: "Match history",
     HISTORY_LOADING: "Loading...",
     NO_MATCHES: "No matches found",
     HISTORY_LOAD_ERROR: "Error loading history",
@@ -171,7 +179,8 @@ export default {
     BUTTON_RANDOM: "Random fill",
     BUTTON_START: "Start",
     ERROR_PSEUDOS: "Usernames must be different and not empty",
-    BACK_TO_MENU: "← Back to menu"
+    BACK_TO_MENU: "← Back to menu",
+    NOT_LOADED: "The game has not been loaded."
   },
     RenderTournament: {
     //render-tournament.ts
@@ -179,13 +188,13 @@ export default {
     BACK: "← Back",
     MIN_PLAYERS_ALERT: "At least 2 players are required for a tournament.",
     GAME_MISSING: "Game.js missing.",
-    ROUND_HEADER: "Round",
+    ROUND_HEADER: "Round {round} — {players} players",
     NEXT_MATCH: "Next match",
     START_MATCH: "Start match",
     BACK_PREMATCH: "Back",
     VICTORY: "Victory of",
     NEXT_MATCH_BTN: "Next match",
-    ODD_PLAYER_ADVANCE: "advances automatically (odd player)",
+    ODD_PLAYER_ADVANCE: "{player} advances automatically (odd player)",
     CHAMPION_TITLE: "Tournament Champion",
     CHAMPION_MSG: "won the tournament!",
     TO_HOME: "Back to menu"
@@ -200,7 +209,6 @@ export default {
   },
     Renderer: {
     //renderer.ts
-    APP_TITLE: "Transcendence PONG",
     HELLO: "Hello,",
     PROFILE: "Profile",
     LOGOUT: "Logout",
@@ -209,6 +217,8 @@ export default {
     Game: {
     //Game.ts
     GO: "GO",
+    PLAYER1: "Player 1",
+    PLAYER2: "Player 2",
     WIN_ALERT: "{winner} won against {loser} — {score}"
   },
     GameLan: {

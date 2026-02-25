@@ -2,6 +2,7 @@ import { shuffle, elFromHTML } from "../utils.js";
 import { app, render } from "./renderer.js";
 import { navigateTo, getHashPage } from "../router.js";
 import { state } from "../state.js";
+import { t } from "../lang/langIndex.js";
 
 // joue un match entre p1 et p2, retourne une Promise qui résout sur le nom du gagnant
 function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): Promise<string> {
@@ -21,7 +22,7 @@ function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): 
 
     const GameClassLocal = (window as any).PongGame;
     if (!GameClassLocal) {
-      alert('Game.js manquant.');
+      alert(t(state.lang, "RenderTournament.GAME_MISSING"));
       resolve(p1); // fallback
       return;
     }
@@ -45,7 +46,7 @@ function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): 
 }
 export async function runTournament(initialPlayers: string[], winningScore = state.WINNING_SCORE) {
   if (!initialPlayers || initialPlayers.length < 2) {
-    alert('Il faut au moins 2 joueurs pour un tournoi.');
+    alert(t(state.lang, "RenderTournament.MIN_PLAYERS_ALERT"));
     return;
   }
 
@@ -58,8 +59,8 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
     app.innerHTML = '';
     const headerEl = elFromHTML(`
       <div class="card flex items-center justify-between">
-        <h3 class="text-lg font-medium">Tour ${round} — ${roundPlayers.length} joueurs</h3>
-        <button id="abort-tournament" class="btn small">← Retour</button>
+        <h3 class="text-lg font-medium">${t(state.lang, "RenderTournament.ROUND_HEADER", { round, players: roundPlayers.length })}</h3>
+        <button id="abort-tournament" class="btn small">${t(state.lang, "RenderTournament.BACK")}</button>
       </div>
     `);
     app.appendChild(headerEl);
@@ -89,7 +90,7 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
       if (!p2) {
         // odd player -> passe directement
         nextRound.push(p1);
-        const info = elFromHTML(`<div class="card small mt-2">${p1} avance automatiquement (odd player)</div>`);
+        const info = elFromHTML(`<div class="card small mt-2">${t(state.lang, "RenderTournament.ODD_PLAYER_ADVANCE", { player: p1 })}</div>`);
         app.appendChild(info);
         await new Promise((r) => setTimeout(r, 500));
         continue;
@@ -97,12 +98,12 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
       app.innerHTML = '';
       const preMatch = elFromHTML(`
         <div class="card text-center py-10">
-          <h2 class="text-2xl font-semibold mb-3">Prochain match</h2>
+          <h2 class="text-2xl font-semibold mb-3">${t(state.lang, "RenderTournament.NEXT_MATCH")}</h2>
           <p class="text-lg mb-6"><strong>${p1}</strong> VS <strong>${p2}</strong></p>
           <button id="start-next" class="btn">
-            Commencer le match
+            ${t(state.lang, "RenderTournament.START_MATCH")}
           </button>
-          <button id="abort-prematch" class="btn small"> Retour</button>
+          <button id="abort-prematch" class="btn small">${t(state.lang, "RenderTournament.BACK_PREMATCH")}</button>
         </div>
       `);
       app.appendChild(preMatch);
@@ -130,10 +131,10 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
       app.innerHTML = '';
       const victoryScreen = elFromHTML(`
         <div class="card text-center py-10">
-          <h2 class="text-2xl font-semibold mb-3">Victoire de <strong>${winner}</strong> !</h2>
+          <h2 class="text-2xl font-semibold mb-3">${t(state.lang, "RenderTournament.VICTORY")}<strong>${winner}</strong> !</h2>
           <p class="text-lg mb-6">(${p1} vs ${p2})</p>
           <button id="next-match" class="btn">
-            Match suivant
+            ${t(state.lang, "RenderTournament.NEXT_MATCH_BTN")};
           </button>
         </div>
       `);
@@ -164,10 +165,10 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
   app.innerHTML = '';
   const champHtml = `
     <div class="card text-center">
-      <h2 class="text-2xl font-semibold mb-4">Champion du tournoi</h2>
-      <p class="text-lg mb-4"><strong>${champion}</strong> a gagné le tournoi !</p>
+      <h2 class="text-2xl font-semibold mb-4">${t(state.lang, "RenderTournament.CHAMPION_TITLE")}</h2>
+      <p class="text-lg mb-4"><strong>${champion}</strong> ${t(state.lang, "RenderTournament.CHAMPION_MSG")}</p>
       <div class="flex justify-center gap-4 mt-4">
-        <button id="to-home" class="btn">Retour au menu</button>
+        <button id="to-home" class="btn">${t(state.lang, "RenderTournament.TO_HOME")}</button>
       </div>
     </div>
   `;

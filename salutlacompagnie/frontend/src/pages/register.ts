@@ -3,41 +3,42 @@ import { navigateTo } from '../router.js';
 import { getHashPage } from '../router.js';
 import { render } from '../renderer/renderer.js';
 import { state } from '../state.js';
+import { t } from '../lang/langIndex.js';
 
 export function registerContent(): HTMLElement {
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center w-full max-w-sm mx-auto">
-      <h2 class="text-xl font-semibold">Créer un compte</h2>
+      <h2 class="text-xl font-semibold">${t(state.lang, "Register.TITLE")}</h2>
 
       <form id="register-form" class="w-full flex flex-col gap-3">
         <input
           id="register-name"
           class="border p-2 rounded"
-          placeholder="Pseudo"
+          placeholder="${t(state.lang, "Register.NAME_PLACEHOLDER")}"
           required
         />
         <input
           id="register-email"
           type="email"
           class="border p-2 rounded"
-          placeholder="Email"
+          placeholder="${t(state.lang, "Register.EMAIL_PLACEHOLDER")}"
           required
         />
         <input
           id="register-password"
           type="password"
           class="border p-2 rounded"
-          placeholder="Mot de passe (8+ caractères)"
+          placeholder="${t(state.lang, "Register.PASSWORD_PLACEHOLDER")}"
           required
         />
         <button class="btn w-full" type="submit">
-          Créer le compte
+          ${t(state.lang, "Register.BUTTON_CREATE")}
         </button>
         <p id="register-error" class="small text-red-600 text-center"></p>
       </form>
 
       <button id="btn-back-login" class="btn small w-full">
-        ← Retour à la connexion
+        ${t(state.lang, "Register.BUTTON_BACK_LOGIN")}
       </button>
     </section>
   `;
@@ -64,7 +65,7 @@ export function registerContent(): HTMLElement {
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        errorEl.textContent = data.error || 'Inscription échouée';
+        errorEl.textContent = data.error || t(state.lang, "Register.ERROR_REGISTRATION");
         return;
       }
 
@@ -77,7 +78,7 @@ export function registerContent(): HTMLElement {
         render(getHashPage());
       }
     } catch (err) {
-      errorEl.textContent = 'Erreur réseau';
+      errorEl.textContent = t(state.lang, "Register.NETWORK_ERROR");
     }
   });
 

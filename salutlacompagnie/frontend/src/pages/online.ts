@@ -1,6 +1,7 @@
 import { elFromHTML } from "../utils.js";
 import { navigateTo } from "../router.js";
 import { PongGameLan } from "../GameLan.js";
+import { t } from "../lang/langIndex.js";
 import { state } from '../state.js';
 
 export function onlineContent(): HTMLElement {
@@ -8,18 +9,18 @@ export function onlineContent(): HTMLElement {
   const html = `
     <section>
       <div class="flex justify-between items-center">
-      <button id="back" class="small">← Retour</button>
+      <button id="back" class="small">${t(state.lang, "Online.BACK")}</button>
       </div>
       
       <div id="online-lobby">
-      <h2 class="text-xl font-medium">Rooms en ligne</h2>
+      <h2 class="text-xl font-medium">${t(state.lang, "Online.TITLE")}</h2>
         <div class="mt-4 flex gap-2">
-          <button id="create-1v1" class="btn">Créer 1v1</button>
-          <button id="create-tournament" class="btn">Créer Tournoi</button>
+          <button id="create-1v1" class="btn">${t(state.lang, "Online.CREATE_1V1")}</button>
+          <button id="create-tournament" class="btn">${t(state.lang, "Online.CREATE_TOURNAMENT")}</button>
         </div>
 
         <div class="mt-6">
-          <h3 class="font-medium mb-2">Rooms disponibles</h3>
+          <h3 class="font-medium mb-2">${t(state.lang, "Online.AVAILABLE_ROOMS")}</h3>
           <ul id="online" class="space-y-2"></ul>
         </div>
       </div>
@@ -53,8 +54,8 @@ export function onlineContent(): HTMLElement {
         pseudo = data.user.name;
       }
     } catch (err) {
-      console.error("impossible de récupérer le pseudo", err);
-      alert("Impossible de récupérer votre pseudo, veuillez vous reconnecter.");
+      console.error("cannot fetch pseudo", err);
+      alert(t(state.lang, "Online.ERROR_PSEUDO_FETCH"));
     }
   };
   initPseudo();
@@ -87,9 +88,9 @@ export function onlineContent(): HTMLElement {
       li.innerHTML = `
         <div class ="flex justify-between items-center">
         <span>${r.host ?? "Room"} ${r.type.toUpperCase()} (${r.players}/${r.maxPlayers})</span>
-        <button>Rejoindre</button>
+        <button>${t(state.lang, "Online.JOIN")}</button>
         </div>
-        <div class="text-sm mt-1">Joueurs: ${r.participants.join(", ")}</div>
+        <div class="text-sm mt-1">${t(state.lang, "Online.PLAYERS_IN_ROOM", { players: r.participants.join(", ")})}</div>
         `;
 
       li.querySelector("button")!.onclick = () => joinRoom(r.id);
@@ -101,7 +102,7 @@ export function onlineContent(): HTMLElement {
   // ----------- CREATE ROOM ----------
   const createRoom = async (type: "1v1" | "tournament") => {
     console.log("le pseudo est:", pseudo);
-    if (!pseudo) return alert("Pseudo manquant, veuillez vous reconnecter.");
+    if (!pseudo) return alert(t(state.lang, "Online.ERROR_PSEUDO_FETCH"));
     try {
       const res = await fetch("/api/rooms", {
         method: "POST",
@@ -109,7 +110,7 @@ export function onlineContent(): HTMLElement {
         body: JSON.stringify({ type, host: pseudo }),
       });
       const room = await res.json();
-      if (!room?.id) return alert("Erreur création de room");
+      if (!room?.id) return alert(t(state.lang, "Online.ERROR_CREATE_ROOM"));
 
       joinRoom(room.id);
     }
@@ -123,7 +124,7 @@ export function onlineContent(): HTMLElement {
 
   // ---------- JOIN ROOM ----------
   function joinRoom(roomId: string) {
-    if (!pseudo) return alert("Pseudo manquant, veuillez vous reconnecter.");
+    if (!pseudo) return alert(t(state.lang, "Online.ERROR_PSEUDO_FETCH"));
     
     sessionStorage.setItem("pseudo", pseudo);
     const ws = new WebSocket(`ws://${window.location.hostname}:3000`);
@@ -138,7 +139,7 @@ export function onlineContent(): HTMLElement {
     gameContainer.appendChild(tournamentLog);
 
     const startBtn = document.createElement("button");
-    startBtn.textContent = "Démarrer";
+    startBtn.textContent = t(state.lang, "RenderTournament.START_MATCH");
     startBtn.className = "btn mt-2";
     startBtn.style.display = "none";
     gameContainer.appendChild(startBtn);
@@ -154,7 +155,7 @@ export function onlineContent(): HTMLElement {
     if (ctx) {
       ctx.fillStyle = "#fff";
       ctx.font = "20px monospace";
-      ctx.fillText("En attente de l'hôte...", 250, 240);
+      ctx.fillText(t(state.lang, "Online.WAITING_FOR_HOST"), 250, 240);
     }
     startBtn.onclick = () => {
       console.log("Start tournament clicked");
@@ -192,11 +193,11 @@ export function onlineContent(): HTMLElement {
 
     case "player-disconnected":
       if (data.pseudo !== undefined)
-      stateMessage.textContent = `${data.pseudo} s'est déconnecté. Reconnexion possible dans ${data.timeout} s`;
+      stateMessage.textContent = t(state.lang, "Online.PLAYER_DISCONNECTED", {pseudo: data.pseudo, timeout: data.timeout});
       break;
 
     case "player-reconnected":
-      stateMessage.textContent = `${data.pseudo} s'est reconnecté !`;
+      stateMessage.textContent = t(state.lang, "Online.PLAYER_RECONNECTED", {pseudo: data.pseudo});
       setTimeout(() => { stateMessage.textContent = ""; }, 2000);
       break;
 
@@ -217,7 +218,7 @@ export function onlineContent(): HTMLElement {
       break;
 
     case "tournament-next-match":
-      tournamentLog.innerHTML += `<p style="font-size: 1.5em;">Prochain match : ${data.p1} vs ${data.p2}</p>`;
+      tournamentLog.innerHTML += `<p style="font-size: 1.5em;">${t(state.lang, "Online.NEXT_MATCH", { p1: data.p1, p2: data.p2 })}</p>`;
       break;
 
     case "tournament-end":
@@ -234,11 +235,11 @@ export function onlineContent(): HTMLElement {
       break;
 
     case "rooms-players-update":
-      tournamentLog.innerHTML = `<p>Joueurs dans la room: ${data.players.join(", ")}</p>`;
+      tournamentLog.innerHTML = `<p>${t(state.lang, "Online.PLAYERS_IN_ROOM", { players: data.players.join(", ")})}</p>`;
       break;
 
     case "tournament-start":
-      tournamentLog.innerHTML += `<p class="font-medium">Tournoi démarré ! Joueurs : ${data.players.join(", ")}</p>`;
+      tournamentLog.innerHTML += `<p class="font-medium">${t(state.lang, "Online.TOURNAMENT_STARTED", { players: data.players.join(", ")})}</p>`;
       startBtn.style.display = "none";
       break;
   }
@@ -280,8 +281,8 @@ function showMatchEndScreen(winner: string, loser: string) {
   overlay.style.animation = "fadeIn 0.3s ease-out";
 
   overlay.innerHTML = `
-    <div>Match terminé !</div>
-    <div style="margin-top:1rem;">${winner} a battu ${loser}</div>
+    <div>${t(state.lang, "Online.MATCH_OVER")}</div>
+    <div style="margin-top:1rem;">${t(state.lang, "Game.WIN_ALERT", {winner, loser, score: ''})}</div>
   `;
 
   document.body.appendChild(overlay);
@@ -310,7 +311,7 @@ export function showVictoryScreen(winner: string) {
   overlay.style.animation = "fadeIn 0.5s ease-out";
 
   overlay.innerHTML = `
-  <div>🏆 Félicitations ! 🏆</div>
+  <div>${t(state.lang, "Online.VICTORY")}</div>
   <div style ="font-size:3rem; margin-top:1rem;">${winner}</div>
   `;
 

@@ -93,6 +93,7 @@ WS: {
     CREATE_TOURNAMENT: "Turnier erstellen",
     AVAILABLE_ROOMS: "Verfügbare Räume",
     BACK: "← Zurück",
+    ERROR_PSEUDO_FETCH: "Benutzername konnte nicht geladen werden. Bitte erneut anmelden.",
     WAITING_FOR_HOST: "Warte auf Gastgeber...",
     MATCH_OVER: "Spiel beendet!",
     VICTORY: "🏆 Glückwunsch! 🏆",
@@ -111,6 +112,7 @@ WS: {
     CHANGE_AVATAR: "Avatar ändern",
     NEW_NAME_PLACEHOLDER: "Neuer Benutzername",
     SAVE: "Speichern",
+    REMOVE: "Entfernen",
     CANCEL: "Abbrechen",
     EDIT: "Bearbeiten",
     EMAIL: "Email",
@@ -119,20 +121,26 @@ WS: {
     SHOW_HISTORY: "Verlauf anzeigen",
     BACK: "← Zurück",
     FRIENDS: "Freunde",
-    SEARCH_USER_PLACEHOLDER: "Benutzer nach Benutzernamen suchen",
+    SEARCH_USER_PLACEHOLDER: "Benutzernamen suchen",
     SEARCH: "Suchen",
+    SEARCHING: "Suche...",
     REQUESTS: "Anfragen",
     USER_NOT_FOUND: "Benutzer nicht gefunden",
     ADD: "Hinzufügen",
+    INCOMING_REQUESTS: "Eingehende Anfragen",
     REQUEST_SENT: "Anfrage gesendet ✔️",
     ERROR: "Fehler: {error}",
     NETWORK_ERROR: "Netzwerkfehler",
     USER_NOT_LOADED: "Benutzer nicht geladen",
     IMAGE_REQUIRED: "Wähle ein Bild",
     UPLOAD_IN_PROGRESS: "Upload läuft...",
+    UPLOAD_FAILED: "Upload fehlgeschlagen",
+    SERVER_ERROR: "Serverfehler",
     AVATAR_UPDATED: "Avatar aktualisiert ✔️",
     NAME_EMPTY: "Benutzername darf nicht leer sein",
     NAME_UPDATED: "Benutzername aktualisiert ✔️",
+    NAME_UPDATE_FAIL: "Fehler beim Ändern des Namens",
+    MATCH_HISTORY: "Spielverlauf",
     HISTORY_LOADING: "Wird geladen...",
     NO_MATCHES: "Keine Spiele gefunden",
     HISTORY_LOAD_ERROR: "Fehler beim Laden des Verlaufs",
@@ -174,7 +182,9 @@ WS: {
     BUTTON_RANDOM: "Zufällig füllen",
     BUTTON_START: "Starten",
     ERROR_PSEUDOS: "Namen müssen unterschiedlich und nicht leer sein",
-    BACK_TO_MENU: "← Zurück zum Menü"
+    BACK_TO_MENU: "← Zurück zum Menü",
+    NOT_LOADED: "Das Spiel wurde nicht geladen."
+
   },
     RenderTournament: {
     //render-tournament.ts
@@ -182,13 +192,13 @@ WS: {
     BACK: "← Zurück",
     MIN_PLAYERS_ALERT: "Mindestens 2 Spieler für ein Turnier erforderlich.",
     GAME_MISSING: "Game.js fehlt.",
-    ROUND_HEADER: "Runde",
+    ROUND_HEADER: "Runde {round} — {players} Spieler",
     NEXT_MATCH: "Nächstes Spiel",
     START_MATCH: "Spiel starten",
     BACK_PREMATCH: "Zurück",
     VICTORY: "Sieg von",
     NEXT_MATCH_BTN: "Nächstes Spiel",
-    ODD_PLAYER_ADVANCE: "rückt automatisch vor (ungerader Spieler)",
+    ODD_PLAYER_ADVANCE: "{player} rückt automatisch vor (ungerader Spieler)",
     CHAMPION_TITLE: "Turniersieger",
     CHAMPION_MSG: "hat das Turnier gewonnen!",
     TO_HOME: "Zurück zum Menü"
@@ -212,6 +222,8 @@ WS: {
     Game: {
     //Game.ts
     GO: "START",
+    PLAYER1: "Spieler 1",
+    PLAYER2: "Spieler 2",
     WIN_ALERT: "{winner} hat gegen {loser} gewonnen — {score}"
   },
     GameLan: {

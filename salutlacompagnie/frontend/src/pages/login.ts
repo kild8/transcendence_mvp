@@ -2,30 +2,31 @@ import { elFromHTML } from '../utils.js';
 import { navigateTo } from '../router.js';
 import { getHashPage } from '../router.js';
 import { render } from '../renderer/renderer.js';
+import { t } from '../lang/langIndex.js';
 import { state } from '../state.js';
 
 export function loginContent(): HTMLElement {
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center w-full max-w-sm mx-auto">
-      <h2 class="text-xl font-semibold">Connexion</h2>
+      <h2 class="text-xl font-semibold">${t(state.lang, "Login.TITLE")}</h2>
 
       <!-- LOGIN LOCAL -->
       <form id="login-form" class="w-full flex flex-col gap-3">
         <input
           id="login-identifier"
           class="border p-2 rounded"
-          placeholder="Email ou pseudo"
+          placeholder= "${t(state.lang, "Login.PLACEHOLDER_IDENTIFIER")}"
           required
         />
         <input
           id="login-password"
           type="password"
           class="border p-2 rounded"
-          placeholder="Mot de passe"
+          placeholder="${t(state.lang, "Login.PLACEHOLDER_PASSWORD")}"
           required
         />
         <button class="btn w-full" type="submit">
-          Se connecter
+          ${t(state.lang, "Login.BTN_LOGIN")}
         </button>
         <p id="login-error" class="small text-red-600 text-center"></p>
       </form>
@@ -34,12 +35,12 @@ export function loginContent(): HTMLElement {
 
       <!-- GOOGLE -->
       <a id="btn-google" class="btn w-full" href="/api/auth/google">
-        ↪ Se connecter avec Google
+        ${t(state.lang, "Login.BTN_GOOGLE")}
       </a>
 
       <!-- REGISTER -->
       <button id="btn-register" class="btn small w-full">
-        Créer un compte
+        ${t(state.lang, "Login.BTN_REGISTER")}
       </button>
 
     </section>
@@ -66,7 +67,7 @@ export function loginContent(): HTMLElement {
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        errorEl.textContent = data.error || 'Connexion échouée';
+        errorEl.textContent = data.error || t(state.lang, "Login.ERROR_LOGIN_FAILED");
         return;
       }
 
@@ -88,7 +89,7 @@ export function loginContent(): HTMLElement {
         render(getHashPage());
       }
     } catch (err) {
-      errorEl.textContent = 'Erreur réseau';
+      errorEl.textContent = t(state.lang, "Login.ERROR_NETWORK");
     }
   });
 

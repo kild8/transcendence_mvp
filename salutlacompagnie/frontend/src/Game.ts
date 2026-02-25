@@ -1,3 +1,6 @@
+import { t } from "./lang/langIndex.js";
+import { state } from "./state.js";
+
 interface Vector2D {
     x: number;
     y: number;
@@ -151,7 +154,7 @@ class Game {
     private countdown: number | null = 4;
     private countdownStartTime: number = performance.now();
 
-    constructor(canvasId: string, leftName = 'Joueur 1', rightName = 'Joueur 2', winningScore = 2, onGameOver?: OnGameOver) {
+    constructor(canvasId: string, leftName = t(state.lang, "Game.PLAYER1"), rightName = t(state.lang, "Game.PLAYER2"), winningScore = 2, onGameOver?: OnGameOver) {
         this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
         this.ctx = this.canvas.getContext("2d")!;
         this.leftPaddle = new Paddle(20, this.canvas.height / 2 - 50, 10, 100, "white");
@@ -247,7 +250,7 @@ class Game {
             this.ctx.textBaseline = "middle";
 
             this.ctx.fillText(
-                this.countdown === 1 ? "GO" : String(this.countdown - 1),
+                this.countdown === 1 ? t(state.lang, "Game.GO") : String(this.countdown - 1),
                 this.canvas.width / 2,
                 this.canvas.height / 2
             );
@@ -272,7 +275,7 @@ class Game {
     private handleWin(winner: string, loser: string, score: string) {
         this.stop();
         if (this.onGameOver) setTimeout(() => this.onGameOver!(winner, loser, score), 50);
-        else alert(`${winner} a gagné contre ${loser} — ${score}`);
+        else alert(t(state.lang, "Game.WIN_ALERT", { winner, loser, score }));
     }
 }
 

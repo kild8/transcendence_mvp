@@ -12,6 +12,7 @@ import { listUsersContent } from '../pages/list-users.js';
 import { profileContent } from '../pages/profile.js';
 import { registerContent } from '../pages/register.js';
 import { onlineContent } from '../pages/online.js';
+import { t } from '../lang/langIndex.js';
 
 export const app = document.getElementById('app')!;
 
@@ -70,7 +71,7 @@ function header(): HTMLElement {
 
   // Si l'utilisateur est connecté -> afficher son avatar + nom + profile + logout
   if (state.appState.currentUser) {
-    const name = state.appState.currentUser.name || 'Utilisateur';
+    const name = state.appState.currentUser.name || t(state.lang, "Renderer.USER");
     // compute avatar src:
     const rawAvatar = (state.appState.currentUser as any).avatar;
     const avatarSrc = (function () {
@@ -86,9 +87,9 @@ function header(): HTMLElement {
     right.innerHTML = `
       <div class="flex items-center gap-3">
         <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full cursor-pointer" />
-        <div class="small">Bonjour, <strong id="hdr-username">${escapeHtml(name)}</strong></div>
-        <button id="hdr-profile" class="btn small">Profil</button>
-        <button id="hdr-logout" class="btn small">Se déconnecter</button>
+        <div class="small">${t(state.lang, "Renderer.HELLO")} <strong id="hdr-username">${escapeHtml(name)}</strong></div>
+        <button id="hdr-profile" class="btn small">${t(state.lang, "Renderer.PROFILE")}</button>
+        <button id="hdr-logout" class="btn small">${t(state.lang, "Renderer.LOGOUT")}</button>
       </div>
     `;
 

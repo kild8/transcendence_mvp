@@ -1,6 +1,7 @@
 import { elFromHTML } from '../utils.js';
 import { navigateTo } from '../router.js';
 import { state } from '../state.js'; // si ton projet exporte state (optionnel mais pratique)
+import { t } from "../lang/langIndex.js";
 
 /**
  * Profile page — affiche le profil de l'utilisateur connecté,
@@ -18,19 +19,19 @@ export function profileContent(): HTMLElement {
         <div class="flex gap-2 justify-center mb-2">
           <form id="avatar-form" class="flex items-center gap-2" enctype="multipart/form-data">
             <input type="file" id="avatar-input" accept="image/*" class="small" />
-            <button type="submit" id="avatar-submit" class="btn small">Changer l’avatar</button>
+            <button type="submit" id="avatar-submit" class="btn small">${t(state.lang, "Profile.CHANGE_AVATAR")}</button>
           </form>
         </div>
 
         <div class="mb-2">
           <strong id="profile-name" class="text-lg"></strong>
-          <button id="edit-name" class="btn small ml-2">Modifier</button>
+          <button id="edit-name" class="btn small ml-2">${t(state.lang, "Profile.EDIT")}</button>
         </div>
 
         <div id="edit-name-form" class="hidden mb-2">
           <input id="new-name" class="border p-2 rounded mr-2" placeholder="Nouveau pseudo" />
-          <button id="save-name" class="btn small">Sauvegarder</button>
-          <button id="cancel-name" class="btn small">Annuler</button>
+          <button id="save-name" class="btn small">${t(state.lang, "Profile.SAVE")}</button>
+          <button id="cancel-name" class="btn small">${t(state.lang, "Profile.CANCEL")}</button>
           <div id="name-msg" class="small text-red-600 mt-1"></div>
         </div>
 
@@ -42,24 +43,24 @@ export function profileContent(): HTMLElement {
         </div>
 
         <div class="mt-4 flex gap-2 justify-center">
-          <button id="btn-history" class="btn small">Afficher l'historique</button>
-          <button id="btn-back" class="btn small">← Retour</button>
+          <button id="btn-history" class="btn small">${t(state.lang, "Profile.SHOW_HISTORY")}</button>
+          <button id="btn-back" class="btn small">${t(state.lang, "Profile.BACK")}</button>
         </div>
 
         <!-- FRIENDS SECTION -->
         <div id="friends-area" class="mt-6 w-full max-w-2xl">
-          <h3 class="text-lg font-medium mb-2">Amis</h3>
+          <h3 class="text-lg font-medium mb-2">${t(state.lang, "Profile.FRIENDS")}</h3>
 
           <div class="flex gap-2 items-center mb-3">
-            <input id="friend-search" class="border p-2 rounded flex-1" placeholder="Rechercher un utilisateur par pseudo" />
-            <button id="friend-search-btn" class="btn small">Rechercher</button>
-            <button id="friend-requests-btn" class="btn small">Demandes <span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
+            <input id="friend-search" class="border p-2 rounded flex-1" placeholder="${t(state.lang, "Profile.SEARCH_USER_PLACEHOLDER")}" />
+            <button id="friend-search-btn" class="btn small">${t(state.lang, "Profile.SEARCH")}</button>
+            <button id="friend-requests-btn" class="btn small">${t(state.lang, "Profile.REQUESTS")}<span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
           </div>
 
           <div id="friend-search-result" class="mb-3"></div>
 
           <div id="friend-requests-panel" class="mb-3 hidden">
-            <h4 class="font-medium">Demandes entrantes</h4>
+            <h4 class="font-medium">${t(state.lang, "Profile.INCOMING_REQUESTS")}</h4>
             <div id="friend-requests-list" class="flex flex-col gap-2 mt-2"></div>
           </div>
 
@@ -67,7 +68,7 @@ export function profileContent(): HTMLElement {
         </div>
 
         <div id="history-area" class="mt-4 w-full max-w-2xl hidden">
-          <h3 class="text-lg font-medium mb-2">Historique des parties</h3>
+          <h3 class="text-lg font-medium mb-2">${t(state.lang, "Profile.MATCH_HISTORY")}</h3>
           <div id="history-list" class="flex flex-col gap-2 small"></div>
         </div>
 
@@ -130,7 +131,7 @@ export function profileContent(): HTMLElement {
       // fill UI (currentUser is guaranteed non-null here)
       nameEl.textContent = currentUser.name;
       emailEl.textContent = currentUser.email || '';
-      dateEl.textContent = currentUser.created_at ? `Ajouté le : ${currentUser.created_at}` : '';
+      dateEl.textContent = currentUser.created_at ? t(state.lang, "Profile.ADDED_ON", { date: currentUser.created_at }) : '';
       const avatarFilename = currentUser.avatar ? String(currentUser.avatar).split('/').pop() : null;
       avatarEl.src = avatarFilename ? `/api/uploads/${avatarFilename}` : '/default-avatar.png';
       profileMsg.textContent = '';
@@ -139,7 +140,7 @@ export function profileContent(): HTMLElement {
       await loadMatchesSummary();
     } catch (err) {
       console.error('loadProfile failed', err);
-      profileMsg.textContent = "Erreur réseau — impossible de charger le profil";
+      profileMsg.textContent = t(state.lang, "Profile.NETWORK_ERROR");
     }
   }
 
@@ -147,12 +148,12 @@ export function profileContent(): HTMLElement {
   avatarForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     profileMsg.textContent = '';
-    if (!currentUser) { profileMsg.textContent = 'Utilisateur non chargé'; return; }
+    if (!currentUser) { profileMsg.textContent = t(state.lang, "Profile.USER_NOT_LOADED"); return; }
     const file = avatarInput.files?.[0];
-    if (!file) { profileMsg.textContent = 'Choisis une image'; return; }
+    if (!file) { profileMsg.textContent = t(state.lang, "Profile.IMAGE_REQUIRED"); return; }
 
     avatarSubmit.disabled = true;
-    profileMsg.textContent = 'Upload en cours...';
+    profileMsg.textContent = t(state.lang, "Profile.UPLOAD_IN_PROGRESS");
 
     try {
       const formData = new FormData();
@@ -166,19 +167,19 @@ export function profileContent(): HTMLElement {
       });
 
       if (!res.ok) {
-        const t = await res.text();
-        console.error('upload failed', res.status, t);
-        profileMsg.textContent = 'Erreur lors de l\'upload';
+        const text = await res.text();
+        console.error('upload failed', res.status, text);
+        profileMsg.textContent = t(state.lang, "Profile.UPLOAD_FAIL");
         return;
       }
       const data = await res.json();
       if (!data.ok) {
-        profileMsg.textContent = data.error || 'Erreur serveur';
+        profileMsg.textContent = data.error ? data.error : t(state.lang, "Profile.SERVER_ERROR");
         return;
       }
       const url = data.url ? data.url : `/api/uploads/${data.avatar}`;
       avatarEl.src = `${url}?t=${Date.now()}`;
-      profileMsg.textContent = 'Avatar mis à jour ✔️';
+      profileMsg.textContent = t(state.lang, "Profile.AVATAR_UPDATED");
       // update state and local currentUser.avatar
   currentUser.avatar = data.avatar;
   if ((state as any)?.appState?.currentUser) (state as any).appState.currentUser.avatar = data.avatar;
@@ -189,7 +190,7 @@ export function profileContent(): HTMLElement {
       } catch (e) {}
     } catch (err) {
       console.error('avatar upload error', err);
-      profileMsg.textContent = 'Erreur réseau pendant l\'upload';
+      profileMsg.textContent = t(state.lang, "Profile.UPLOAD_FAILED");
     } finally {
       avatarSubmit.disabled = false;
     }
@@ -212,9 +213,9 @@ export function profileContent(): HTMLElement {
   saveNameBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const newName = newNameInput.value.trim();
-    if (!newName) { nameMsg.textContent = 'Le pseudo ne peut pas être vide'; return; }
+    if (!newName) { nameMsg.textContent = t(state.lang, "Profile.NAME_EMPTY"); return; }
     saveNameBtn.disabled = true;
-    nameMsg.textContent = 'En cours...';
+    nameMsg.textContent = t(state.lang, "Profile.HISTORY_LOADING");
 
     try {
       const res = await fetch('/api/user/me', {
@@ -224,25 +225,25 @@ export function profileContent(): HTMLElement {
         body: JSON.stringify({ name: newName })
       });
       if (!res.ok) {
-        const t = await res.text();
-        console.error('rename failed', res.status, t);
-        nameMsg.textContent = 'Erreur lors de la modification';
+        const text = await res.text();
+        console.error('rename failed', res.status, text);
+        nameMsg.textContent = t(state.lang, "Profile.NAME_UPDATE_FAIL");
         return;
       }
       const data = await res.json();
       if (!data.ok) {
-        nameMsg.textContent = data.error || 'Erreur serveur';
+        profileMsg.textContent = data.error ? data.error : t(state.lang, "Profile.SERVER_ERROR");
         return;
       }
       // update UI & state (currentUser exists here)
       if (currentUser) currentUser.name = newName;
       nameEl.textContent = newName;
       if ((state as any)?.appState?.currentUser) (state as any).appState.currentUser.name = newName;
-      nameMsg.textContent = 'Pseudo mis à jour ✔️';
+      nameMsg.textContent = t(state.lang, "Profile.NAME_UPDATED");
       editForm.classList.add('hidden');
     } catch (err) {
       console.error('rename error', err);
-      nameMsg.textContent = 'Erreur réseau';
+      nameMsg.textContent = t(state.lang, "Profile.NETWORK_ERROR");
     } finally {
       saveNameBtn.disabled = false;
       setTimeout(() => { nameMsg.textContent = ''; }, 2500);
@@ -253,9 +254,9 @@ export function profileContent(): HTMLElement {
   async function loadMatchesSummary() {
     try {
       const res = await fetch('/api/matches/me', { credentials: 'same-origin' });
-      if (!res.ok) { winsLossesEl.textContent = '0 win | 0 lose'; return; }
+      if (!res.ok) { winsLossesEl.textContent = t(state.lang, "Profile.WINS_LOSSES", {wins: 0, losses: 0}); return; }
       const json = await res.json();
-      if (!json.ok) { winsLossesEl.textContent = '0 win | 0 lose'; return; }
+      if (!json.ok) { winsLossesEl.textContent = t(state.lang, "Profile.WINS_LOSSES", {wins: 0, losses: 0}); return; }
       matchesCache = json.matches || [];
 
       // compute wins / losses comparing winner_name with current user's name
@@ -265,10 +266,10 @@ export function profileContent(): HTMLElement {
         if (m.winner_name === myName) wins++;
       }
       const losses = (matchesCache.length - wins);
-      winsLossesEl.textContent = `${wins} win | ${losses} lose`;
+      winsLossesEl.textContent = t(state.lang, "Profile.WINS_LOSSES", {wins, losses});
     } catch (err) {
       console.error('loadMatchesSummary failed', err);
-      winsLossesEl.textContent = '0 win | 0 lose';
+      winsLossesEl.textContent = t(state.lang, "Profile.WINS_LOSSES", {wins: 0, losses: 0});
     }
   }
 
@@ -276,13 +277,13 @@ export function profileContent(): HTMLElement {
     e.preventDefault();
     profileMsg.textContent = '';
     historyArea.classList.remove('hidden');
-    historyList.innerHTML = '<div class="small">Chargement...</div>';
+    historyList.innerHTML = `<div class="small">${t(state.lang, "Profile.HISTORY_LOADING")}</div>`;
 
     try {
       // reuse cache if present
       if (matchesCache.length === 0) await loadMatchesSummary();
       if (!matchesCache || matchesCache.length === 0) {
-        historyList.innerHTML = '<div class="small">Aucune partie trouvée.</div>';
+        historyList.innerHTML = `<div class="small">${t(state.lang, "Profile.NO_MATCHES")}</div>`;
         return;
       }
       // render list
@@ -305,7 +306,7 @@ export function profileContent(): HTMLElement {
       }
     } catch (err) {
       console.error('load history failed', err);
-      historyList.innerHTML = '<div class="small text-red-600">Erreur lors du chargement de l\'historique</div>';
+      historyList.innerHTML = `<div class="small text-red-600">${t(state.lang, "Profile.HISTORY_LOAD_ERROR")}</div>`;
     }
   });
 
@@ -341,7 +342,7 @@ export function profileContent(): HTMLElement {
           <span class="presence-dot w-3 h-3 rounded-full ${onlineClass} inline-block"></span>
           <strong class="ml-2">${escapeHtml(f.name)}</strong>
           <span class="small ml-auto">${escapeHtml(f.email)}</span>
-          <button class="btn small ml-2 remove-friend">Supprimer</button>
+          <button class="btn small ml-2 remove-friend">${t(state.lang, "Profile.REMOVE")}</button>
         `;
         const removeBtn = row.querySelector('.remove-friend') as HTMLButtonElement;
         removeBtn.addEventListener('click', async () => {
@@ -375,15 +376,15 @@ export function profileContent(): HTMLElement {
     friendSearchResult.innerHTML = '';
     const q = friendSearchInput.value.trim();
     if (!q) return;
-    friendSearchResult.innerHTML = '<div class="small">Recherche...</div>';
+    friendSearchResult.innerHTML = `<div class="small">${t(state.lang, "Profile.SEARCHING")}</div>`;
     const user = await searchUser(q);
-    if (!user) { friendSearchResult.innerHTML = '<div class="small">Utilisateur non trouvé</div>'; return; }
+    if (!user) { friendSearchResult.innerHTML = `<div class="small">${t(state.lang, "Profile.USER_NOT_FOUND")}</div>`; return; }
     const div = document.createElement('div');
     div.className = 'p-2 border rounded flex items-center gap-3';
     div.innerHTML = `
       <strong>${escapeHtml(user.name)}</strong>
       <span class="small ml-auto">${escapeHtml(user.email || '')}</span>
-      <button id="add-friend-btn" class="btn small ml-2">Ajouter</button>
+      <button id="add-friend-btn" class="btn small ml-2">${t(state.lang, "Profile.ADD")}</button>
     `;
     friendSearchResult.innerHTML = '';
     friendSearchResult.appendChild(div);
@@ -395,13 +396,13 @@ export function profileContent(): HTMLElement {
         });
         const j = await res.json();
         if (j.ok) {
-          friendSearchResult.innerHTML = '<div class="small text-green-600">Demande envoyée ✔️</div>';
+          friendSearchResult.innerHTML = `<div class="small text-green-600">${t(state.lang, "Profile.REQUEST_SENT")}</div>`;
           await loadFriendsList();
         } else {
-          friendSearchResult.innerHTML = `<div class="small text-red-600">${escapeHtml(j.error || 'Erreur')}</div>`;
+          friendSearchResult.innerHTML = `<div class="small text-red-600">${escapeHtml(j.error || t(state.lang, "Profile.SERVER_ERROR"))}</div>`;
         }
       } catch (err) {
-        friendSearchResult.innerHTML = '<div class="small text-red-600">Erreur réseau</div>';
+        friendSearchResult.innerHTML = `<div class="small text-red-600">${t(state.lang, "Profile.NETWORK_ERROR")}</div>`;
       }
     });
   });
@@ -431,8 +432,8 @@ export function profileContent(): HTMLElement {
         item.innerHTML = `
           <div><strong>${escapeHtml(r.requester_name)}</strong><div class="small">${escapeHtml(r.requester_email)}</div></div>
           <div class="ml-auto flex gap-2">
-            <button class="btn small accept-btn">Accepter</button>
-            <button class="btn small reject-btn">Refuser</button>
+            <button class="btn small accept-btn">${t(state.lang, "Profile.ACCEPT")}</button>
+            <button class="btn small reject-btn">${t(state.lang, "Profile.REJECT")}</button>
           </div>
         `;
         (item.querySelector('.accept-btn') as HTMLButtonElement).addEventListener('click', async () => {
