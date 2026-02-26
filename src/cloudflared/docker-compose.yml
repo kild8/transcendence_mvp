@@ -1,0 +1,15 @@
+services:
+  cloudflared:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudflared
+    restart: on-failure
+    networks:
+      - transcendence_nw
+    volumes:
+      - ${TUNNEL_URL_DIR_PATH}:/tunnel_url
+    healthcheck:
+      test: test -f /tunnel_url/tunnel_url.txt -a -f /cloudflared/url_initialized
+      interval: 3s
+      retries: 12

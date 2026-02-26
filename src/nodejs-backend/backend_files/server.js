@@ -39,7 +39,7 @@ fastify.log.info("WS secret " + process.env.WS_SECRET + " |");
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET;
-const FRONTEND_BASE = process.env.FRONTEND_BASE || 'https://localhost:8443';
+const FRONTEND_BASE = process.env.FRONTEND_BASE;
 const WS_SECRET = process.env.WS_SECRET;
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {

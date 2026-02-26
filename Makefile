@@ -2,16 +2,19 @@ PROJECT_NAME			:=	transcendence
 DOCKER_COMPOSE_FILE		:=	$(CURDIR)/docker-compose.yml
 VAULT_ACCESS_DIR_PATH	:=	$(CURDIR)/vault_access
 SECRETS_DIR_PATH		:= 	$(CURDIR)/secrets
+TUNNEL_URL_DIR_PATH		:=	$(CURDIR)/tunnel_url
 DOCKER_COMPOSE_COMMAND	:=	SECRETS_DIR_PATH=$(SECRETS_DIR_PATH) \
 							VAULT_ACCESS_DIR_PATH=$(VAULT_ACCESS_DIR_PATH) \
+							TUNNEL_URL_DIR_PATH=$(TUNNEL_URL_DIR_PATH) \
 							docker compose -f $(DOCKER_COMPOSE_FILE) -p $(PROJECT_NAME)
 
 RESTART_TARGET			?=	none
 
 up:
-	@mkdir -p $(SECRETS_DIR_PATH)
-	@mkdir -p $(VAULT_ACCESS_DIR_PATH) && chmod 777 $(VAULT_ACCESS_DIR_PATH)
-	@$(DOCKER_COMPOSE_COMMAND) up -d --build
+	@mkdir -p $(SECRETS_DIR_PATH) && chmod 777 $(SECRETS_DIR_PATH)
+	@mkdir  -p $(VAULT_ACCESS_DIR_PATH) && chmod 777 $(VAULT_ACCESS_DIR_PATH)
+	@mkdir  -p $(TUNNEL_URL_DIR_PATH) && chmod 777 $(TUNNEL_URL_DIR_PATH)
+	@$(DOCKER_COMPOSE_COMMAND) up -d
 	@echo Done
 
 down:

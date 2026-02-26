@@ -9,8 +9,11 @@ services:
       - nodejs-backend-data:/app/data
       - nodejs-backend-uploads:/app/uploads
       - nodejs-backend-vault-secrets:/vault/secrets:ro
+      - ${TUNNEL_URL_DIR_PATH}:/tunnel_url
     depends_on:
       vault-agent-nodejs-backend:
+        condition: service_healthy
+      cloudflared:
         condition: service_healthy
     networks:
       - transcendence_nw

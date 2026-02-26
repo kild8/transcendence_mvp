@@ -5,6 +5,7 @@ export JWT_SECRET=$(cat /vault/secrets/jwt_secret)
 export WS_SECRET=$(cat /vault/secrets/ws_secret)
 export GOOGLE_CLIENT_ID=$(cat /vault/secrets/google_auth_client_id)
 export GOOGLE_CLIENT_SECRET=$(cat /vault/secrets/google_auth_secret_id)
+export FRONTEND_BASE=$(cat /tunnel_url/tunnel_url.txt)
 
 # Run command with node if the first argument contains a "-" or is not a system command. The last
 # part inside the "{}" is a workaround for the following bug in ash/dash:

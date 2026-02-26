@@ -8,10 +8,13 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - grafana-vault-secrets:/vault/secrets:ro
+      - ${TUNNEL_URL_DIR_PATH}:/tunnel_url
     networks:
       - transcendence_nw
     depends_on:
       vault-agent-grafana:
+        condition: service_healthy
+      cloudflared:
         condition: service_healthy
 
 volumes:

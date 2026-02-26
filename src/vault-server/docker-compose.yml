@@ -21,6 +21,7 @@ services:
       - vault-agent-alertmanager-id:/vault_agents_ids/alertmanager
       - vault-server-vault-secrets:/vault/secrets:ro
       - ${VAULT_ACCESS_DIR_PATH}:/vault/access:rw
+      - ${TUNNEL_URL_DIR_PATH}:/tunnel_url
     command:
       - server
     networks:
@@ -29,6 +30,9 @@ services:
       - google_auth_client_id
       - google_auth_secret_id
       - discord_webhook_url
+    depends_on:
+      cloudflared:
+        condition: service_healthy
     healthcheck:
       test: test -f /vault/file/.vault_certs_initialized
       interval: 3s

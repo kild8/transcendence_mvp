@@ -22,6 +22,8 @@ MONITORING_ADMIN_PHONE=+336$(tr -dc '0-9' < /dev/urandom | head -c 9)
 NODEJS_BACKEND_JWT_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 NODEJS_BACKEND_WS_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 
+TRANSCENDENCE_URL=$(cat /tunnel_url/tunnel_url.txt)
+
 #Waiting for the vault program to be ready to execute commands
 while true; do
   rc=0
@@ -190,7 +192,7 @@ vault write identity/oidc/key/my-key \
     algorithm="RS256"
 
 vault write identity/oidc/client/grafana \
-    redirect_uris="https://localhost:8443/grafana/login/generic_oauth" \
+    redirect_uris="${TRANSCENDENCE_URL}/grafana/login/generic_oauth" \
     assignments="grafana-assignment" \
     key="my-key" \
     id_token_ttl="30m" \
