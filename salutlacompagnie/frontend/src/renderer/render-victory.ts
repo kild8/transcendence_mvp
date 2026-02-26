@@ -15,10 +15,10 @@ export function renderVictory(winner: string, loser: string, score: string, left
   const html = `
     <div class="card text-center py-10">
       <h2 class="text-2xl font-semibold mb-4">${t(state.lang, "RenderVictory.TITLE")}</h2>
-      <p class="text-lg mb-4"><strong>${winner}</strong> ${t(state.lang, "Versus.WON_AGAINST")} <strong>${loser}</strong> ! </p>
+      <p class="text-lg mb-4"><strong>${winner}</strong> ${t(state.lang, "RenderVictory.WON_AGAINST")} <strong>${loser}</strong> ! </p>
       <div class="flex justify-center gap-4 mt-4">
-        <button id="replay" class="btn">${t(state.lang, "Versus.REPLAY")}</button>
-        <button id="back" class="btn">${t(state.lang, "Versus.BACK_MENU")}</button>
+        <button id="replay" class="btn">${t(state.lang, "RenderVictory.REPLAY")}</button>
+        <button id="back" class="btn">${t(state.lang, "Versus.BACK_TO_MENU")}</button>
       </div>
     </div>
   `;
@@ -40,7 +40,7 @@ export function renderVictory(winner: string, loser: string, score: string, left
       // recreate canvas view and new game with same players
       const canvasHtml = `
         <div>
-          <button id="back-to-menu" class="small mb-3">${t(state.lang, "Versus.BACK_MENU")}</button>
+          <button id="back-to-menu" class="small mb-3">${t(state.lang, "Versus.BACK_TO_MENU")}</button>
           <canvas id="pong-canvas" width="800" height="480" style="display:block;margin:0 auto;border:1px solid #111;"></canvas>
         </div>
       `;

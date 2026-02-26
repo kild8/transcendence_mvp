@@ -3,6 +3,7 @@
  * Build: tsc -> dist/main.js ; tailwindcss -> dist/style.css
  */
 
+import './Game.js';
 import { createPresenceSocket } from './wsClient.js';
 import { render } from './renderer/renderer.js';
 import { getHashPage } from './router.js';

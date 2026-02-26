@@ -31,10 +31,10 @@ export function profileContent(): HTMLElement {
 
         <div class="mb-2">
           <label for="profile-language" class="small mr-2">${t(state.lang, "Profile.LANGUAGE")}</label>
-          <select id="profile-language" class="border rounded p-1 text-sm">
-            <option value="en">EN</option>
-            <option value="fr">FR</option>
-            <option value="de">DE</option>
+          <select id="hdr-lang"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
+            <option value="en" style="background-color: dark-gray;">EN</option>
+            <option value="fr" style="background-color: dark-gray;">FR</option>
+            <option value="de" style="background-color: dark-gray;">DE</option>
           </select>
           <button id="save-language" class="btn small ml-2">${t(state.lang, "Profile.SAVE")}</button>
           <div id="lang-msg" class="small text-red-600 mt-1"></div>

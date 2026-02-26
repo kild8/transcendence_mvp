@@ -45,6 +45,7 @@ export function onlineContent(): HTMLElement {
 
 
   let currentGame: PongGameLan | null = null;
+  let roomWs: WebSocket | null = null;
   let pseudo: string | null = null;
   const initPseudo = async () => {
     try {
@@ -122,12 +123,22 @@ export function onlineContent(): HTMLElement {
   create1v1Btn.onclick = () => createRoom("1v1");
   createTournamentBtn.onclick = () => createRoom("tournament");
 
+  // Back button: always available, should close sockets / game and go home
+  backBtn.onclick = () => {
+    try { currentGame?.onGameOver?.(); } catch (e) {}
+    try { lobbyWs.close(); } catch (e) {}
+    try { delete (state as any).appState.lobbyWs; } catch (e) {}
+    try { if (roomWs && roomWs.readyState === WebSocket.OPEN) roomWs.close(); } catch (e) {}
+    navigateTo("home");
+  };
+
   // ---------- JOIN ROOM ----------
   function joinRoom(roomId: string) {
     if (!pseudo) return alert(t(state.lang, "Online.ERROR_PSEUDO_FETCH"));
     
     sessionStorage.setItem("pseudo", pseudo);
-    const ws = new WebSocket(`ws://${window.location.hostname}:3000`);
+  const ws = new WebSocket(`ws://${window.location.hostname}:3000`);
+  roomWs = ws;
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "register-socket", role: "game" }));
       ws.send(JSON.stringify({ type: "join-room", roomId, pseudo }));
@@ -143,6 +154,7 @@ export function onlineContent(): HTMLElement {
     startBtn.className = "btn mt-2";
     startBtn.style.display = "none";
     gameContainer.appendChild(startBtn);
+  let startTimeout: number | null = null;
 
     // --- PRE-CREATE CANVAS ---
     const canvas = document.createElement("canvas");
@@ -160,8 +172,11 @@ export function onlineContent(): HTMLElement {
     startBtn.onclick = () => {
       console.log("Start tournament clicked");
       ws.send(JSON.stringify({ type: "start-game", roomId }));
-      startBtn.style.display = "none";
+      // disable while waiting for server confirmation instead of hiding immediately
       startBtn.disabled = true;
+      // fallback: re-enable after 7s if no server response
+      try { if (startTimeout) clearTimeout(startTimeout); } catch (e) {}
+      startTimeout = window.setTimeout(() => { try { startBtn.disabled = false; } catch (e) {} }, 7000);
     };
     const updateStartButtonVisibilty = (host: string | null) => {
       if (pseudo === host) {
@@ -185,6 +200,8 @@ export function onlineContent(): HTMLElement {
       currentGame?.onGameOver?.();
       currentGame = new PongGameLan("pong-canvas", data.role, ws, data.player1, data.player2);
       showGame();
+      // server accepted start -> clear fallback timeout
+      try { if (startTimeout) { clearTimeout(startTimeout); startTimeout = null; } } catch (e) {}
       break;
 
     case "state":
@@ -226,7 +243,10 @@ export function onlineContent(): HTMLElement {
       break;
 
     case "room-error":
-      alert(data.message);
+      alert(t(state.lang, data.message));
+      // if start was attempted, re-enable the button so host can retry
+      try { if (startTimeout) { clearTimeout(startTimeout); startTimeout = null; } } catch (e) {}
+      try { startBtn.style.display = "inline-block"; startBtn.disabled = false; } catch (e) {}
       break;
 
     case "joined-room":
@@ -245,15 +265,7 @@ export function onlineContent(): HTMLElement {
   }
 };
 
-    backBtn.onclick = () => {
-      currentGame?.onGameOver?.();
-      try { lobbyWs.close(); } catch (e) {}
-      try { delete (state as any).appState.lobbyWs; } catch (e) {}
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-      navigateTo("home");
-    };
+    // (back button handled globally)
 
     // ensure lobby ws closed on unload
     window.addEventListener('beforeunload', () => { try { lobbyWs.close(); } catch (e) {} });

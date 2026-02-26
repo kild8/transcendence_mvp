@@ -88,10 +88,10 @@ function header(): HTMLElement {
       <div class="flex items-center gap-3">
         <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full cursor-pointer" />
         <div class="small">${t(state.lang, "Renderer.HELLO")} <strong id="hdr-username">${escapeHtml(name)}</strong></div>
-        <select id="hdr-lang" class="border rounded p-1 text-sm" title="Langue">
-          <option value="en">EN</option>
-          <option value="fr">FR</option>
-          <option value="de">DE</option>
+        <select id="hdr-lang"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
+          <option value="en" style="background-color: dark-gray;">EN</option>
+          <option value="fr" style="background-color: dark-gray;">FR</option>
+          <option value="de" style="background-color: dark-gray;">DE</option>
         </select>
         <button id="hdr-profile" class="btn small">${t(state.lang, "Renderer.PROFILE")}</button>
         <button id="hdr-logout" class="btn small">${t(state.lang, "Renderer.LOGOUT")}</button>
