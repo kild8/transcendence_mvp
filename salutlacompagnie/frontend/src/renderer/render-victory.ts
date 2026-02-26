@@ -50,7 +50,7 @@ export function renderVictory(winner: string, loser: string, score: string, left
       wrap.innerHTML = canvasHtml;
       app.appendChild(wrap);
 
-      const GameClassLocal = (window as any).PongGame;
+  const GameClassLocal = window.PongGame;
       if (!GameClassLocal) {
         alert(t(state.lang, "Versus.GAME_MISSING"));
         return;

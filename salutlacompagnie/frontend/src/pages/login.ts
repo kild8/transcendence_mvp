@@ -77,14 +77,15 @@ export function loginContent(): HTMLElement {
       if (meData.ok) {
       // initialize session-level language from localStorage if present
       const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
-      state.appState.currentUser = { ...meData.user, language_session: storedSession || meData.user.language || 'en' } as any;
+  state.appState.currentUser = { ...meData.user, language_session: storedSession || meData.user.language || 'en' };
         try {
           // try to create presence socket immediately after login
           if (!state.appState.ws) {
             const { createPresenceSocket } = await import('../wsClient.js');
               const client = createPresenceSocket(() => console.log('presence open'), () => console.log('presence closed'));
-              state.appState.ws = client as any;
-              try { (window as any).__presenceClient = client; } catch (e) {}
+              // store wrapper as-is on window for other modules; appState.ws expects a WebSocket-like object, keep a minimal cast
+              state.appState.ws = client as unknown as WebSocket;
+              try { (window as unknown as Record<string, unknown>)['__presenceClient'] = client; } catch (e) {}
           }
         } catch (e) { console.warn('presence socket init failed', e); }
         navigateTo('home');

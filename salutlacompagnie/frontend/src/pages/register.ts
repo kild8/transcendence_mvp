@@ -74,7 +74,7 @@ export function registerContent(): HTMLElement {
       const meData = await meRes.json();
       if (meData.ok) {
         const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
-        state.appState.currentUser = { ...meData.user, language_session: storedSession || meData.user.language || 'en' } as any;
+  state.appState.currentUser = { ...meData.user, language_session: storedSession || meData.user.language || 'en' };
         navigateTo('home');
         render(getHashPage());
       }

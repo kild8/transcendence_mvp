@@ -47,7 +47,8 @@ async function checkAuth() {
             console.log('presence socket closed');
           });
           // store the client (has .close())
-          state.appState.ws = presenceClient as any;
+          // presenceClient exposes .socket and .close(); store the wrapper object
+          state.appState.ws = presenceClient as unknown as WebSocket;
         }
       } catch (e) {
         console.warn('Failed to open presence socket', e);

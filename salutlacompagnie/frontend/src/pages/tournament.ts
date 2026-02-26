@@ -34,19 +34,19 @@ export function tournamentContent(): HTMLElement {
     </section>
   `;
 
-  const node = elFromHTML(html);
+  const node = elFromHTML(html) as HTMLElement;
 
-  const back = node.querySelector('#back') as HTMLButtonElement;
-  const slots = node.querySelector('#slots') as HTMLElement;
-  const fill = node.querySelector('#fill') as HTMLButtonElement;
-  const clear = node.querySelector('#clear') as HTMLButtonElement;
-  const countEl = node.querySelector('#count') as HTMLElement;
-  const start = node.querySelector('#start') as HTMLButtonElement;
+  const back = node.querySelector('#back') as HTMLButtonElement | null;
+  const slots = node.querySelector('#slots') as HTMLDivElement | null;
+  const fill = node.querySelector('#fill') as HTMLButtonElement | null;
+  const clear = node.querySelector('#clear') as HTMLButtonElement | null;
+  const countEl = node.querySelector('#count') as HTMLElement | null;
+  const start = node.querySelector('#start') as HTMLButtonElement | null;
 
 
   /* ---------- BACK ---------- */
-  back.addEventListener('click', () => {
-    state.currentGame?.stop();
+  back?.addEventListener('click', () => {
+    state.currentGame?.stop?.();
     state.currentGame = null;
     navigateTo('home');
   });
@@ -64,37 +64,32 @@ export function tournamentContent(): HTMLElement {
       </div>
     `);
 
-    slots.appendChild(slot);
+    if (slots) slots.appendChild(slot);
 
-    const input = slot.querySelector('input') as HTMLInputElement;
-    input.addEventListener('input', updateCount);
+    const input = slot.querySelector('input') as HTMLInputElement | null;
+    if (input) input.addEventListener('input', updateCount);
   }
 
   /* ---------- HELPERS ---------- */
   function readPlayers(): string[] {
     return Array.from({ length: state.MAX_TOURNAMENT_PLAYERS })
       .map((_, i) => {
-        const input = node.querySelector(
-          `#player-${i}`
-        ) as HTMLInputElement | null;
-        return input?.value.trim() ?? '';
+        const input = node.querySelector(`#player-${i}`) as HTMLInputElement | null;
+        return input && input.value ? input.value.trim() : '';
       })
       .filter(v => v.length > 0);
   }
 
   function updateCount() {
-    countEl.textContent = String(readPlayers().length);
+    if (countEl) countEl.textContent = String(readPlayers().length);
   }
 
   /* ---------- FILL ---------- */
-  fill.addEventListener('click', () => {
+  fill?.addEventListener('click', () => {
     const samples = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel'];
 
     for (let i = 0; i < state.MAX_TOURNAMENT_PLAYERS; i++) {
-      const input = node.querySelector(
-        `#player-${i}`
-      ) as HTMLInputElement | null;
-
+      const input = node.querySelector(`#player-${i}`) as HTMLInputElement | null;
       if (input) input.value = samples[i] || '';
     }
 
@@ -102,12 +97,9 @@ export function tournamentContent(): HTMLElement {
   });
 
   /* ---------- CLEAR ---------- */
-  clear.addEventListener('click', () => {
+  clear?.addEventListener('click', () => {
     for (let i = 0; i < state.MAX_TOURNAMENT_PLAYERS; i++) {
-      const input = node.querySelector(
-        `#player-${i}`
-      ) as HTMLInputElement | null;
-
+      const input = node.querySelector(`#player-${i}`) as HTMLInputElement | null;
       if (input) input.value = '';
     }
 
@@ -115,7 +107,7 @@ export function tournamentContent(): HTMLElement {
   });
 
   /* ---------- START ---------- */
-  start.addEventListener('click', async () => {
+  start?.addEventListener('click', async () => {
     const players = readPlayers();
 
     if (players.length < 2) {
@@ -131,7 +123,7 @@ export function tournamentContent(): HTMLElement {
       return;
     }
 
-    state.appState.players = players;
+  state.appState.players = players;
     localStorage.setItem('mvp_players', JSON.stringify(players));
 
     try {

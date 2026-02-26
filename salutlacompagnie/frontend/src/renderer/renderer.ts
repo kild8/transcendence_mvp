@@ -71,7 +71,7 @@ function header(): HTMLElement {
   if (state.appState.currentUser) {
     const name = state.appState.currentUser.name || t(state.lang, "Renderer.USER");
     // compute avatar src:
-    const rawAvatar = (state.appState.currentUser as any).avatar;
+  const rawAvatar = state.appState.currentUser?.avatar;
     const avatarSrc = (function () {
       if (!rawAvatar) return '/default-avatar.png';
       // si c'est déjà un chemin (contient /) on le prend tel quel (relatif ou absolu)
@@ -135,7 +135,7 @@ function header(): HTMLElement {
         const newLang = (langSelect.value || 'en') as 'en' | 'fr' | 'de';
         // update only the UI/session value so translations re-render without touching the backend
         if (state.appState.currentUser) {
-          (state.appState.currentUser as any).language_session = newLang;
+          state.appState.currentUser.language_session = newLang;
         }
         try {
           // persist the session preference locally so pages that re-fetch the user don't overwrite it
@@ -157,14 +157,16 @@ function header(): HTMLElement {
         state.appState.ws = null;
       }
       try {
-        const lw = (state as any).appState.lobbyWs;
+        const lw = state.appState.lobbyWs;
         if (lw && typeof lw.close === 'function') lw.close();
-        delete (state as any).appState.lobbyWs;
+        // keep lobbyWs property but null it out for safety
+        state.appState.lobbyWs = null;
       } catch (e) {}
       try {
-        const pc = (window as any).__presenceClient;
+        const _w = window as unknown as Record<string, unknown>;
+        const pc = _w['__presenceClient'] as { close?: () => void } | undefined | null;
         if (pc && typeof pc.close === 'function') pc.close();
-        (window as any).__presenceClient = null;
+        try { _w['__presenceClient'] = null; } catch (e) {}
       } catch (e) {}
       state.appState.currentUser = null;
       navigateTo('login');

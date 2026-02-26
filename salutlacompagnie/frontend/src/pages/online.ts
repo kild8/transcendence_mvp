@@ -64,9 +64,9 @@ export function onlineContent(): HTMLElement {
   //--------- Reste ouvert tant que la page rooms est ouverte
   const lobbyWs = new WebSocket(`ws://${window.location.hostname}:3000`);
   // store on global state so logout can close it if needed
-  try { (window as any).state = (window as any).state || {}; } catch (e) {}
-  (window as any).state = (window as any).state || {};
-  try { (state as any).appState.lobbyWs = lobbyWs; } catch (e) {}
+  try { (window as unknown as Record<string, unknown>)['state'] = (window as unknown as Record<string, unknown>)['state'] || {}; } catch (e) {}
+  (window as unknown as Record<string, unknown>)['state'] = (window as unknown as Record<string, unknown>)['state'] || {};
+  try { state.appState.lobbyWs = lobbyWs; } catch (e) {}
   lobbyWs.onopen = () => {
     lobbyWs.send(JSON.stringify({ type: "register-socket", role: "lobby"}));
   };
@@ -79,7 +79,8 @@ export function onlineContent(): HTMLElement {
   };
 
   //--------- Refresh et liste l'etat des rooms ----------
-  const renderRooms = (rooms: any[]) => {
+  interface RoomSummary { id: string; host?: string; type?: string; players?: number; maxPlayers?: number; participants?: string[] }
+  const renderRooms = (rooms: RoomSummary[]) => {
     list.innerHTML = "";
 
       rooms.forEach((r: any) => {
@@ -128,9 +129,9 @@ export function onlineContent(): HTMLElement {
 
   // Back button: always available, should close sockets / game and go home
   backBtn.onclick = () => {
-    try { currentGame?.onGameOver?.(); } catch (e) {}
-    try { lobbyWs.close(); } catch (e) {}
-    try { delete (state as any).appState.lobbyWs; } catch (e) {}
+  try { currentGame?.onGameOver?.(); } catch (e) {}
+  try { lobbyWs.close(); } catch (e) {}
+  try { state.appState.lobbyWs = null; } catch (e) {}
     try { if (roomWs && roomWs.readyState === WebSocket.OPEN) roomWs.close(); } catch (e) {}
     navigateTo("home");
   };

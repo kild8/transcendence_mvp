@@ -20,7 +20,7 @@ function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): 
     wrap.innerHTML = canvasHtml;
     app.appendChild(wrap);
 
-    const GameClassLocal = (window as any).PongGame;
+  const GameClassLocal = window.PongGame;
     if (!GameClassLocal) {
       alert(t(state.lang, "RenderTournament.GAME_MISSING"));
       resolve(p1); // fallback

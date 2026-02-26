@@ -5,7 +5,7 @@ export function createPresenceSocket(onOpen?: () => void, onClose?: (ev?: CloseE
   let ws: WebSocket | null = null;
   let closedByClient = false;
   let retry = 0;
-  let retryTimer: any = null;
+  let retryTimer: number | null = null;
 
   function connect() {
     ws = new WebSocket(url);
@@ -52,4 +52,4 @@ export function createPresenceSocket(onOpen?: () => void, onClose?: (ev?: CloseE
 }
 
 // expose a small helper on window to store the last created client
-try { (window as any).__presenceClient = (window as any).__presenceClient || null; } catch (e) {}
+try { (window as unknown as Record<string, unknown>)['__presenceClient'] = (window as unknown as Record<string, unknown>)['__presenceClient'] || null; } catch (e) {}

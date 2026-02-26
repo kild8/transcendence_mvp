@@ -70,7 +70,7 @@ export function versusContent(): HTMLElement {
   wrapper.innerHTML = canvasHtml;
   app.appendChild(wrapper);
 
-    const GameClass = (window as any).PongGame;
+  const GameClass = window.PongGame;
     if (!GameClass) { alert(t(state.lang, "Versus.NOT_LOADED")); return; }
 
     state.currentGame = new GameClass('pong-canvas', a, b, state.WINNING_SCORE,
@@ -79,7 +79,7 @@ export function versusContent(): HTMLElement {
 
     const backBtn = document.getElementById('back-to-menu');
     backBtn?.addEventListener('click', () => {
-      state.currentGame?.stop();
+      state.currentGame?.stop?.();
       state.currentGame = null;
       navigateTo('home');
     });

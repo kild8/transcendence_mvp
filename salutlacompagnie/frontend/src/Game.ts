@@ -156,7 +156,8 @@ class Obstacle {
         if (bx >= leftX && bx <= rightX && by >= topY && by <= bottomY) {
             ball.velocity.y = -ball.velocity.y;
             ball.position.y += Math.sign(ball.velocity.y) * 2;
-            if ((ball as any).increaseSpeed) (ball as any).increaseSpeed(0.5);
+                // Ball has increaseSpeed method — call it directly
+                if (typeof (ball as Ball).increaseSpeed === 'function') (ball as Ball).increaseSpeed.call(ball, 0.5);
         }
     }
 }
@@ -308,4 +309,8 @@ class Game {
     }
 }
 
-;(window as any).PongGame = Game;
+declare global {
+    interface Window { PongGame?: typeof Game }
+}
+
+window.PongGame = Game;

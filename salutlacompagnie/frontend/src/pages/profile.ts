@@ -9,9 +9,10 @@ import { t } from "../lang/langIndex.js";
  * permet de changer le pseudo, uploader un avatar et voir l'historique.
  */
 export function profileContent(): HTMLElement {
-  let currentUser: { id: number, name: string, email: string, avatar?: string, created_at?: string } | null = null;
+  let currentUser: { id: number, name: string, email: string, avatar?: string, created_at?: string, language?: string } | null = null;
   // initialize as empty array to avoid "possibly null" errors
-  let matchesCache: any[] = [];
+  interface MatchSummary { player1_name: string; player2_name: string; winner_name: string; score_player1?: number; score_player2?: number; created_at?: string }
+  let matchesCache: MatchSummary[] = [];
 
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center">
@@ -136,19 +137,19 @@ export function profileContent(): HTMLElement {
       }
 
       // optionally keep global state in sync (guarded)
-      if ((state as any)?.appState) {
+        if (state.appState) {
         // preserve any existing session-level preference (set by header),
         // otherwise prefer a stored localStorage session value, then fallback to persisted user.language
-        const existingSession = (state as any).appState.currentUser && (state as any).appState.currentUser.language_session;
+        const existingSession = state.appState.currentUser?.language_session;
         const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
-        (state as any).appState.currentUser = {
+        state.appState.currentUser = {
           id: currentUser.id,
           name: currentUser.name,
           email: currentUser.email,
-          avatar: currentUser.avatar,
-          language: (currentUser as any).language,
-          language_session: existingSession || storedSession || (currentUser as any).language
-        } as any;
+          avatar: currentUser.avatar || '',
+          language: currentUser.language || 'en',
+            language_session: existingSession || storedSession || currentUser.language || 'en'
+        };
       }
 
       // fill UI (currentUser is guaranteed non-null here)
@@ -161,11 +162,11 @@ export function profileContent(): HTMLElement {
 
       // initialize language select if present — show the persisted user preference (don't auto-save session)
       try {
-        const sel = node.querySelector('#profile-language') as HTMLSelectElement | null;
+          const sel = node.querySelector('#profile-language') as HTMLSelectElement | null;
         if (sel && currentUser) {
           // prefer persisted user.language (what is stored as preference), then fallback to session
-          const sessionLang = (state as any).appState.currentUser && (state as any).appState.currentUser.language_session;
-          sel.value = (currentUser as any).language || sessionLang || 'en';
+          const sessionLang = state.appState.currentUser?.language_session;
+          sel.value = currentUser.language || sessionLang || 'en';
         }
       } catch (e) {}
 
@@ -214,8 +215,8 @@ export function profileContent(): HTMLElement {
       avatarEl.src = `${url}?t=${Date.now()}`;
       profileMsg.textContent = t(state.lang, "Profile.AVATAR_UPDATED");
       // update state and local currentUser.avatar
-  currentUser.avatar = data.avatar;
-  if ((state as any)?.appState?.currentUser) (state as any).appState.currentUser.avatar = data.avatar;
+    currentUser.avatar = data.avatar;
+    if (state.appState.currentUser) state.appState.currentUser.avatar = data.avatar;
       // update header avatar if present
       try {
         const hdr = document.getElementById('hdr-avatar') as HTMLImageElement | null;
@@ -271,7 +272,7 @@ export function profileContent(): HTMLElement {
       // update UI & state (currentUser exists here)
       if (currentUser) currentUser.name = newName;
       nameEl.textContent = newName;
-      if ((state as any)?.appState?.currentUser) (state as any).appState.currentUser.name = newName;
+  if (state.appState.currentUser) state.appState.currentUser.name = newName;
       nameMsg.textContent = t(state.lang, "Profile.NAME_UPDATED");
       editForm.classList.add('hidden');
     } catch (err) {
@@ -314,11 +315,11 @@ export function profileContent(): HTMLElement {
           return;
         }
         // update local state and UI: persisted language and session language
-        currentUser = { ...currentUser, language: data.user.language } as any;
-        if ((state as any)?.appState?.currentUser) {
-          (state as any).appState.currentUser.language = data.user.language;
+  currentUser = { ...currentUser, language: data.user.language };
+        if (state.appState.currentUser) {
+          state.appState.currentUser.language = data.user.language;
           // also update session-level selection so header/other pages reflect user's choice immediately
-          (state as any).appState.currentUser.language_session = data.user.language;
+          state.appState.currentUser.language_session = data.user.language;
           try { localStorage.setItem('language_session', data.user.language); } catch (e) { /* ignore */ }
         }
         if (langMsg) { langMsg.textContent = t(state.lang, "Profile.LANG_SAVED"); }
@@ -381,7 +382,7 @@ export function profileContent(): HTMLElement {
         const item = document.createElement('div');
         item.className = 'p-2 border rounded';
         // safe formatting
-        const created = new Date(m.created_at).toLocaleString();
+  const created = m.created_at ? new Date(m.created_at).toLocaleString() : '';
         item.innerHTML = `
           <div class="flex justify-between">
             <div class="small">
@@ -554,8 +555,9 @@ export function profileContent(): HTMLElement {
   // presence updates from presence WS (if available)
   function attachPresenceListener() {
     try {
-      const client = (state as any)?.appState?.ws;
-      const ws = client?.socket || client; // client may be wrapper exposing .socket
+  type _PresenceLike = { socket?: WebSocket; close?: () => void } | WebSocket | null | undefined;
+  const client = state.appState?.ws as unknown as _PresenceLike;
+  const ws = (client && typeof client === 'object' && 'socket' in client) ? (client as { socket?: WebSocket }).socket : (client as WebSocket | undefined | null);
       if (!ws) return;
       ws.addEventListener('message', (ev: MessageEvent) => {
         try {
