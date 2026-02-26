@@ -104,7 +104,8 @@ WS: {
     TOURNAMENT_STARTED: "Turnier gestartet! Spieler: {players}",
     NEXT_MATCH: "Nächstes Spiel: {p1} vs {p2}",
     ERROR_CREATE_ROOM: "Fehler beim Erstellen des Raums",
-    ERROR_PSEUDO_MISSING: "Benutzername fehlt, bitte erneut verbinden."
+    ERROR_PSEUDO_MISSING: "Benutzername fehlt, bitte erneut verbinden.",
+	IN_ROOM: "verbunden"
   },
     Profile: {
     //profile.ts
@@ -127,6 +128,7 @@ WS: {
     SEARCHING: "Suche...",
     REQUESTS: "Anfragen",
     USER_NOT_FOUND: "Benutzer nicht gefunden",
+	USER_SELF: "Benutzer ist du",
     ADD: "Hinzufügen",
     INCOMING_REQUESTS: "Eingehende Anfragen",
     REQUEST_SENT: "Anfrage gesendet ✔️",
@@ -170,7 +172,7 @@ WS: {
     PLAYER_PLACEHOLDER: "Benutzername #{number}",
     BUTTON_FILL: "Beispiele füllen",
     BUTTON_CLEAR: "Leeren",
-    READY_COUNT: "Bereite Spieler: {count}",
+    READY_COUNT: "Bereite Spieler: ",
     BUTTON_START: "Starten",
     MIN_PLAYERS_ALERT: "Mindestens 2 Spieler sind erforderlich, um ein Turnier zu starten.",
     MIN_PLAYERS_START: "Mindestens 2 Spieler"

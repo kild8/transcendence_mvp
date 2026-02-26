@@ -104,7 +104,8 @@ export default {
     TOURNAMENT_STARTED: "Tournoi démarré ! Joueurs : {players}",
     NEXT_MATCH: "Prochain match : {p1} vs {p2}",
     ERROR_CREATE_ROOM: "Erreur création de room",
-    ERROR_PSEUDO_MISSING: "Pseudo manquant, veuillez vous reconnecter."
+    ERROR_PSEUDO_MISSING: "Pseudo manquant, veuillez vous reconnecter.",
+	IN_ROOM: "connecté"
   },
     Profile: {
     //profile.ts
@@ -127,6 +128,7 @@ export default {
     SEARCHING: "Recherche...",
     REQUESTS: "Demandes",
     USER_NOT_FOUND: "Utilisateur non trouvé",
+	USER_SELF: "C'est toi",
     ADD: "Ajouter",
     INCOMING_REQUESTS: "Demandes entrantes",
     REQUEST_SENT: "Demande envoyée ✔️",
@@ -170,7 +172,7 @@ export default {
     PLAYER_PLACEHOLDER: "Pseudo #{number}",
     BUTTON_FILL: "Remplir exemples",
     BUTTON_CLEAR: "Effacer",
-    READY_COUNT: "Joueurs prêts: {count}",
+    READY_COUNT: "Joueurs prêts: ",
     BUTTON_START: "Démarrer",
     MIN_PLAYERS_ALERT: "Il faut au moins 2 joueurs pour lancer un tournoi.",
     MIN_PLAYERS_START: "Il faut au moins 2 joueurs"

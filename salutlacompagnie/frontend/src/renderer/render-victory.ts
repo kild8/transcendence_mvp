@@ -40,7 +40,7 @@ export function renderVictory(winner: string, loser: string, score: string, left
       // recreate canvas view and new game with same players
       const canvasHtml = `
         <div>
-          <button id="back-to-menu" class="small mb-3">${t(state.lang, "Versus.BACK_TO_MENU")}</button>
+          <button id="back-to-menu" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] mb-3 transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "Versus.BACK_TO_MENU")}</button>
           <canvas id="pong-canvas" width="800" height="480" style="display:block;margin:0 auto;border:1px solid #111;"></canvas>
         </div>
       `;

@@ -101,7 +101,8 @@ export default {
     TOURNAMENT_STARTED: "Tournament started! Players: {players}",
     NEXT_MATCH: "Next match: {p1} vs {p2}",
     ERROR_CREATE_ROOM: "Error creating room",
-    ERROR_PSEUDO_MISSING: "Missing username, please reconnect."
+    ERROR_PSEUDO_MISSING: "Missing username, please reconnect.",
+	IN_ROOM: "connected"
   },
     Profile: {
     //profile.ts
@@ -124,6 +125,7 @@ export default {
     SEARCHING: "Searching...",
     REQUESTS: "Requests",
     USER_NOT_FOUND: "User not found",
+	USER_SELF: "User is you",
     ADD: "Add",
     INCOMING_REQUESTS: "Incoming requests",
     REQUEST_SENT: "Request sent ✔️",
@@ -167,7 +169,7 @@ export default {
     PLAYER_PLACEHOLDER: "Username #{number}",
     BUTTON_FILL: "Fill examples",
     BUTTON_CLEAR: "Clear",
-    READY_COUNT: "Players ready: {count}",
+    READY_COUNT: "Players ready: ",
     BUTTON_START: "Start",
     MIN_PLAYERS_ALERT: "At least 2 players are required to start a tournament.",
     MIN_PLAYERS_START: "At least 2 players"

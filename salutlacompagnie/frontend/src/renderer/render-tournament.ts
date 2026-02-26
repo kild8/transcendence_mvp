@@ -146,7 +146,7 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
       app.innerHTML = '';
         const victoryScreen = elFromHTML(`
           <div class="bg-white rounded-lg shadow px-6 py-10 text-center text-slate-900">
-          <h2 class="text-2xl font-semibold mb-3">${t(state.lang, "RenderTournament.VICTORY")}<strong>${winner}</strong> !</h2>
+          <h2 class="text-2xl font-semibold mb-3">${t(state.lang, "RenderTournament.VICTORY")} <strong>${winner}</strong> !</h2>
           <p class="text-lg mb-6">(${p1} vs ${p2})</p>
           <button id="next-match" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded">${t(state.lang, "RenderTournament.NEXT_MATCH_BTN")}</button>
         </div>

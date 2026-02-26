@@ -86,15 +86,18 @@ export function onlineContent(): HTMLElement {
         const li = document.createElement("li");
         li.className = "flex flex-col border border-slate-700 p-3 rounded bg-slate-900 text-white";
 
-        li.innerHTML = `
-          <div class ="flex justify-between items-center">
-            <span class="font-medium">${r.host ?? "Room"} ${r.type.toUpperCase()} (${r.players}/${r.maxPlayers})</span>
-            <button class="join-room-btn bg-slate-800 hover:bg-slate-700 text-white py-1 px-3 rounded text-sm font-medium">${t(state.lang, "Online.JOIN")}</button>
-          </div>
-          <div class="text-sm mt-1 text-slate-400">${t(state.lang, "Online.PLAYERS_IN_ROOM", { players: r.participants.join(", ")})}</div>
-          `;
+        const isJoined = typeof pseudo === 'string' && r.participants && r.participants.includes(pseudo);
 
-    (li.querySelector(".join-room-btn") as HTMLButtonElement)!.onclick = () => joinRoom(r.id);
+        li.innerHTML = `
+            <div class ="flex justify-between items-center">
+              <span class="font-medium">${r.host ?? "Room"} ${r.type.toUpperCase()} (${r.players}/${r.maxPlayers})</span>
+              ${isJoined ? `<span class="text-sm text-green-400 font-medium">${t(state.lang, "Online.IN_ROOM")}</span>` : `<button class="join-room-btn bg-slate-800 hover:bg-slate-700 text-white py-1 px-3 rounded text-sm font-medium">${t(state.lang, "Online.JOIN")}</button>`}
+            </div>
+            <div class="text-sm mt-1 text-slate-400">${t(state.lang, "Online.PLAYERS_IN_ROOM", { players: r.participants.join(", ")})}</div>
+            `;
+
+      const joinBtn = li.querySelector(".join-room-btn") as HTMLButtonElement | null;
+      if (joinBtn) joinBtn.onclick = () => joinRoom(r.id);
         list.appendChild(li);
       });
   };
@@ -152,7 +155,11 @@ export function onlineContent(): HTMLElement {
     const startBtn = document.createElement("button");
     startBtn.textContent = t(state.lang, "RenderTournament.START_MATCH");
   startBtn.className = "mt-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded";
-    startBtn.style.display = "none";
+  // make button visible but disabled by default so reloads keep it present
+  startBtn.style.display = "inline-block";
+  startBtn.disabled = true;
+  startBtn.textContent = t(state.lang, "Online.WAITING_FOR_HOST");
+  startBtn.classList.add('opacity-60', 'cursor-not-allowed');
     gameContainer.appendChild(startBtn);
   let startTimeout: number | null = null;
 
@@ -182,8 +189,17 @@ export function onlineContent(): HTMLElement {
       if (pseudo === host) {
         startBtn.style.display = "inline-block";
         startBtn.disabled = false;
+        startBtn.textContent = t(state.lang, "RenderTournament.START_MATCH");
+        startBtn.setAttribute('aria-disabled', 'false');
+        startBtn.classList.remove('opacity-60', 'cursor-not-allowed');
       } else {
-        startBtn.style.display = "none";
+        // show a disabled waiting button for non-hosts
+        startBtn.style.display = "inline-block";
+        startBtn.disabled = true;
+        startBtn.textContent = t(state.lang, "Online.WAITING_FOR_HOST");
+        startBtn.setAttribute('aria-disabled', 'true');
+        // visual hint for disabled state
+        startBtn.classList.add('opacity-60', 'cursor-not-allowed');
       }
     };
     const stateMessage = document.createElement("div");
@@ -235,6 +251,10 @@ export function onlineContent(): HTMLElement {
       currentGame?.onGameOver?.();
       showMatchEndScreen(data.winner, data.loser);
       break;
+	
+	case "end1v1":
+	showVictoryScreen(data.winner);
+      break;
 
     case "tournament-next-match":
       tournamentLog.innerHTML += `<p style="font-size: 1.5em;">${t(state.lang, "Online.NEXT_MATCH", { p1: data.p1, p2: data.p2 })}</p>`;
@@ -244,20 +264,25 @@ export function onlineContent(): HTMLElement {
       // data: { roundPlayers, matches: [{p1,p2}, ...], byes: [] }
       // Render a round overview similar to local tournament
       tournamentLog.innerHTML = "";
-      const matchesListHtml = (data.matches || []).map((m: any) => `<div class=\"py-1 text-slate-900\"><strong>${m.p1}</strong> - <strong>${m.p2}</strong></div>`).join('');
-      const byesListHtml = (data.byes && data.byes.length) ? `<div class=\"mt-3 text-sm text-slate-500\">${t(state.lang, "RenderTournament.ODD_PLAYERS", { players: data.byes.join(', ') })}</div>` : '';
+      const matchesListHtml = (data.matches || []).map((m: any) => `<div class="py-1 text-slate-900"><strong>${m.p1}</strong> - <strong>${m.p2}</strong></div>`).join('');
+      const byesListHtml = (data.byes && data.byes.length) ? `<div class="mt-3 text-sm text-slate-500">${t(state.lang, "RenderTournament.ODD_PLAYERS", { players: data.byes.join(', ') })}</div>` : '';
+
+      const startButtonHtml = data.host === pseudo
+        ? `<button id="confirm-start-round" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded">${t(state.lang, "RenderTournament.START_ROUND")}</button>`
+        : `<button id="confirm-start-round" disabled class="opacity-60 cursor-not-allowed bg-slate-800 text-white px-4 py-2 rounded">${t(state.lang, "Online.WAITING_FOR_HOST")}</button>`;
+
       const roundOverviewHtml = `
-        <div class=\"bg-white rounded-lg shadow px-6 py-6 text-center text-slate-900\">\n
-          <h2 class=\"text-xl font-semibold mb-3\">${t(state.lang, "RenderTournament.ROUND_OVERVIEW", { round: 1, matches: (data.matches || []).length })}</h2>\n
-          <div class=\"mb-4\">${matchesListHtml || t(state.lang, "RenderTournament.NO_MATCHES")}</div>\n
+        <div class="bg-white rounded-lg shadow px-6 py-6 text-center text-slate-900">\n
+          <h2 class="text-xl font-semibold mb-3">${t(state.lang, "RenderTournament.ROUND_OVERVIEW", { round: data.round || 1, matches: (data.matches || []).length })}</h2>\n
+          <div class="mb-4">${matchesListHtml || t(state.lang, "RenderTournament.NO_MATCHES")}</div>\n
           ${byesListHtml}\n
-          <div class=\"flex justify-center gap-4 mt-4\">\n
-            <button id=\"confirm-start-round\" class=\"bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded\">${t(state.lang, "RenderTournament.START_ROUND")}</button>\n
+          <div class="flex justify-center gap-4 mt-4">\n
+            ${startButtonHtml}\n
           </div>\n
         </div>`;
 
-  tournamentLog.innerHTML = roundOverviewHtml;
-  tournamentLog.style.display = 'block';
+      tournamentLog.innerHTML = roundOverviewHtml;
+      tournamentLog.style.display = 'block';
 
       const confirmBtn = document.getElementById('confirm-start-round') as HTMLButtonElement | null;
       if (confirmBtn) {
@@ -340,7 +365,7 @@ export function showVictoryScreen(winner: string) {
 
   setTimeout(() => {
     if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
-    navigateTo('home');
+    window.location.reload();
   }, 8000);
 }
 

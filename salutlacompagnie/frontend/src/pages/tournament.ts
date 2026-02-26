@@ -17,14 +17,14 @@ export function tournamentContent(): HTMLElement {
       <div id="slots" class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
 
       <div class="mt-4 flex gap-3">
-  <button id="fill" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Tournament.BUTTON_FILL")}</button>
-  <button id="clear" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Tournament.BUTTON_CLEAR")}</button>
+  <button id="fill" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Tournament.BUTTON_FILL")}</button>
+  <button id="clear" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Tournament.BUTTON_CLEAR")}</button>
 
         <div class="ml-auto flex items-center gap-3">
           <div class="text-sm text-[#9ca3af]">
             ${t(state.lang, "Tournament.READY_COUNT")}<strong id="count">0</strong>
           </div>
-          <button id="start" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Tournament.BUTTON_START")}</button>
+          <button id="start" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Tournament.BUTTON_START")}</button>
         </div>
       </div>
 
@@ -120,6 +120,14 @@ export function tournamentContent(): HTMLElement {
 
     if (players.length < 2) {
       alert(t(state.lang, "Tournament.MIN_PLAYERS_START"));
+      return;
+    }
+
+    // Prevent duplicate player names (same rule as local duel)
+    const lower = players.map(p => p.toLowerCase());
+    const hasDup = lower.some((p, i) => lower.indexOf(p) !== i);
+    if (hasDup) {
+      alert(t(state.lang, "Versus.ERROR_PSEUDOS"));
       return;
     }
 

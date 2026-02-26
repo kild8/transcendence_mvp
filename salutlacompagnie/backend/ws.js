@@ -8,8 +8,8 @@ const {
 } = require("./tournament.js");
 const fetch = require("node-fetch");
 
-const WINNING_SCORE = 5;
-const TICK_RATE = 30;
+const WINNING_SCORE = 2;
+const TICK_RATE = 60;
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 480;
 let wss;
@@ -225,11 +225,16 @@ function start1v1Match(room) {
   room.players.player2 = player2;
 
   room.paddles = {
-    player1: { position: { x: 50, y: 200}, width: 10, height: 100, speed: 8, score: 0 },
-    player2: { position: { x : 740, y: 200 }, width: 10, height: 100, speed: 8, score: 0}
+    player1: { position: { x: 50, y: 200}, width: 10, height: 100, speed: 9, score: 0 },
+    player2: { position: { x : 740, y: 200 }, width: 10, height: 100, speed: 9, score: 0}
   };
   room.lastInputs = { player1: null, player2: null };
-  room.ball = { position: { x: 400, y: 240 }, velocity: { x: 6, y: 4}, size: 10 };
+  room.ball = { position: { x: 400, y: 240 }, velocity: { x: 5, y: 3}, size: 10, initialVelocity: { x: 5, y: 3 } };
+  // obstacles
+  room.obstacles = {
+    top: { position: { x: CANVAS_WIDTH / 2, y: 0 }, size: 20, pointingUp: false },
+    bottom: { position: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 20 }, size: 20, pointingUp: true }
+  };
 
   [player1, player2].forEach(p => {
     if (p.ws.readyState === WebSocket.OPEN) {
@@ -285,18 +290,22 @@ function handleStartTournament(ws, data) {
   // send round overview
   const matchesOverview = room.tournament.matches.map(m => ({ p1: m.p1, p2: m.p2 }));
   const byes = room.tournament.nextRound && room.tournament.nextRound.length ? [...room.tournament.nextRound] : [];
-  room.participants.forEach(p => {
-    if (p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(JSON.stringify({ type: "tournament-round", round: room.tournament.round || 1, roundPlayers: room.tournament.players, matches: matchesOverview, byes }));
-    }
-  });
+      room.participants.forEach(p => {
+        if (p.ws.readyState === WebSocket.OPEN) {
+          p.ws.send(JSON.stringify({ type: "tournament-round", round: room.tournament.round || 1, roundPlayers: room.tournament.players, matches: matchesOverview, byes, host: room.host }));
+        }
+      });
 
   // Initialise paddles si ce n'est pas déjà fait
   if (!room.paddles) room.paddles = {};
   if (!room.paddles.player1) room.paddles.player1 = { position: { x: 50, y: 200 }, width: 10, height: 100, speed: 8, score: 0 };
   if (!room.paddles.player2) room.paddles.player2 = { position: { x: 740, y: 200 }, width: 10, height: 100, speed: 8, score: 0 };
   if (!room.lastInputs) room.lastInputs = { player1: null, player2: null };
-  if (!room.ball) room.ball = { position: { x: 400, y: 240 }, velocity: { x: 6, y: 4 }, size: 10 };
+  if (!room.ball) room.ball = { position: { x: 400, y: 240 }, velocity: { x: 3, y: 2 }, size: 10, initialVelocity: { x: 3, y: 2 } };
+  if (!room.obstacles) room.obstacles = {
+    top: { position: { x: CANVAS_WIDTH / 2, y: 0 }, size: 20, pointingUp: false },
+    bottom: { position: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 20 }, size: 20, pointingUp: true }
+  };
 
   // Lance le premier match
   // startNextTournamentMatch will be triggered when host sends 'start-tournament-round'
@@ -426,7 +435,7 @@ function startNextTournamentMatch(room) {
   let match = getNextMatch(tournament);
   console.log("Next match:", match);
 
-  if (!match) {
+    if (!match) {
     if (tournament.nextRound.length === 1) {
       room.state = ROOM_STATE.TOURNAMENT_OVER;
       const winner = tournament.nextRound[0];
@@ -437,16 +446,21 @@ function startNextTournamentMatch(room) {
       tournament.inProgress = false;
       return;
     } else if (tournament.nextRound.length > 1) {
-      // prepare next round, but notify clients and wait for host confirmation
+      // promote winners to the next round, generate matches and notify clients
       tournament.players = [...tournament.nextRound];
+      // clear nextRound before generating new pairings
       tournament.nextRound = [];
       generateMatches(tournament);
+
+      // increment round counter (we are moving to the next round)
+      tournament.round = (tournament.round || 1) + 1;
+
       // send round overview to participants and set waiting flag
       const matchesOverview = tournament.matches.map(m => ({ p1: m.p1, p2: m.p2 }));
       const byes = tournament.nextRound && tournament.nextRound.length ? [...tournament.nextRound] : [];
       room.participants.forEach(p => {
         if (p.ws.readyState === WebSocket.OPEN) {
-          p.ws.send(JSON.stringify({ type: "tournament-round", round: tournament.round || 1, roundPlayers: tournament.players, matches: matchesOverview, byes }));
+          p.ws.send(JSON.stringify({ type: "tournament-round", round: tournament.round, roundPlayers: tournament.players, matches: matchesOverview, byes, host: room.host }));
         }
       });
       tournament.waitingForHost = true;
@@ -485,7 +499,7 @@ function startNextTournamentMatch(room) {
 
     if (player.pseudo === p1 || player.pseudo === p2) {
       const role = player.pseudo === p1 ? "player1" : "player2";
-      player.ws.send(JSON.stringify({ type: "start-game", roomId: room.id, role }));
+      player.ws.send(JSON.stringify({ type: "start-game", roomId: room.id, role, player1: p1, player2: p2 }));
     }
   });
 
@@ -517,15 +531,20 @@ async function setGameOver(room, winnerRole) {
 
   room.participants.forEach(player => {
     if (player?.ws.readyState === WebSocket.OPEN) {
-      player.ws.send(JSON.stringify({
-        type: "gameOver",
+      const payload = {
         winner,
         loser,
         score: {
           player1: room.paddles.player1.score,
           player2: room.paddles.player2.score
         }
-      }));
+      };
+      // send a specific event for 1v1 finishes if client expects it
+      if (room.type === "1v1") {
+        player.ws.send(JSON.stringify(Object.assign({ type: "end1v1" }, payload)));
+      } else {
+        player.ws.send(JSON.stringify(Object.assign({ type: "gameOver" }, payload)));
+      }
     }
   });
 
@@ -664,8 +683,19 @@ function startGameLoop(room) {
     ball.position.x += ball.velocity.x;
     ball.position.y += ball.velocity.y;
 
-    if (ball.position.y <= 0 || ball.position.y >= CANVAS_HEIGHT - ball.size) ball.velocity.y *= -1;
+    // wall bounces
+    if (ball.position.y <= 0) {
+      ball.position.y = 0;
+      ball.velocity.y = Math.abs(ball.velocity.y) + (Math.random() - 0.5) * 0.5;
+      increaseBallSpeed(ball, 0.5);
+    }
+    if (ball.position.y >= CANVAS_HEIGHT - ball.size) {
+      ball.position.y = CANVAS_HEIGHT - ball.size;
+      ball.velocity.y = -Math.abs(ball.velocity.y) + (Math.random() - 0.5) * 0.5;
+      increaseBallSpeed(ball, 0.5);
+    }
 
+    // paddle bounces
     ["player1", "player2"].forEach(role => {
       const p = room.paddles[role];
       if (
@@ -673,8 +703,41 @@ function startGameLoop(room) {
         ball.position.x + ball.size >= p.position.x &&
         ball.position.y + ball.size >= p.position.y &&
         ball.position.y <= p.position.y + p.height
-      ) ball.velocity.x *= -1;
+      ) {
+        // compute impact to redirect Y
+        const mid = p.position.y + p.height / 2;
+        const impact = (ball.position.y - mid) / (p.height / 2);
+        if (role === 'player1') {
+          ball.velocity.x = Math.abs(ball.velocity.x);
+        } else {
+          ball.velocity.x = -Math.abs(ball.velocity.x);
+        }
+        ball.velocity.y = impact * 5;
+        increaseBallSpeed(ball, 0.5);
+      }
     });
+
+    // obstacle collisions (triangles centered top/bottom)
+    if (room.obstacles) {
+      const top = room.obstacles.top;
+      const bottom = room.obstacles.bottom;
+      // center of ball
+      const bx = ball.position.x + ball.size / 2;
+      const by = ball.position.y + ball.size / 2;
+      const checkObstacle = (obs) => {
+        const topY = obs.position.y;
+        const bottomY = obs.position.y + obs.size;
+        const leftX = obs.position.x - obs.size / 2;
+        const rightX = obs.position.x + obs.size / 2;
+        if (bx >= leftX && bx <= rightX && by >= topY && by <= bottomY) {
+          ball.velocity.y = -ball.velocity.y;
+          ball.position.y += Math.sign(ball.velocity.y) * 2;
+          increaseBallSpeed(ball, 0.5);
+        }
+      };
+      checkObstacle(top);
+      checkObstacle(bottom);
+    }
 
     // --- Score & GameOver ---
     if (ball.position.x > CANVAS_WIDTH) {
@@ -711,7 +774,31 @@ function startGameLoop(room) {
 
 function resetRoomBall(room) {
   room.ball.position = { x: CANVAS_WIDTH/2, y: CANVAS_HEIGHT/2 };
-  room.ball.velocity = { x: 6 * (Math.random() > 0.5 ? 1 : -1), y: 4 * (Math.random() > 0.5 ? 1 : -1) };
+  // reset to baseline initialVelocity if available
+  if (room.ball.initialVelocity) {
+    room.ball.velocity = {
+      x: Math.abs(room.ball.initialVelocity.x) * (Math.random() > 0.5 ? 1 : -1),
+      y: Math.abs(room.ball.initialVelocity.y) * (Math.random() > 0.5 ? 1 : -1)
+    };
+  } else {
+    room.ball.velocity = { x: 3 * (Math.random() > 0.5 ? 1 : -1), y: 2 * (Math.random() > 0.5 ? 1 : -1) };
+    room.ball.initialVelocity = { x: Math.abs(room.ball.velocity.x), y: Math.abs(room.ball.velocity.y) };
+  }
+}
+
+// Increase ball speed magnitude by `amount`, preserving direction.
+function increaseBallSpeed(ball, amount) {
+  const vx = ball.velocity?.x || 0;
+  const vy = ball.velocity?.y || 0;
+  const speed = Math.hypot(vx, vy);
+  if (speed === 0) {
+    ball.velocity = { x: amount * (Math.random() > 0.5 ? 1 : -1), y: 0 };
+    return;
+  }
+  const newSpeed = speed + amount;
+  const scale = newSpeed / speed;
+  ball.velocity.x = vx * scale;
+  ball.velocity.y = vy * scale;
 }
 
 function broadcastRoomUpdate() {

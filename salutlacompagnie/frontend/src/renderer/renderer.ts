@@ -8,7 +8,6 @@ import { homeContent } from '../pages/home.js';
 import { versusContent } from '../pages/versus.js';
 import { tournamentContent } from '../pages/tournament.js';
 import { addUserContent } from '../pages/add-user.js';
-import { listUsersContent } from '../pages/list-users.js';
 import { profileContent } from '../pages/profile.js';
 import { registerContent } from '../pages/register.js';
 import { onlineContent } from '../pages/online.js';
@@ -48,7 +47,6 @@ export function render(page: Page) {
   if (page === 'versus') main.appendChild(versusContent());
   if (page === 'tournament') main.appendChild(tournamentContent());
   if (page === 'add-user') main.appendChild(addUserContent());
-  if (page === 'list-users') main.appendChild(listUsersContent());
   if (page === 'profile') main.appendChild(profileContent());
   if (page === 'online') main.appendChild(onlineContent());
 
@@ -143,7 +141,7 @@ function header(): HTMLElement {
           // persist the session preference locally so pages that re-fetch the user don't overwrite it
           try { localStorage.setItem('language_session', newLang); } catch (e) { /* ignore */ }
         } catch (e) {}
-        try { render(getHashPage()); } catch (e) { /* ignore */ }
+        window.location.reload();
       });
     }
 

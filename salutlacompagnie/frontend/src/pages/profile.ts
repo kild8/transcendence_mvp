@@ -20,30 +20,30 @@ export function profileContent(): HTMLElement {
         <div class="flex gap-2 justify-center mb-2">
           <form id="avatar-form" class="flex items-center gap-2" enctype="multipart/form-data">
             <input type="file" id="avatar-input" accept="image/*" class="text-sm text-[#9ca3af]" />
-            <button type="submit" id="avatar-submit" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.CHANGE_AVATAR")}</button>
+            <button type="submit" id="avatar-submit" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.CHANGE_AVATAR")}</button>
           </form>
         </div>
 
         <div class="mb-2">
           <strong id="profile-name" class="text-lg"></strong>
-          <button id="edit-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2">${t(state.lang, "Profile.EDIT")}</button>
+          <button id="edit-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.EDIT")}</button>
         </div>
 
         <div class="mb-2">
           <label for="profile-language" class="text-sm text-[#9ca3af] mr-2">${t(state.lang, "Profile.LANGUAGE")}</label>
-          <select id="hdr-lang"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
+          <select id="profile-language"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
             <option value="en" style="background-color: dark-gray;">EN</option>
             <option value="fr" style="background-color: dark-gray;">FR</option>
             <option value="de" style="background-color: dark-gray;">DE</option>
           </select>
-          <button id="save-language" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2">${t(state.lang, "Profile.SAVE")}</button>
-          <div id="lang-msg" class="text-sm text-red-600 mt-1"></div>
+          <button id="save-language" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SAVE")}</button>
+          <div id="lang-msg" class="text-sm text-green-600 mt-1"></div>
         </div>
 
         <div id="edit-name-form" class="hidden mb-2">
           <input id="new-name" class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] p-2 rounded mr-2" placeholder="Nouveau pseudo" />
-          <button id="save-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.SAVE")}</button>
-          <button id="cancel-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.CANCEL")}</button>
+          <button id="save-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SAVE")}</button>
+          <button id="cancel-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.CANCEL")}</button>
           <div id="name-msg" class="text-sm text-red-600 mt-1"></div>
         </div>
 
@@ -55,8 +55,8 @@ export function profileContent(): HTMLElement {
         </div>
 
         <div class="mt-4 flex gap-2 justify-center">
-          <button id="btn-history" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.SHOW_HISTORY")}</button>
-          <button id="btn-back" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.BACK")}</button>
+          <button id="btn-history" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SHOW_HISTORY")}</button>
+          <button id="btn-back" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.BACK")}</button>
         </div>
 
         <!-- FRIENDS SECTION -->
@@ -65,8 +65,8 @@ export function profileContent(): HTMLElement {
 
           <div class="flex gap-2 items-center mb-3">
             <input id="friend-search" class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] p-2 rounded flex-1" placeholder="${t(state.lang, "Profile.SEARCH_USER_PLACEHOLDER")}" />
-            <button id="friend-search-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.SEARCH")}</button>
-            <button id="friend-requests-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.REQUESTS")}<span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
+            <button id="friend-search-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SEARCH")}</button>
+            <button id="friend-requests-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.REQUESTS")}<span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
           </div>
 
           <div id="friend-search-result" class="mb-3"></div>
@@ -324,7 +324,7 @@ export function profileContent(): HTMLElement {
         if (langMsg) { langMsg.textContent = t(state.lang, "Profile.LANG_SAVED"); }
         // also update header select if present
         try {
-          const hdr = document.getElementById('hdr-lang') as HTMLSelectElement | null;
+          const hdr = document.getElementById('profile-language') as HTMLSelectElement | null;
           if (hdr) hdr.value = data.user.language;
         } catch (e) {}
         // re-render to apply translations
@@ -431,7 +431,7 @@ export function profileContent(): HTMLElement {
           <span class="presence-dot w-3 h-3 rounded-full ${onlineClass} inline-block"></span>
           <strong class="ml-2">${escapeHtml(f.name)}</strong>
           <span class="small ml-auto">${escapeHtml(f.email)}</span>
-          <button class="btn small ml-2 remove-friend">${t(state.lang, "Profile.REMOVE")}</button>
+          <button class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000] remove-friend">${t(state.lang, "Profile.REMOVE")}</button>
         `;
         const removeBtn = row.querySelector('.remove-friend') as HTMLButtonElement;
         removeBtn.addEventListener('click', async () => {
@@ -459,8 +459,8 @@ export function profileContent(): HTMLElement {
       return null;
     }
   }
-
   friendSearchBtn.addEventListener('click', async (e) => {
+
     e.preventDefault();
     friendSearchResult.innerHTML = '';
     const q = friendSearchInput.value.trim();
@@ -471,14 +471,15 @@ export function profileContent(): HTMLElement {
     const div = document.createElement('div');
     div.className = 'p-2 border rounded flex items-center gap-3';
     div.innerHTML = `
-      <strong>${escapeHtml(user.name)}</strong>
-      <span class="small ml-auto">${escapeHtml(user.email || '')}</span>
-      <button id="add-friend-btn" class="btn small ml-2">${t(state.lang, "Profile.ADD")}</button>
+	<strong>${escapeHtml(user.name)}</strong>
+	<span class="small ml-auto">${escapeHtml(user.email || '')}</span>
+	<button id="add-friend-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "Profile.ADD")}</button>
     `;
     friendSearchResult.innerHTML = '';
     friendSearchResult.appendChild(div);
     (div.querySelector('#add-friend-btn') as HTMLButtonElement).addEventListener('click', async () => {
-      try {
+		if (q === currentUser?.name) { friendSearchResult.innerHTML = `<div class="small">${t(state.lang, "Profile.USER_SELF")}</div>`; return; }
+		try {
         const res = await fetch('/api/friends/request', {
           method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ friend_id: user.id })
@@ -521,8 +522,8 @@ export function profileContent(): HTMLElement {
         item.innerHTML = `
           <div><strong>${escapeHtml(r.requester_name)}</strong><div class="small">${escapeHtml(r.requester_email)}</div></div>
           <div class="ml-auto flex gap-2">
-            <button class="btn small accept-btn">${t(state.lang, "Profile.ACCEPT")}</button>
-            <button class="btn small reject-btn">${t(state.lang, "Profile.REJECT")}</button>
+            <button class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000] accept-btn">${t(state.lang, "Profile.ACCEPT")}</button>
+            <button class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000] reject-btn">${t(state.lang, "Profile.REJECT")}</button>
           </div>
         `;
         (item.querySelector('.accept-btn') as HTMLButtonElement).addEventListener('click', async () => {
