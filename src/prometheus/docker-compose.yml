@@ -10,8 +10,6 @@ services:
       - "--storage.tsdb.retention.time=15d"
       - "--storage.tsdb.retention.size=5GB"
       - "--log.format=json"
-    ports:
-      - "9090:9090"
     volumes:
       - prometheus-data:/prometheus
     networks:

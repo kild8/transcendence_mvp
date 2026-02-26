@@ -10,9 +10,6 @@ services:
       - "8443:8443"
     networks:
       - transcendence_nw
-    # secrets:
-    #   - nginx_server_crt
-    #   - nginx_server_key
     volumes:
       - nginx-frontend-vault-secrets:/vault/secrets:ro
     depends_on:
@@ -26,11 +23,5 @@ services:
         condition: service_started
       vault-agent-nginx-frontend:
         condition: service_healthy
-
-# secrets:
-#   nginx_server_crt:
-#     file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_crt.txt
-#   nginx_server_key:
-#     file: ${SECRETS_FOLDER_RELATIVE_PATH}/nginx_server_key.txt
 
 #port 80 443 any

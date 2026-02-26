@@ -1,6 +1,6 @@
 groups:
 - name: container.rules
-  interval: 15s   # fréquence de calcul
+  interval: 15s
   rules:
-  - record: container_alive # incomplet mais suffisant pour ce projet (necessiterait un scrap correct des etats des container directement sur l'orchestrateur)
+  - record: container_alive
     expr: max by (name) ((max(container_start_time_seconds{name!=""}) by (name) * 0 + 1) OR on(name)(container_should_exist * 0))

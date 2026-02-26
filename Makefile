@@ -8,7 +8,6 @@ DOCKER_COMPOSE_COMMAND	:=	SECRETS_DIR_PATH=$(SECRETS_DIR_PATH) \
 
 RESTART_TARGET			?=	none
 
-
 up:
 	@mkdir -p $(SECRETS_DIR_PATH)
 	@mkdir -p $(VAULT_ACCESS_DIR_PATH) && chmod 777 $(VAULT_ACCESS_DIR_PATH)
@@ -27,15 +26,11 @@ clear-volumes:
 		docker volume rm $$(docker volume ls -q | grep $(PROJECT_NAME)); \
 	fi
 	@echo Done
+
 peek:
 	@docker volume ls
 	@docker network ls --format "table {{.Name}}\t{{.Driver}}" | grep -v -E '^(bridge|host|none|Network_Name)'
 	@docker container ls -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-
-dev-start:
-	@$(DOCKER_COMPOSE_COMMAND) start $(RESTART_TARGET)
-dev-stop:
-	@$(DOCKER_COMPOSE_COMMAND) stop $(RESTART_TARGET)
 
 dev-kill:
 	@$(DOCKER_COMPOSE_COMMAND) kill
