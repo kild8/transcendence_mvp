@@ -14,32 +14,32 @@ export function loginContent(): HTMLElement {
       <form id="login-form" class="w-full flex flex-col gap-3">
         <input
           id="login-identifier"
-          class="border p-2 rounded"
+          class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] rounded-[8px] p-2"
           placeholder= "${t(state.lang, "Login.PLACEHOLDER_IDENTIFIER")}"
           required
         />
         <input
           id="login-password"
           type="password"
-          class="border p-2 rounded"
+          class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] rounded-[8px] p-2"
           placeholder="${t(state.lang, "Login.PLACEHOLDER_PASSWORD")}"
           required
         />
-        <button class="btn w-full" type="submit">
+        <button class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] w-full transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]" type="submit">
           ${t(state.lang, "Login.BTN_LOGIN")}
         </button>
-        <p id="login-error" class="small text-red-600 text-center"></p>
+        <p id="login-error" class="text-sm text-red-600 text-center"></p>
       </form>
 
-      <div class="w-full border-t my-4"></div>
+      <div class="w-full border-t my-4 border-[#333333]"></div>
 
       <!-- GOOGLE -->
-      <a id="btn-google" class="btn w-full" href="/api/auth/google">
+      <a id="btn-google" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] w-full text-center transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]" href="/api/auth/google">
         ${t(state.lang, "Login.BTN_GOOGLE")}
       </a>
 
       <!-- REGISTER -->
-      <button id="btn-register" class="btn small w-full">
+      <button id="btn-register" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] w-full transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]" >
         ${t(state.lang, "Login.BTN_REGISTER")}
       </button>
 

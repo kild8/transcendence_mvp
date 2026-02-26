@@ -13,31 +13,31 @@ export function registerContent(): HTMLElement {
       <form id="register-form" class="w-full flex flex-col gap-3">
         <input
           id="register-name"
-          class="border p-2 rounded"
+          class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] rounded-[8px] p-2"
           placeholder="${t(state.lang, "Register.NAME_PLACEHOLDER")}"
           required
         />
         <input
           id="register-email"
           type="email"
-          class="border p-2 rounded"
+          class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] rounded-[8px] p-2"
           placeholder="${t(state.lang, "Register.EMAIL_PLACEHOLDER")}"
           required
         />
         <input
           id="register-password"
           type="password"
-          class="border p-2 rounded"
+          class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] rounded-[8px] p-2"
           placeholder="${t(state.lang, "Register.PASSWORD_PLACEHOLDER")}"
           required
         />
-        <button class="btn w-full" type="submit">
+        <button class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] w-full transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000]" type="submit">
           ${t(state.lang, "Register.BUTTON_CREATE")}
         </button>
-        <p id="register-error" class="small text-red-600 text-center"></p>
+        <p id="register-error" class="text-sm text-red-600 text-center"></p>
       </form>
 
-      <button id="btn-back-login" class="btn small w-full">
+      <button id="btn-back-login" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] w-full transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000']">
         ${t(state.lang, "Register.BUTTON_BACK_LOGIN")}
       </button>
     </section>

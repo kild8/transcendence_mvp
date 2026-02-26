@@ -11,7 +11,7 @@ function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): 
     app.innerHTML = '';
     const canvasHtml = `
       <div>
-        <div class="mb-2 text-center small">Match : <strong>${p1}</strong> vs <strong>${p2}</strong></div>
+        <div class="mb-2 text-center text-sm text-[#9ca3af]">Match : <strong>${p1}</strong> vs <strong>${p2}</strong></div>
         <canvas id="pong-canvas" width="800" height="480" style="display:block;margin:0 auto;border:1px solid #111;"></canvas>
       </div>
     `;
@@ -58,9 +58,9 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
     // display round header & abort button
     app.innerHTML = '';
     const headerEl = elFromHTML(`
-      <div class="card flex items-center justify-between">
+      <div class="bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-5 w-full max-w-[900px] mx-auto text-center flex items-center justify-between">
         <h3 class="text-lg font-medium">${t(state.lang, "RenderTournament.ROUND_HEADER", { round, players: roundPlayers.length })}</h3>
-        <button id="abort-tournament" class="btn small">${t(state.lang, "RenderTournament.BACK")}</button>
+        <button id="abort-tournament" class="py-[0.25rem] px-[0.5rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "RenderTournament.BACK")}</button>
       </div>
     `);
     app.appendChild(headerEl);
@@ -90,20 +90,20 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
       if (!p2) {
         // odd player -> passe directement
         nextRound.push(p1);
-        const info = elFromHTML(`<div class="card small mt-2">${t(state.lang, "RenderTournament.ODD_PLAYER_ADVANCE", { player: p1 })}</div>`);
+  const info = elFromHTML(`<div class="bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-3 w-full text-sm text-[#9ca3af] mt-2">${t(state.lang, "RenderTournament.ODD_PLAYER_ADVANCE", { player: p1 })}</div>`);
         app.appendChild(info);
         await new Promise((r) => setTimeout(r, 500));
         continue;
       }
       app.innerHTML = '';
       const preMatch = elFromHTML(`
-        <div class="card text-center py-10">
+        <div class="bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-10 text-center">
           <h2 class="text-2xl font-semibold mb-3">${t(state.lang, "RenderTournament.NEXT_MATCH")}</h2>
           <p class="text-lg mb-6"><strong>${p1}</strong> VS <strong>${p2}</strong></p>
-          <button id="start-next" class="btn">
+          <button id="start-next" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">
             ${t(state.lang, "RenderTournament.START_MATCH")}
           </button>
-          <button id="abort-prematch" class="btn small">${t(state.lang, "RenderTournament.BACK_PREMATCH")}</button>
+          <button id="abort-prematch" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "RenderTournament.BACK_PREMATCH")}</button>
         </div>
       `);
       app.appendChild(preMatch);
@@ -130,10 +130,10 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
 
       app.innerHTML = '';
       const victoryScreen = elFromHTML(`
-        <div class="card text-center py-10">
+        <div class="bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-10 text-center">
           <h2 class="text-2xl font-semibold mb-3">${t(state.lang, "RenderTournament.VICTORY")}<strong>${winner}</strong> !</h2>
           <p class="text-lg mb-6">(${p1} vs ${p2})</p>
-          <button id="next-match" class="btn">
+          <button id="next-match" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">
             ${t(state.lang, "RenderTournament.NEXT_MATCH_BTN")};
           </button>
         </div>
@@ -164,11 +164,11 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
   // show champion screen
   app.innerHTML = '';
   const champHtml = `
-    <div class="card text-center">
+    <div class="bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-5 w-full text-center">
       <h2 class="text-2xl font-semibold mb-4">${t(state.lang, "RenderTournament.CHAMPION_TITLE")}</h2>
       <p class="text-lg mb-4"><strong>${champion}</strong> ${t(state.lang, "RenderTournament.CHAMPION_MSG")}</p>
       <div class="flex justify-center gap-4 mt-4">
-        <button id="to-home" class="btn">${t(state.lang, "RenderTournament.TO_HOME")}</button>
+        <button id="to-home" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "RenderTournament.TO_HOME")}</button>
       </div>
     </div>
   `;

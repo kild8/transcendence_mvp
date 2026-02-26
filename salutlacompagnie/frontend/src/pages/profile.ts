@@ -16,47 +16,47 @@ export function profileContent(): HTMLElement {
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center">
       <div id="profile-view" class="mt-6 text-center">
-        <img id="profile-avatar" class="w-24 h-24 rounded-full border mx-auto mb-4" src="/default-avatar.png" />
+        <img id="profile-avatar" class="w-24 h-24 rounded-full border border-[#333333] mx-auto mb-4" src="/default-avatar.png" />
         <div class="flex gap-2 justify-center mb-2">
           <form id="avatar-form" class="flex items-center gap-2" enctype="multipart/form-data">
-            <input type="file" id="avatar-input" accept="image/*" class="small" />
-            <button type="submit" id="avatar-submit" class="btn small">${t(state.lang, "Profile.CHANGE_AVATAR")}</button>
+            <input type="file" id="avatar-input" accept="image/*" class="text-sm text-[#9ca3af]" />
+            <button type="submit" id="avatar-submit" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.CHANGE_AVATAR")}</button>
           </form>
         </div>
 
         <div class="mb-2">
           <strong id="profile-name" class="text-lg"></strong>
-          <button id="edit-name" class="btn small ml-2">${t(state.lang, "Profile.EDIT")}</button>
+          <button id="edit-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2">${t(state.lang, "Profile.EDIT")}</button>
         </div>
 
         <div class="mb-2">
-          <label for="profile-language" class="small mr-2">${t(state.lang, "Profile.LANGUAGE")}</label>
+          <label for="profile-language" class="text-sm text-[#9ca3af] mr-2">${t(state.lang, "Profile.LANGUAGE")}</label>
           <select id="hdr-lang"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
             <option value="en" style="background-color: dark-gray;">EN</option>
             <option value="fr" style="background-color: dark-gray;">FR</option>
             <option value="de" style="background-color: dark-gray;">DE</option>
           </select>
-          <button id="save-language" class="btn small ml-2">${t(state.lang, "Profile.SAVE")}</button>
-          <div id="lang-msg" class="small text-red-600 mt-1"></div>
+          <button id="save-language" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2">${t(state.lang, "Profile.SAVE")}</button>
+          <div id="lang-msg" class="text-sm text-red-600 mt-1"></div>
         </div>
 
         <div id="edit-name-form" class="hidden mb-2">
-          <input id="new-name" class="border p-2 rounded mr-2" placeholder="Nouveau pseudo" />
-          <button id="save-name" class="btn small">${t(state.lang, "Profile.SAVE")}</button>
-          <button id="cancel-name" class="btn small">${t(state.lang, "Profile.CANCEL")}</button>
-          <div id="name-msg" class="small text-red-600 mt-1"></div>
+          <input id="new-name" class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] p-2 rounded mr-2" placeholder="Nouveau pseudo" />
+          <button id="save-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.SAVE")}</button>
+          <button id="cancel-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.CANCEL")}</button>
+          <div id="name-msg" class="text-sm text-red-600 mt-1"></div>
         </div>
 
-        <p id="profile-email" class="small"></p>
-        <p id="profile-date" class="small text-gray-600"></p>
+        <p id="profile-email" class="text-sm text-[#9ca3af]"></p>
+        <p id="profile-date" class="text-sm text-gray-600"></p>
 
-        <div class="mt-4 small">
+        <div class="mt-4 text-sm">
           <span id="wins-losses">0 win | 0 lose</span>
         </div>
 
         <div class="mt-4 flex gap-2 justify-center">
-          <button id="btn-history" class="btn small">${t(state.lang, "Profile.SHOW_HISTORY")}</button>
-          <button id="btn-back" class="btn small">${t(state.lang, "Profile.BACK")}</button>
+          <button id="btn-history" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.SHOW_HISTORY")}</button>
+          <button id="btn-back" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.BACK")}</button>
         </div>
 
         <!-- FRIENDS SECTION -->
@@ -64,9 +64,9 @@ export function profileContent(): HTMLElement {
           <h3 class="text-lg font-medium mb-2">${t(state.lang, "Profile.FRIENDS")}</h3>
 
           <div class="flex gap-2 items-center mb-3">
-            <input id="friend-search" class="border p-2 rounded flex-1" placeholder="${t(state.lang, "Profile.SEARCH_USER_PLACEHOLDER")}" />
-            <button id="friend-search-btn" class="btn small">${t(state.lang, "Profile.SEARCH")}</button>
-            <button id="friend-requests-btn" class="btn small">${t(state.lang, "Profile.REQUESTS")}<span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
+            <input id="friend-search" class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] p-2 rounded flex-1" placeholder="${t(state.lang, "Profile.SEARCH_USER_PLACEHOLDER")}" />
+            <button id="friend-search-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.SEARCH")}</button>
+            <button id="friend-requests-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Profile.REQUESTS")}<span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
           </div>
 
           <div id="friend-search-result" class="mb-3"></div>
@@ -81,10 +81,10 @@ export function profileContent(): HTMLElement {
 
         <div id="history-area" class="mt-4 w-full max-w-2xl hidden">
           <h3 class="text-lg font-medium mb-2">${t(state.lang, "Profile.MATCH_HISTORY")}</h3>
-          <div id="history-list" class="flex flex-col gap-2 small"></div>
+          <div id="history-list" class="flex flex-col gap-2 text-sm"></div>
         </div>
 
-        <p id="profile-msg" class="small text-green-700 mt-3"></p>
+        <p id="profile-msg" class="text-sm text-green-700 mt-3"></p>
       </div>
     </section>
   `;

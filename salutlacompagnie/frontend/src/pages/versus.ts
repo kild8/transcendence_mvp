@@ -8,21 +8,21 @@ export function versusContent(): HTMLElement {
     <section>
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-medium">${t(state.lang, "Versus.TITLE")}</h2>
-        <button id="back" class="small">${t(state.lang, "Versus.BACK")}</button>
+        <button id="back" class="text-sm text-[#9ca3af]">${t(state.lang, "Versus.BACK")}</button>
       </div>
       <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label class="flex flex-col">
-          <span class="small">${t(state.lang, "Versus.PLAYER1")}</span>
-          <input id="p1" placeholder="${t(state.lang, "Versus.PLAYER1_PLACEHOLDER")}" class="mt-1 p-3 rounded-lg border" />
+          <span class="text-sm text-[#9ca3af]">${t(state.lang, "Versus.PLAYER1")}</span>
+          <input id="p1" placeholder="${t(state.lang, "Versus.PLAYER1_PLACEHOLDER")}" class="mt-1 p-3 rounded-lg bg-[#0a0a0a] text-[#ffffff] border border-[#333333]" />
         </label>
         <label class="flex flex-col">
-          <span class="small">${t(state.lang, "Versus.PLAYER2")}</span>
-          <input id="p2" placeholder="${t(state.lang, "Versus.PLAYER2_PLACEHOLDER")}" class="mt-1 p-3 rounded-lg border" />
+          <span class="text-sm text-[#9ca3af]">${t(state.lang, "Versus.PLAYER2")}</span>
+          <input id="p2" placeholder="${t(state.lang, "Versus.PLAYER2_PLACEHOLDER")}" class="mt-1 p-3 rounded-lg bg-[#0a0a0a] text-[#ffffff] border border-[#333333]" />
         </label>
       </div>
       <div class="mt-4 flex gap-3">
-        <button id="rand" class="btn">${t(state.lang, "Versus.BUTTON_RANDOM")}</button>
-        <button id="start" class="btn">${t(state.lang, "Versus.BUTTON_START")}</button>
+  <button id="rand" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Versus.BUTTON_RANDOM")}</button>
+  <button id="start" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Versus.BUTTON_START")}</button>
       </div>
     </section>
   `;
@@ -63,12 +63,12 @@ export function versusContent(): HTMLElement {
         <canvas id="pong-canvas" width="800" height="480" style="display:block;margin:0 auto;border:1px solid #111;"></canvas>
       </div>
     `;
-    const app = document.getElementById('app')!;
-    app.innerHTML = '';
-    const wrapper = document.createElement('div');
-    wrapper.className = 'card';
-    wrapper.innerHTML = canvasHtml;
-    app.appendChild(wrapper);
+  const app = document.getElementById('app')!;
+  app.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-5 w-full max-w-[900px] mx-auto text-center';
+  wrapper.innerHTML = canvasHtml;
+  app.appendChild(wrapper);
 
     const GameClass = (window as any).PongGame;
     if (!GameClass) { alert(t(state.lang, "Versus.NOT_LOADED")); return; }

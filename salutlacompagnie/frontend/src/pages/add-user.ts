@@ -6,11 +6,11 @@ import { state } from '../state.js';
 export function addUserContent(): HTMLElement {
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center">
-      <input id="input-name" placeholder=${t(state.lang, "ADD_USER.NAME_PLACEHOLDER")} class="border p-2 rounded" />
-      <input id="input-email" placeholder=${t(state.lang, "ADD_USER.EMAIL_PLACEHOLDER")} class="border p-2 rounded" />
-      <button id="btn-submit" class="btn">${t(state.lang, "ADD_USER.BUTTON_ADD")}</button>
-      <button id="btn-back" class="btn small">${t(state.lang, "ADD_USER.BUTTON_BACK")}</button>
-      <div id="msg" class="mt-2 small text-green-700"></div>
+      <input id="input-name" placeholder=${t(state.lang, "ADD_USER.NAME_PLACEHOLDER")} class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] p-2 rounded" />
+      <input id="input-email" placeholder=${t(state.lang, "ADD_USER.EMAIL_PLACEHOLDER")} class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] p-2 rounded" />
+      <button id="btn-submit" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "ADD_USER.BUTTON_ADD")}</button>
+      <button id="btn-back" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "ADD_USER.BUTTON_BACK")}</button>
+      <div id="msg" class="mt-2 text-sm text-green-700"></div>
     </section>
   `;
 

@@ -13,12 +13,12 @@ export function renderVictory(winner: string, loser: string, score: string, left
 
   app.innerHTML = '';
   const html = `
-    <div class="card text-center py-10">
+    <div class="bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-10 text-center">
       <h2 class="text-2xl font-semibold mb-4">${t(state.lang, "RenderVictory.TITLE")}</h2>
       <p class="text-lg mb-4"><strong>${winner}</strong> ${t(state.lang, "RenderVictory.WON_AGAINST")} <strong>${loser}</strong> ! </p>
       <div class="flex justify-center gap-4 mt-4">
-        <button id="replay" class="btn">${t(state.lang, "RenderVictory.REPLAY")}</button>
-        <button id="back" class="btn">${t(state.lang, "Versus.BACK_TO_MENU")}</button>
+        <button id="replay" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "RenderVictory.REPLAY")}</button>
+        <button id="back" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Versus.BACK_TO_MENU")}</button>
       </div>
     </div>
   `;

@@ -9,14 +9,14 @@ export function onlineContent(): HTMLElement {
   const html = `
     <section>
       <div class="flex justify-between items-center">
-      <button id="back" class="small">${t(state.lang, "Online.BACK")}</button>
+      <button id="back" class="text-sm text-[#9ca3af]">${t(state.lang, "Online.BACK")}</button>
       </div>
       
       <div id="online-lobby">
       <h2 class="text-xl font-medium">${t(state.lang, "Online.TITLE")}</h2>
         <div class="mt-4 flex gap-2">
-          <button id="create-1v1" class="btn">${t(state.lang, "Online.CREATE_1V1")}</button>
-          <button id="create-tournament" class="btn">${t(state.lang, "Online.CREATE_TOURNAMENT")}</button>
+          <button id="create-1v1" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Online.CREATE_1V1")}</button>
+          <button id="create-tournament" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Online.CREATE_TOURNAMENT")}</button>
         </div>
 
         <div class="mt-6">
@@ -82,16 +82,16 @@ export function onlineContent(): HTMLElement {
   const renderRooms = (rooms: any[]) => {
     list.innerHTML = "";
 
-    rooms.forEach((r: any) => {
+      rooms.forEach((r: any) => {
       const li = document.createElement("li");
-      li.className = "flex flex-col border p-2 rounded";
+      li.className = "flex flex-col border border-[#333333] p-2 rounded bg-[#0a0a0a] text-[#ffffff]";
 
       li.innerHTML = `
         <div class ="flex justify-between items-center">
         <span>${r.host ?? "Room"} ${r.type.toUpperCase()} (${r.players}/${r.maxPlayers})</span>
-        <button>${t(state.lang, "Online.JOIN")}</button>
+        <button class="py-[0.25rem] px-[0.5rem] rounded text-sm font-medium border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Online.JOIN")}</button>
         </div>
-        <div class="text-sm mt-1">${t(state.lang, "Online.PLAYERS_IN_ROOM", { players: r.participants.join(", ")})}</div>
+        <div class="text-sm mt-1 text-[#9ca3af]">${t(state.lang, "Online.PLAYERS_IN_ROOM", { players: r.participants.join(", ")})}</div>
         `;
 
       li.querySelector("button")!.onclick = () => joinRoom(r.id);

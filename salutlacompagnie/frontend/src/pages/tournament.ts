@@ -11,24 +11,24 @@ export function tournamentContent(): HTMLElement {
         <h2 class="text-xl font-medium">
           ${t(state.lang, "Tournament.TITLE", { maxPlayers: state.MAX_TOURNAMENT_PLAYERS })}
         </h2>
-        <button id="back" class="small">${t(state.lang, "Tournament.BACK")}</button>
+        <button id="back" class="text-sm text-[#9ca3af]">${t(state.lang, "Tournament.BACK")}</button>
       </div>
 
       <div id="slots" class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
 
       <div class="mt-4 flex gap-3">
-        <button id="fill" class="btn">${t(state.lang, "Tournament.BUTTON_FILL")}</button>
-        <button id="clear" class="btn">${t(state.lang, "Tournament.BUTTON_CLEAR")}</button>
+  <button id="fill" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Tournament.BUTTON_FILL")}</button>
+  <button id="clear" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Tournament.BUTTON_CLEAR")}</button>
 
         <div class="ml-auto flex items-center gap-3">
-          <div class="small">
+          <div class="text-sm text-[#9ca3af]">
             ${t(state.lang, "Tournament.READY_COUNT")}<strong id="count">0</strong>
           </div>
-          <button id="start" class="btn">${t(state.lang, "Tournament.BUTTON_START")}</button>
+          <button id="start" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Tournament.BUTTON_START")}</button>
         </div>
       </div>
 
-      <p class="small mt-3">
+      <p class="text-sm text-[#9ca3af] mt-3">
         ${t(state.lang, "Tournament.MIN_PLAYERS_ALERT")}
       </p>
     </section>
@@ -59,7 +59,7 @@ export function tournamentContent(): HTMLElement {
         <input
           id="player-${i}"
           placeholder="Pseudo #${i + 1}"
-          class="w-full mt-2 p-2 rounded-md border"
+          class="w-full mt-2 p-2 rounded-md border text-black"
         />
       </div>
     `);
