@@ -76,6 +76,9 @@ function initWebSocket(server) {
       if (data.type === "start-game") {
         handleStartGame(ws, data);
       }
+      if (data.type === "start-tournament-round") {
+        handleStartTournamentRound(ws, data);
+      }
       if (data.type === "input" || data.type === "input-up"){
         handlePlayerInput(ws, data);
       }
@@ -270,10 +273,21 @@ function handleStartTournament(ws, data) {
 
   room.tournament.started = true;
 
-  // Notifie tous les joueurs
+  // Notifie tous les joueurs with initial players list
   room.participants.forEach(p => {
     if (p.ws.readyState === WebSocket.OPEN) {
       p.ws.send(JSON.stringify({ type: "tournament-start", players: pseudos }));
+    }
+  });
+
+  // Prepare initial round and send the matches overview but DON'T start matches until host confirms
+  room.tournament.waitingForHost = true;
+  // send round overview
+  const matchesOverview = room.tournament.matches.map(m => ({ p1: m.p1, p2: m.p2 }));
+  const byes = room.tournament.nextRound && room.tournament.nextRound.length ? [...room.tournament.nextRound] : [];
+  room.participants.forEach(p => {
+    if (p.ws.readyState === WebSocket.OPEN) {
+      p.ws.send(JSON.stringify({ type: "tournament-round", round: room.tournament.round || 1, roundPlayers: room.tournament.players, matches: matchesOverview, byes }));
     }
   });
 
@@ -285,6 +299,22 @@ function handleStartTournament(ws, data) {
   if (!room.ball) room.ball = { position: { x: 400, y: 240 }, velocity: { x: 6, y: 4 }, size: 10 };
 
   // Lance le premier match
+  // startNextTournamentMatch will be triggered when host sends 'start-tournament-round'
+}
+
+function handleStartTournamentRound(ws, data) {
+  const room = getRoom(data.roomId);
+  if (!room || room.type !== "tournament") return;
+  const participant = room.participants.find(p => p.ws === ws);
+  if (!participant) return;
+  if (room.host !== participant.pseudo) {
+    ws.send(JSON.stringify({ type: "room-error", message: "WS.ONLY_HOST_CAN_START" }));
+    return;
+  }
+
+  if (!room.tournament) return;
+  // mark that tournament is no longer waiting and start the next match
+  room.tournament.waitingForHost = false;
   startNextTournamentMatch(room);
 }
 
@@ -383,6 +413,12 @@ function startNextTournamentMatch(room) {
   const tournament = room.tournament;
   if (!tournament) return;
 
+  // If we're waiting for the host to confirm the next round, do not start matches
+  if (tournament.waitingForHost) {
+    console.log("startNextTournamentMatch: waiting for host confirmation, aborting start");
+    return;
+  }
+
   console.log("START NEXT MATCH");
   console.log("Players:", tournament.players);
   console.log("Matches:", tournament.matches);
@@ -401,10 +437,20 @@ function startNextTournamentMatch(room) {
       tournament.inProgress = false;
       return;
     } else if (tournament.nextRound.length > 1) {
+      // prepare next round, but notify clients and wait for host confirmation
       tournament.players = [...tournament.nextRound];
       tournament.nextRound = [];
       generateMatches(tournament);
-      match = getNextMatch(tournament);
+      // send round overview to participants and set waiting flag
+      const matchesOverview = tournament.matches.map(m => ({ p1: m.p1, p2: m.p2 }));
+      const byes = tournament.nextRound && tournament.nextRound.length ? [...tournament.nextRound] : [];
+      room.participants.forEach(p => {
+        if (p.ws.readyState === WebSocket.OPEN) {
+          p.ws.send(JSON.stringify({ type: "tournament-round", round: tournament.round || 1, roundPlayers: tournament.players, matches: matchesOverview, byes }));
+        }
+      });
+      tournament.waitingForHost = true;
+      return; // wait for host to send start-tournament-round
     } else {
       tournament.inProgress = false;
       return;

@@ -5,6 +5,7 @@ function createTournament(host, players = []) {
     matches: [],               // tableau de matchs {p1, p2}
     nextRound: [],             // joueurs qualifiés pour le tour suivant
     currentMatchIndex: 0,
+    round: 1,
     started: false,
     inProgress: true
   };
@@ -33,15 +34,7 @@ function generateMatches(tournament) {
 // Renvoie le prochain match à jouer
 function getNextMatch(tournament) {
   if (!tournament.matches || tournament.currentMatchIndex >= tournament.matches.length) {
-    // S'il n'y a plus de matchs, prépare le tour suivant
-    if (tournament.nextRound.length > 0) {
-      tournament.players = [...tournament.nextRound];
-      tournament.nextRound = [];
-      generateMatches(tournament);
-      if (tournament.matches.length === 0) return null;
-    } else {
-      return null; // tournoi terminé
-    }
+    return null;
   }
   return tournament.matches[tournament.currentMatchIndex++];
 }

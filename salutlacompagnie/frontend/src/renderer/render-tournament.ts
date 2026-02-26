@@ -15,8 +15,8 @@ function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): 
         <canvas id="pong-canvas" width="800" height="480" class="block mx-auto border border-slate-900"></canvas>
       </div>
     `;
-    const wrap = document.createElement('div');
-    wrap.className = 'bg-white rounded-lg shadow p-4';
+      const wrap = document.createElement('div');
+      wrap.className = 'bg-white rounded-lg shadow p-4 text-slate-900';
     wrap.innerHTML = canvasHtml;
     app.appendChild(wrap);
 
@@ -59,7 +59,7 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
     // display round header & abort button
     app.innerHTML = '';
     const headerEl = elFromHTML(`
-      <div class="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+      <div class="bg-white rounded-lg shadow p-4 flex items-center justify-between text-slate-900">
         <h3 class="text-lg font-medium">${t(state.lang, "RenderTournament.ROUND_HEADER", { round, players: roundPlayers.length })}</h3>
         <button id="abort-tournament" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1 rounded text-sm">${t(state.lang, "RenderTournament.BACK")}</button>
       </div>
@@ -97,11 +97,11 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
 
     // render overview of upcoming matches and byes
     app.innerHTML = '';
-  const matchesHtml = matches.map(m => `<div class="py-1"><strong>${m.p1}</strong> - <strong>${m.p2}</strong></div>`).join('');
+      const matchesHtml = matches.map(m => `<div class="py-1 text-slate-900"><strong>${m.p1}</strong> - <strong>${m.p2}</strong></div>`).join('');
   const byesHtml = byes.length ? `<div class="mt-3 text-sm text-slate-500">${t(state.lang, "RenderTournament.ODD_PLAYERS", { players: byes.join(', ') })}</div>` : '';
 
     const overview = elFromHTML(`
-      <div class="bg-white rounded-lg shadow px-6 py-6 text-center">
+      <div class="bg-white rounded-lg shadow px-6 py-6 text-center text-slate-900">
         <h2 class="text-xl font-semibold mb-3">${t(state.lang, "RenderTournament.ROUND_OVERVIEW", { round, matches: matches.length })}</h2>
         <div class="mb-4">${matchesHtml || t(state.lang, "RenderTournament.NO_MATCHES")}</div>
         ${byesHtml}
@@ -144,8 +144,8 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
 
       // show victory and wait for next
       app.innerHTML = '';
-      const victoryScreen = elFromHTML(`
-        <div class="bg-white rounded-lg shadow px-6 py-10 text-center">
+        const victoryScreen = elFromHTML(`
+          <div class="bg-white rounded-lg shadow px-6 py-10 text-center text-slate-900">
           <h2 class="text-2xl font-semibold mb-3">${t(state.lang, "RenderTournament.VICTORY")}<strong>${winner}</strong> !</h2>
           <p class="text-lg mb-6">(${p1} vs ${p2})</p>
           <button id="next-match" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded">${t(state.lang, "RenderTournament.NEXT_MATCH_BTN")}</button>
@@ -176,8 +176,8 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
   const champion = roundPlayers[0];
   // show champion screen
   app.innerHTML = '';
-  const champHtml = `
-    <div class="bg-white rounded-lg shadow p-6 text-center">
+    const champHtml = `
+      <div class="bg-white rounded-lg shadow p-6 text-center text-slate-900">
       <h2 class="text-2xl font-semibold mb-4">${t(state.lang, "RenderTournament.CHAMPION_TITLE")}</h2>
       <p class="text-lg mb-4"><strong>${champion}</strong> ${t(state.lang, "RenderTournament.CHAMPION_MSG")}</p>
       <div class="flex justify-center gap-4 mt-4">

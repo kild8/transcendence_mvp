@@ -8,15 +8,15 @@ export function onlineContent(): HTMLElement {
 
   const html = `
     <section>
-      <div class="flex justify-between items-center">
-      <button id="back" class="text-sm text-[#9ca3af]">${t(state.lang, "Online.BACK")}</button>
+      <div class="flex justify-between items-center mb-4">
+        <button id="back" class="text-sm text-slate-400 hover:text-slate-200">${t(state.lang, "Online.BACK")}</button>
       </div>
-      
+
       <div id="online-lobby">
-      <h2 class="text-xl font-medium">${t(state.lang, "Online.TITLE")}</h2>
+        <h2 class="text-xl font-medium">${t(state.lang, "Online.TITLE")}</h2>
         <div class="mt-4 flex gap-2">
-          <button id="create-1v1" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Online.CREATE_1V1")}</button>
-          <button id="create-tournament" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Online.CREATE_TOURNAMENT")}</button>
+          <button id="create-1v1" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded font-bold">${t(state.lang, "Online.CREATE_1V1")}</button>
+          <button id="create-tournament" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded font-bold">${t(state.lang, "Online.CREATE_TOURNAMENT")}</button>
         </div>
 
         <div class="mt-6">
@@ -83,20 +83,20 @@ export function onlineContent(): HTMLElement {
     list.innerHTML = "";
 
       rooms.forEach((r: any) => {
-      const li = document.createElement("li");
-      li.className = "flex flex-col border border-[#333333] p-2 rounded bg-[#0a0a0a] text-[#ffffff]";
+        const li = document.createElement("li");
+        li.className = "flex flex-col border border-slate-700 p-3 rounded bg-slate-900 text-white";
 
-      li.innerHTML = `
-        <div class ="flex justify-between items-center">
-        <span>${r.host ?? "Room"} ${r.type.toUpperCase()} (${r.players}/${r.maxPlayers})</span>
-        <button class="py-[0.25rem] px-[0.5rem] rounded text-sm font-medium border border-[#333333] bg-[#000000] text-[#ffffff]">${t(state.lang, "Online.JOIN")}</button>
-        </div>
-        <div class="text-sm mt-1 text-[#9ca3af]">${t(state.lang, "Online.PLAYERS_IN_ROOM", { players: r.participants.join(", ")})}</div>
-        `;
+        li.innerHTML = `
+          <div class ="flex justify-between items-center">
+            <span class="font-medium">${r.host ?? "Room"} ${r.type.toUpperCase()} (${r.players}/${r.maxPlayers})</span>
+            <button class="join-room-btn bg-slate-800 hover:bg-slate-700 text-white py-1 px-3 rounded text-sm font-medium">${t(state.lang, "Online.JOIN")}</button>
+          </div>
+          <div class="text-sm mt-1 text-slate-400">${t(state.lang, "Online.PLAYERS_IN_ROOM", { players: r.participants.join(", ")})}</div>
+          `;
 
-      li.querySelector("button")!.onclick = () => joinRoom(r.id);
-      list.appendChild(li);
-    });
+    (li.querySelector(".join-room-btn") as HTMLButtonElement)!.onclick = () => joinRoom(r.id);
+        list.appendChild(li);
+      });
   };
 
 
@@ -151,7 +151,7 @@ export function onlineContent(): HTMLElement {
 
     const startBtn = document.createElement("button");
     startBtn.textContent = t(state.lang, "RenderTournament.START_MATCH");
-    startBtn.className = "btn mt-2";
+  startBtn.className = "mt-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded";
     startBtn.style.display = "none";
     gameContainer.appendChild(startBtn);
   let startTimeout: number | null = null;
@@ -197,6 +197,8 @@ export function onlineContent(): HTMLElement {
   switch (data.type) {
 
     case "start-game":
+      // clear and hide any round overview/log so it doesn't stay above the canvas
+      try { tournamentLog.innerHTML = ""; tournamentLog.style.display = 'none'; } catch (e) {}
       currentGame?.onGameOver?.();
       currentGame = new PongGameLan("pong-canvas", data.role, ws, data.player1, data.player2);
       showGame();
@@ -238,6 +240,34 @@ export function onlineContent(): HTMLElement {
       tournamentLog.innerHTML += `<p style="font-size: 1.5em;">${t(state.lang, "Online.NEXT_MATCH", { p1: data.p1, p2: data.p2 })}</p>`;
       break;
 
+    case "tournament-round":
+      // data: { roundPlayers, matches: [{p1,p2}, ...], byes: [] }
+      // Render a round overview similar to local tournament
+      tournamentLog.innerHTML = "";
+      const matchesListHtml = (data.matches || []).map((m: any) => `<div class=\"py-1 text-slate-900\"><strong>${m.p1}</strong> - <strong>${m.p2}</strong></div>`).join('');
+      const byesListHtml = (data.byes && data.byes.length) ? `<div class=\"mt-3 text-sm text-slate-500\">${t(state.lang, "RenderTournament.ODD_PLAYERS", { players: data.byes.join(', ') })}</div>` : '';
+      const roundOverviewHtml = `
+        <div class=\"bg-white rounded-lg shadow px-6 py-6 text-center text-slate-900\">\n
+          <h2 class=\"text-xl font-semibold mb-3\">${t(state.lang, "RenderTournament.ROUND_OVERVIEW", { round: 1, matches: (data.matches || []).length })}</h2>\n
+          <div class=\"mb-4\">${matchesListHtml || t(state.lang, "RenderTournament.NO_MATCHES")}</div>\n
+          ${byesListHtml}\n
+          <div class=\"flex justify-center gap-4 mt-4\">\n
+            <button id=\"confirm-start-round\" class=\"bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded\">${t(state.lang, "RenderTournament.START_ROUND")}</button>\n
+          </div>\n
+        </div>`;
+
+  tournamentLog.innerHTML = roundOverviewHtml;
+  tournamentLog.style.display = 'block';
+
+      const confirmBtn = document.getElementById('confirm-start-round') as HTMLButtonElement | null;
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+          // send message to server to actually start the round
+          try { ws.send(JSON.stringify({ type: 'start-tournament-round', roomId })); } catch (e) { console.warn(e); }
+        });
+      }
+      break;
+
     case "tournament-end":
       showVictoryScreen(data.winner);
       break;
@@ -276,27 +306,11 @@ export function onlineContent(): HTMLElement {
 
 function showMatchEndScreen(winner: string, loser: string) {
   const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.backgroundColor = "rgba(0,0,0,0.8)";
-  overlay.style.display = "flex";
-  overlay.style.flexDirection = "column";
-  overlay.style.justifyContent = "center";
-  overlay.style.alignItems = "center";
-  overlay.style.zIndex = "9999";
-  overlay.style.color = "white";
-  overlay.style.fontSize = "2rem";
-  overlay.style.textAlign = "center";
-  overlay.style.animation = "fadeIn 0.3s ease-out";
-
+  overlay.className = "fixed inset-0 bg-black/80 flex flex-col justify-center items-center z-50 text-white text-2xl text-center animate-fadeIn";
   overlay.innerHTML = `
-    <div>${t(state.lang, "Online.MATCH_OVER")}</div>
-    <div style="margin-top:1rem;">${t(state.lang, "Game.WIN_ALERT", {winner, loser, score: ''})}</div>
+    <div class="text-2xl font-medium">${t(state.lang, "Online.MATCH_OVER")}</div>
+    <div class="mt-4 text-lg">${t(state.lang, "Game.WIN_ALERT", {winner, loser, score: ''})}</div>
   `;
-
   document.body.appendChild(overlay);
 
   setTimeout(() => {
@@ -306,36 +320,19 @@ function showMatchEndScreen(winner: string, loser: string) {
 
 export function showVictoryScreen(winner: string) {
   const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.backgroundColor = "rgba(0,0,0,0.85)";
-  overlay.style.display = "flex";
-  overlay.style.flexDirection = "column";
-  overlay.style.justifyContent = "center";
-  overlay.style.alignItems = "center";
-  overlay.style.zIndex = "9999";
-  overlay.style.color = "white";
-  overlay.style.fontSize = "2rem";
-  overlay.style.textAlign = "center";
-  overlay.style.animation = "fadeIn 0.5s ease-out";
-
+  overlay.className = "fixed inset-0 bg-black/85 flex flex-col justify-center items-center z-50 text-white text-center animate-fadeIn";
   overlay.innerHTML = `
-  <div>${t(state.lang, "Online.VICTORY")}</div>
-  <div style ="font-size:3rem; margin-top:1rem;">${winner}</div>
+    <div class="text-2xl">${t(state.lang, "Online.VICTORY")}</div>
+    <div class="text-6xl font-bold mt-4">${winner}</div>
   `;
 
-  for (let i = 0; i < 50; i++) {
+  // simple confetti pieces (positions rely on inline styles)
+  for (let i = 0; i < 30; i++) {
     const piece = document.createElement("div");
-    piece.style.position = "absolute";
-    piece.style.width = "10px";
-    piece.style.height = "10px";
+    piece.className = "w-2 h-2 rounded-full absolute";
     piece.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
     piece.style.left = `${Math.random() * 100}%`;
     piece.style.top = `${Math.random() * 100}%`;
-    piece.style.animation = `confetti 2s linear infinite`;
     overlay.appendChild(piece);
   }
 
