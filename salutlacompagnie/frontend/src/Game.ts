@@ -55,14 +55,11 @@ class Ball {
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
 
-       	if (this.position.y <= 0) {
-			this.position.y = 0;
-			this.velocity.y = Math.abs(this.velocity.y) + (Math.random() - 0.5) * 0.5;
-		}
-
-		if (this.position.y >= canvasHeight - this.size) {
-			this.position.y = canvasHeight - this.size;
-			this.velocity.y = -Math.abs(this.velocity.y) + (Math.random() - 0.5) * 0.5;
+		if (this.position.y <= 0 || this.position.y >= canvasHeight - this.size) {
+			this.velocity.y = -this.velocity.y;
+			if (Math.abs(this.velocity.y) < 1)
+				this.velocity.y = Math.sign(this.velocity.y || 1) * 1.5;
+			this.velocity.y += (Math.random() - 0.5) * 0.5;
 		}
 
         if (this.position.x <= left.position.x + left.width &&
