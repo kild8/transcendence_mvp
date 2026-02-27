@@ -13,7 +13,6 @@ include:
   - path: './src/vault-agent-grafana/docker-compose.yml'
   - path: './src/vault-agent-vault-server/docker-compose.yml'
   - path: './src/vault-agent-alertmanager/docker-compose.yml'
-  - path: './src/cloudflared/docker-compose.yml'
 
 # Shared volumes by some containers definition
 volumes:

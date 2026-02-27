@@ -8,7 +8,7 @@ const {
 } = require("./tournament.js");
 const fetch = require("node-fetch");
 
-const {  totalEndedGames, gamesInProgress, exitedGamesCounter, gamesDuration} = require("./metrics.js");
+const { roomIDTimestampsArray, totalEndedGames, gamesInProgress, playersConnected, exitedGamesCounter, gamesDuration} = require("./metrics.js");
 
 const WINNING_SCORE = 2;
 const TICK_RATE = 60;
@@ -51,6 +51,7 @@ function initWebSocket(server) {
         // increment presence count
         const prev = presenceCounts.get(userId) || 0;
         presenceCounts.set(userId, prev + 1);
+        playersConnected.inc();
         // broadcast presence to all clients
         const pmsg = JSON.stringify({ type: 'presence', userId, online: true });
         if (wss && wss.clients) {
@@ -92,6 +93,7 @@ function initWebSocket(server) {
         const userId = ws._userId;
         if (userId) {
           const prev = presenceCounts.get(userId) || 0;
+          playersConnected.dec();
           if (prev <= 1) {
             presenceCounts.delete(userId);
             const pmsg = JSON.stringify({ type: 'presence', userId, online: false });
@@ -200,6 +202,9 @@ function handleJoinRoom(ws, data) {
 function handleStartGame(ws, data) {
   const room = getRoom(data.roomId);
   if (!room) return;
+
+  roomIDTimestampsArray.push({roomId: room.id, timestamp: Date.now()});
+  gamesInProgress.inc();
 
   const participant = room.participants.find(p => p.ws === ws);
   if (!participant) return;
@@ -316,6 +321,8 @@ function handleStartTournament(ws, data) {
 function handleStartTournamentRound(ws, data) {
   const room = getRoom(data.roomId);
   if (!room || room.type !== "tournament") return;
+  roomIDTimestampsArray.push({roomId: room.id, timestamp: Date.now()});
+  gamesInProgress.inc();
   const participant = room.participants.find(p => p.ws === ws);
   if (!participant) return;
   if (room.host !== participant.pseudo) {
@@ -522,11 +529,10 @@ async function setGameOver(room, winnerRole) {
   room.state = ROOM_STATE.GAME_OVER;
 
   gamesInProgress.dec();
-  room.timestamps.end = Date.now();
-  gamesDuration.observe((room.timestamps.end - room.timestamps.start) / 1000);
-  room.timestamps.start = null;
-  room.timestamps.end = null;
   totalEndedGames.inc();
+  const roomTimeObject = roomIDTimestampsArray.find(r => r.roomId === room.id);
+  gamesDuration.observe((Date.now() - roomTimeObject.timestamp) / 1000);
+  roomIDTimestampsArray.splice(roomIDTimestampsArray.findIndex(r => r.roomId === roomTimeObject.roomId), 1);
 
   const loserRole = winnerRole === "player1" ? "player2" : "player1";
   const winner =
@@ -617,8 +623,6 @@ async function setGameOver(room, winnerRole) {
 // --------- GAME LOOP ---------
 function startGameLoop(room) {
   if (room.tickId) return;
-  room.timestamps.start = Date.now();
-  gamesInProgress.inc();
   room.tickId = setInterval(() => {
 
     // --- Si jeu en pause ou terminé ---

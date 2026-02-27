@@ -2,7 +2,7 @@ const promClient = require('prom-client');
 
 promClient.collectDefaultMetrics(); // CPU, mémoire, event loop, GC…
 
-const connectedPlayersArray = [];
+const roomIDTimestampsArray = [];
 
 const httpRequestTotal = new promClient.Counter({
   name: 'http_requests_total',
@@ -106,6 +106,6 @@ module.exports = {
   loginCounter,
   logoutCounter,
   gamesDuration,
-  connectedPlayersArray,
+  roomIDTimestampsArray,
   setupMetricsHooks
 };

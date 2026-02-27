@@ -29,7 +29,7 @@ const pump = promisify(pipeline);
 const {setupMetricsHooks} = require("./metrics.js");
 const {setupShutdown} = require("./shutdown.js");
 
-const { connectedPlayersArray, playersConnected, loginCounter, logoutCounter } = require("./metrics.js");
+const { loginCounter, logoutCounter } = require("./metrics.js");
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -312,10 +312,6 @@ fastify.get('/api/auth/google/callback', async (req, reply) => {
 fastify.get('/api/me', async (req, reply) => {
   const user = await getUserFromReq(req);
   if (!user) return { ok: false };
-  if (!connectedPlayersArray.includes(user.id)) {
-    connectedPlayersArray.push(user.id);
-    playersConnected.inc();
-  }
   return { ok: true, user };
 });
 
@@ -323,7 +319,6 @@ fastify.get('/api/me', async (req, reply) => {
 // for logout
 fastify.post('/api/auth/logout', async (req, reply) => {
   reply.header('Set-Cookie', `token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
-  playersConnected.dec();
   logoutCounter.inc();
   return { ok: true };
 });

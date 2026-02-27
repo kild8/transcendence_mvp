@@ -65,7 +65,6 @@ function createRoom({ type, host}) {
         tickId : null,
         lastInputs: { player1: null, player2: null },
         lastInputTimes: { player1: 0, player2: 0 },
-		timestamps: {start: null, end: null}
     };
 
     rooms[roomId] = room;

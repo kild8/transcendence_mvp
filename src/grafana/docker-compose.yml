@@ -14,8 +14,6 @@ services:
     depends_on:
       vault-agent-grafana:
         condition: service_healthy
-      cloudflared:
-        condition: service_healthy
 
 volumes:
   grafana-data:

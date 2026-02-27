@@ -22,7 +22,7 @@ services:
     healthcheck:
       test: test -f /vault/secrets/discord_webhook_url
       interval: 3s
-      retries: 12
+      retries: 30
 #port 8200
 
 volumes:

@@ -10,6 +10,12 @@ DOCKER_COMPOSE_COMMAND	:=	SECRETS_DIR_PATH=$(SECRETS_DIR_PATH) \
 
 RESTART_TARGET			?=	none
 
+cloud-up:
+	TUNNEL_URL_DIR_PATH=$(TUNNEL_URL_DIR_PATH) docker compose -f $(CURDIR)/cloudflared/docker-compose.yml -p $(PROJECT_NAME) up -d
+
+cloud-down:
+	TUNNEL_URL_DIR_PATH=$(TUNNEL_URL_DIR_PATH) docker compose -f $(CURDIR)/cloudflared/docker-compose.yml -p $(PROJECT_NAME) down
+
 up:
 	@mkdir -p $(SECRETS_DIR_PATH) && chmod 777 $(SECRETS_DIR_PATH)
 	@mkdir  -p $(VAULT_ACCESS_DIR_PATH) && chmod 777 $(VAULT_ACCESS_DIR_PATH)
@@ -53,4 +59,4 @@ dev-cl: dev-kill clear-volumes
 
 dev-rb: dev-kill clear-volumes up
 
-.PHONY: up down clear-volumes peek dev-rs dev-kill dev-cl dev-rs
+.PHONY: up down clear-volumes peek dev-rs dev-kill dev-cl dev-rs cloudflared

@@ -22,7 +22,7 @@ services:
     healthcheck:
       test: test -f /vault/secrets/nginx-frontend.crt -a -f /vault/secrets/nginx-frontend.key
       interval: 3s
-      retries: 12
+      retries: 30
 #port 8200
 
 volumes:

@@ -28,7 +28,7 @@ services:
           test -f /vault/secrets/ws_secret && \
           test -f /vault/secrets/jwt_secret
       interval: 3s
-      retries: 12
+      retries: 30
 #port 8200
 
 volumes:

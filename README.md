@@ -9,33 +9,94 @@ The application is exposed publicly through a **Cloudflare Tunnel**, which autom
 
 ## 🚀 Getting Started
 
-The project is fully containerized using **Docker**. Everything is launched with a single command line to ensure an autonomous and reproducible environment.
+The project is fully containerized using **Docker**. Everything is launched with command lines to ensure an autonomous and reproducible environment.
 
 ---
 
-### 1. Prerequisites: Secrets & API Keys
+## ⚠️ IMPORTANT — Cloudflare Tunnel & Google OAuth Setup (FIRST STEP)
 
-To enable authentication and alerting, you must set up your credentials in the `secrets` folder at the root of the repository:
+Before launching the full project, you MUST first generate the public HTTPS URL via Cloudflare.
 
-1. Create a folder named `secrets`.
-2. Add the following files:
-   - `secrets/google_auth_client_id.txt` (containing your Google Client ID)
-   - `secrets/google_auth_secret_id.txt` (containing your Google Client Secret)
-   - `secrets/discord_webhook_url.txt` (containing your Discord Webhook URL for Prometheus alerts)
+### 1️⃣ Start Cloudflare Tunnel Only
+
+```bash
+make cloud-up
+```
+
+This will start the `cloudflared` container and generate a public HTTPS URL.
+
+The generated URL is automatically written to:
+
+```
+tunnel_url.txt
+```
+
+Example:
+
+```
+https://random-generated-name.trycloudflare.com
+```
 
 ---
 
-### 2. Deployment Commands
+### 2️⃣ Create the Google OAuth Credentials
 
-* **Start the project:**
-  ```bash
-  make up
-  ```
+Once you have the generated URL, you must configure your Google OAuth application using this exact URL.
 
-* **Stop the project:**
-  ```bash
-  make down
-  ```
+Go to the Google Cloud Console and create OAuth 2.0 credentials.
+
+Configure:
+
+#### ✅ Authorized JavaScript origins
+```
+https://your-generated-url.trycloudflare.com
+```
+
+#### ✅ Authorized redirect URI
+```
+https://your-generated-url.trycloudflare.com/api/auth/google/callback
+```
+
+⚠️ Replace `your-generated-url.trycloudflare.com` with the exact value found in `tunnel_url.txt`.
+
+---
+
+### 3️⃣ Create the `secrets` Folder
+
+At the root of the repository:
+
+```bash
+mkdir secrets
+```
+
+Add the following files:
+
+- `secrets/google_auth_client_id.txt`  
+  → containing your Google Client ID
+
+- `secrets/google_auth_secret_id.txt`  
+  → containing your Google Client Secret
+
+- `secrets/discord_webhook_url.txt`  
+  → containing your Discord Webhook URL (for Prometheus alerts)
+
+---
+
+## 🚀 Full Deployment
+
+Once everything above is configured:
+
+### Start the project
+
+```bash
+make up
+```
+
+### Stop the project
+
+```bash
+make down
+```
 
 ---
 
@@ -49,21 +110,7 @@ Cloudflare generates a **public HTTPS URL dynamically**.
 The generated URL is automatically written to:
 
 ```
-tunnel_url
-```
-
-### 🔎 How to access the project
-
-After running:
-
-```bash
-make up
-```
-
-Open the file:
-
-```
-tunnel_url.txt
+/tunnel_url/tunnel_url.txt
 ```
 
 Example:
@@ -86,7 +133,7 @@ All services are accessible via the **generated Cloudflare URL**:
 | **Grafana** | `https://<generated-url>/grafana` | Real-time system monitoring dashboard. |
 | **Vault** | `https://<generated-url>/vault` | Secure secret management and OIDC authority. |
 
-> ⚠️ Replace `<generated-url>` with the value found inside the `tunnel_url` file.
+> ⚠️ Replace `<generated-url>` with the value found inside the `tunnel_url.txt` file.
 
 ---
 
@@ -94,9 +141,9 @@ All services are accessible via the **generated Cloudflare URL**:
 
 On the first launch, **HashiCorp Vault** automatically generates:
 
-- Root Token
-- Unseal Keys
-- Monitoring admin credentials
+- Root Token  
+- Unseal Keys  
+- Monitoring admin credentials  
 
 These credentials are stored in:
 
@@ -135,20 +182,19 @@ Backend / Grafana / Vault
 
 This project adheres to the specific technical constraints defined in the subject:
 
-* **Frontend:** Built as a **Single-Page Application (SPA)** using **TypeScript** and **Tailwind CSS**.
-* **Backend:** Developed with the **Fastify (Node.js)** framework.
-* **Database:** Data persistence managed via **SQLite**.
-* **DevOps & Monitoring:**
-    * System health and metrics monitoring with **Prometheus and Grafana**.
-* **Security:**
-    * Secrets (API keys, credentials, env variables) managed by **HashiCorp Vault**.
-    * All connections secured via HTTPS via Cloudflare.
+- **Frontend:** Single-Page Application (SPA) using **TypeScript** and **Tailwind CSS**  
+- **Backend:** **Fastify (Node.js)**  
+- **Database:** **SQLite**  
+- **DevOps & Monitoring:** **Prometheus + Grafana**  
+- **Security:**  
+  - Secrets managed by **HashiCorp Vault**  
+  - HTTPS secured via **Cloudflare Tunnel**
 
 ---
 
 ## 🎮 Core Features
 
-* **Local Pong Game:** Play live Pong games against another player on the same keyboard.
-* **Tournament System:** Organize contests where multiple players register their aliases and compete in a structured matchmaking system.
-* **User Profiles:** Track stats such as wins, losses, and match history.
-* **Responsive Design:** Fully compatible with the latest version of Mozilla Firefox.
+- **Local Pong Game:** Play live Pong games against another player on the same keyboard.  
+- **Tournament System:** Structured matchmaking system with player aliases.  
+- **User Profiles:** Track wins, losses, and match history.  
+- **Responsive Design:** Fully compatible with the latest version of Mozilla Firefox.

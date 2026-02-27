@@ -30,13 +30,10 @@ services:
       - google_auth_client_id
       - google_auth_secret_id
       - discord_webhook_url
-    depends_on:
-      cloudflared:
-        condition: service_healthy
     healthcheck:
       test: test -f /vault/file/.vault_certs_initialized
       interval: 3s
-      retries: 12
+      retries: 30
 
 secrets:
   google_auth_client_id:
