@@ -4,7 +4,7 @@ mkdir -p /home/textfile_collector
 
 OUTPUT_FILE="/home/textfile_collector/expected_containers.prom"
 
-CONTAINERS="alertmanager cadvisor grafana \
+CONTAINERS="alertmanager cadvisor grafana cloudflared \
 nginx-frontend node-exporter nodejs-backend prometheus \
 vault-agent-alertmanager vault-agent-grafana vault-agent-nginx-frontend \
 vault-agent-nodejs-backend vault-agent-vault-server vault-server"
