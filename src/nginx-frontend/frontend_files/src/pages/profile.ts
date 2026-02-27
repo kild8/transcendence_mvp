@@ -1,65 +1,79 @@
 import { elFromHTML } from '../utils.js';
+import { getHashPage } from '../router.js';
 import { navigateTo } from '../router.js';
 import { state } from '../state.js'; // si ton projet exporte state (optionnel mais pratique)
+import { t } from "../lang/langIndex.js";
 
 /**
  * Profile page — affiche le profil de l'utilisateur connecté,
  * permet de changer le pseudo, uploader un avatar et voir l'historique.
  */
 export function profileContent(): HTMLElement {
-  let currentUser: { id: number, name: string, email: string, avatar?: string, created_at?: string } | null = null;
+  let currentUser: { id: number, name: string, email: string, avatar?: string, created_at?: string, language?: string } | null = null;
   // initialize as empty array to avoid "possibly null" errors
-  let matchesCache: any[] = [];
+  interface MatchSummary { player1_name: string; player2_name: string; winner_name: string; score_player1?: number; score_player2?: number; created_at?: string }
+  let matchesCache: MatchSummary[] = [];
 
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center">
       <div id="profile-view" class="mt-6 text-center">
-        <img id="profile-avatar" class="w-24 h-24 rounded-full border mx-auto mb-4" src="/default-avatar.png" />
+        <img id="profile-avatar" class="w-24 h-24 rounded-full border border-[#333333] mx-auto mb-4" src="/default-avatar.png" />
         <div class="flex gap-2 justify-center mb-2">
           <form id="avatar-form" class="flex items-center gap-2" enctype="multipart/form-data">
-            <input type="file" id="avatar-input" accept="image/*" class="small" />
-            <button type="submit" id="avatar-submit" class="btn small">Changer l’avatar</button>
+            <input type="file" id="avatar-input" accept="image/*" class="text-sm text-[#9ca3af]" />
+            <button type="submit" id="avatar-submit" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.CHANGE_AVATAR")}</button>
           </form>
         </div>
 
         <div class="mb-2">
           <strong id="profile-name" class="text-lg"></strong>
-          <button id="edit-name" class="btn small ml-2">Modifier</button>
+          <button id="edit-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.EDIT")}</button>
+        </div>
+
+        <div class="mb-2">
+          <label for="profile-language" class="text-sm text-[#9ca3af] mr-2">${t(state.lang, "Profile.LANGUAGE")}</label>
+          <select id="profile-language"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
+            <option value="en" style="background-color: dark-gray;">EN</option>
+            <option value="fr" style="background-color: dark-gray;">FR</option>
+            <option value="de" style="background-color: dark-gray;">DE</option>
+          </select>
+          <button id="save-language" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SAVE")}</button>
+          <div id="lang-msg" class="text-sm text-green-600 mt-1"></div>
         </div>
 
         <div id="edit-name-form" class="hidden mb-2">
-          <input id="new-name" class="border p-2 rounded mr-2" placeholder="Nouveau pseudo" />
-          <button id="save-name" class="btn small">Sauvegarder</button>
-          <button id="cancel-name" class="btn small">Annuler</button>
-          <div id="name-msg" class="small text-red-600 mt-1"></div>
+          <input id="new-name" class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] p-2 rounded mr-2" placeholder="Nouveau pseudo" />
+          <button id="save-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SAVE")}</button>
+          <button id="cancel-name" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.CANCEL")}</button>
+          <div id="name-msg" class="text-sm text-red-600 mt-1"></div>
         </div>
 
-        <p id="profile-email" class="small"></p>
-        <p id="profile-date" class="small text-gray-600"></p>
+        <p id="profile-email" class="text-sm text-[#9ca3af]"></p>
+        <p id="profile-date" class="text-sm text-gray-600"></p>
 
-        <div class="mt-4 small">
+        <div class="mt-4 text-sm">
           <span id="wins-losses">0 win | 0 lose</span>
         </div>
 
         <div class="mt-4 flex gap-2 justify-center">
-          <button id="btn-history" class="btn small">Afficher l'historique</button>
-          <button id="btn-back" class="btn small">← Retour</button>
+          <button id="btn-history" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SHOW_HISTORY")}</button>
+          <button id="btn-back" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.BACK")}</button>
         </div>
 
         <!-- FRIENDS SECTION -->
         <div id="friends-area" class="mt-6 w-full max-w-2xl">
-          <h3 class="text-lg font-medium mb-2">Amis</h3>
+          <h3 class="text-lg font-medium mb-2">${t(state.lang, "Profile.FRIENDS")}</h3>
 
           <div class="flex gap-2 items-center mb-3">
-            <input id="friend-search" class="border p-2 rounded flex-1" placeholder="Rechercher un utilisateur par pseudo" />
-            <button id="friend-search-btn" class="btn small">Rechercher</button>
-            <button id="friend-requests-btn" class="btn small">Demandes <span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
+            <input id="friend-search" class="bg-[#0a0a0a] text-[#ffffff] border border-[#333333] p-2 rounded flex-1" placeholder="${t(state.lang, "Profile.SEARCH_USER_PLACEHOLDER")}" />
+            <button id="friend-search-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SEARCH")}</button>
+            <button id="friend-requests-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.REQUESTS")}<span id="requests-badge" class="ml-1 text-sm text-red-600"></span></button>
           </div>
 
           <div id="friend-search-result" class="mb-3"></div>
 
           <div id="friend-requests-panel" class="mb-3 hidden">
-            <h4 class="font-medium">Demandes entrantes</h4>
+            <h4 class="font-medium">${t(state.lang, "Profile.INCOMING_REQUESTS")}</h4>
             <div id="friend-requests-list" class="flex flex-col gap-2 mt-2"></div>
           </div>
 
@@ -67,11 +81,11 @@ export function profileContent(): HTMLElement {
         </div>
 
         <div id="history-area" class="mt-4 w-full max-w-2xl hidden">
-          <h3 class="text-lg font-medium mb-2">Historique des parties</h3>
-          <div id="history-list" class="flex flex-col gap-2 small"></div>
+          <h3 class="text-lg font-medium mb-2">${t(state.lang, "Profile.MATCH_HISTORY")}</h3>
+          <div id="history-list" class="flex flex-col gap-2 text-sm"></div>
         </div>
 
-        <p id="profile-msg" class="small text-green-700 mt-3"></p>
+        <p id="profile-msg" class="text-sm text-green-700 mt-3"></p>
       </div>
     </section>
   `;
@@ -123,23 +137,44 @@ export function profileContent(): HTMLElement {
       }
 
       // optionally keep global state in sync (guarded)
-      if ((state as any)?.appState) {
-        (state as any).appState.currentUser = { id: currentUser.id, name: currentUser.name, email: currentUser.email, avatar: currentUser.avatar };
+        if (state.appState) {
+        // preserve any existing session-level preference (set by header),
+        // otherwise prefer a stored localStorage session value, then fallback to persisted user.language
+        const existingSession = state.appState.currentUser?.language_session;
+        const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
+        state.appState.currentUser = {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          avatar: currentUser.avatar || '',
+          language: currentUser.language || 'en',
+            language_session: existingSession || storedSession || currentUser.language || 'en'
+        };
       }
 
       // fill UI (currentUser is guaranteed non-null here)
       nameEl.textContent = currentUser.name;
       emailEl.textContent = currentUser.email || '';
-      dateEl.textContent = currentUser.created_at ? `Ajouté le : ${currentUser.created_at}` : '';
+      dateEl.textContent = currentUser.created_at ? t(state.lang, "Profile.ADDED_ON", { date: currentUser.created_at }) : '';
       const avatarFilename = currentUser.avatar ? String(currentUser.avatar).split('/').pop() : null;
       avatarEl.src = avatarFilename ? `/api/uploads/${avatarFilename}` : '/default-avatar.png';
       profileMsg.textContent = '';
+
+      // initialize language select if present — show the persisted user preference (don't auto-save session)
+      try {
+          const sel = node.querySelector('#profile-language') as HTMLSelectElement | null;
+        if (sel && currentUser) {
+          // prefer persisted user.language (what is stored as preference), then fallback to session
+          const sessionLang = state.appState.currentUser?.language_session;
+          sel.value = currentUser.language || sessionLang || 'en';
+        }
+      } catch (e) {}
 
       // load matches to compute wins/losses, but don't show history yet
       await loadMatchesSummary();
     } catch (err) {
       console.error('loadProfile failed', err);
-      profileMsg.textContent = "Erreur réseau — impossible de charger le profil";
+      profileMsg.textContent = t(state.lang, "Profile.NETWORK_ERROR");
     }
   }
 
@@ -147,12 +182,12 @@ export function profileContent(): HTMLElement {
   avatarForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     profileMsg.textContent = '';
-    if (!currentUser) { profileMsg.textContent = 'Utilisateur non chargé'; return; }
+    if (!currentUser) { profileMsg.textContent = t(state.lang, "Profile.USER_NOT_LOADED"); return; }
     const file = avatarInput.files?.[0];
-    if (!file) { profileMsg.textContent = 'Choisis une image'; return; }
+    if (!file) { profileMsg.textContent = t(state.lang, "Profile.IMAGE_REQUIRED"); return; }
 
     avatarSubmit.disabled = true;
-    profileMsg.textContent = 'Upload en cours...';
+    profileMsg.textContent = t(state.lang, "Profile.UPLOAD_IN_PROGRESS");
 
     try {
       const formData = new FormData();
@@ -166,22 +201,22 @@ export function profileContent(): HTMLElement {
       });
 
       if (!res.ok) {
-        const t = await res.text();
-        console.error('upload failed', res.status, t);
-        profileMsg.textContent = 'Erreur lors de l\'upload';
+        const text = await res.text();
+        console.error('upload failed', res.status, text);
+        profileMsg.textContent = t(state.lang, "Profile.UPLOAD_FAIL");
         return;
       }
       const data = await res.json();
       if (!data.ok) {
-        profileMsg.textContent = data.error || 'Erreur serveur';
+        profileMsg.textContent = data.error ? t(state.lang, data.error) : t(state.lang, "Profile.SERVER_ERROR");
         return;
       }
       const url = data.url ? data.url : `/api/uploads/${data.avatar}`;
       avatarEl.src = `${url}?t=${Date.now()}`;
-      profileMsg.textContent = 'Avatar mis à jour ✔️';
+      profileMsg.textContent = t(state.lang, "Profile.AVATAR_UPDATED");
       // update state and local currentUser.avatar
-  currentUser.avatar = data.avatar;
-  if ((state as any)?.appState?.currentUser) (state as any).appState.currentUser.avatar = data.avatar;
+    currentUser.avatar = data.avatar;
+    if (state.appState.currentUser) state.appState.currentUser.avatar = data.avatar;
       // update header avatar if present
       try {
         const hdr = document.getElementById('hdr-avatar') as HTMLImageElement | null;
@@ -189,7 +224,7 @@ export function profileContent(): HTMLElement {
       } catch (e) {}
     } catch (err) {
       console.error('avatar upload error', err);
-      profileMsg.textContent = 'Erreur réseau pendant l\'upload';
+      profileMsg.textContent = t(state.lang, "Profile.UPLOAD_FAILED");
     } finally {
       avatarSubmit.disabled = false;
     }
@@ -212,9 +247,9 @@ export function profileContent(): HTMLElement {
   saveNameBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const newName = newNameInput.value.trim();
-    if (!newName) { nameMsg.textContent = 'Le pseudo ne peut pas être vide'; return; }
+    if (!newName) { nameMsg.textContent = t(state.lang, "Profile.NAME_EMPTY"); return; }
     saveNameBtn.disabled = true;
-    nameMsg.textContent = 'En cours...';
+    nameMsg.textContent = t(state.lang, "Profile.HISTORY_LOADING");
 
     try {
       const res = await fetch('/api/user/me', {
@@ -224,38 +259,94 @@ export function profileContent(): HTMLElement {
         body: JSON.stringify({ name: newName })
       });
       if (!res.ok) {
-        const t = await res.text();
-        console.error('rename failed', res.status, t);
-        nameMsg.textContent = 'Erreur lors de la modification';
+        const text = await res.text();
+        console.error('rename failed', res.status, text);
+        nameMsg.textContent = t(state.lang, "Profile.NAME_UPDATE_FAIL");
         return;
       }
       const data = await res.json();
       if (!data.ok) {
-        nameMsg.textContent = data.error || 'Erreur serveur';
+        profileMsg.textContent = data.error ? t(state.lang, data.error) : t(state.lang, "Profile.SERVER_ERROR");
         return;
       }
       // update UI & state (currentUser exists here)
       if (currentUser) currentUser.name = newName;
       nameEl.textContent = newName;
-      if ((state as any)?.appState?.currentUser) (state as any).appState.currentUser.name = newName;
-      nameMsg.textContent = 'Pseudo mis à jour ✔️';
+  if (state.appState.currentUser) state.appState.currentUser.name = newName;
+      nameMsg.textContent = t(state.lang, "Profile.NAME_UPDATED");
       editForm.classList.add('hidden');
     } catch (err) {
       console.error('rename error', err);
-      nameMsg.textContent = 'Erreur réseau';
+      nameMsg.textContent = t(state.lang, "Profile.NETWORK_ERROR");
     } finally {
       saveNameBtn.disabled = false;
       setTimeout(() => { nameMsg.textContent = ''; }, 2500);
     }
   });
 
+  // --- language save ---
+  const profileLangSelect = node.querySelector('#profile-language') as HTMLSelectElement | null;
+  const saveLangBtn = node.querySelector('#save-language') as HTMLButtonElement | null;
+  const langMsg = node.querySelector('#lang-msg') as HTMLElement | null;
+
+  if (saveLangBtn && profileLangSelect) {
+    saveLangBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+      const newLang = (profileLangSelect.value || 'en') as 'en' | 'fr' | 'de';
+      saveLangBtn.disabled = true;
+      if (langMsg) { langMsg.textContent = t(state.lang, "Profile.LANG_SAVING"); }
+      try {
+        const res = await fetch('/api/user/me', {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: newLang })
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          console.error('save language failed', res.status, text);
+          if (langMsg) langMsg.textContent = t(state.lang, "Profile.LANG_SAVE_ERROR");
+          return;
+        }
+        const data = await res.json();
+        if (!data.ok) {
+          if (langMsg) langMsg.textContent = data.error? t(state.lang, data.error) : t(state.lang, "PROFILE.NETWORK_ERROR");
+          return;
+        }
+        // update local state and UI: persisted language and session language
+  currentUser = { ...currentUser, language: data.user.language };
+        if (state.appState.currentUser) {
+          state.appState.currentUser.language = data.user.language;
+          // also update session-level selection so header/other pages reflect user's choice immediately
+          state.appState.currentUser.language_session = data.user.language;
+          try { localStorage.setItem('language_session', data.user.language); } catch (e) { /* ignore */ }
+        }
+        if (langMsg) { langMsg.textContent = t(state.lang, "Profile.LANG_SAVED"); }
+        // also update header select if present
+        try {
+          const hdr = document.getElementById('profile-language') as HTMLSelectElement | null;
+          if (hdr) hdr.value = data.user.language;
+        } catch (e) {}
+        // re-render to apply translations
+        try { navigateTo(getHashPage()); } catch (e) { /* ignore */ }
+      } catch (err) {
+        console.error('save language error', err);
+        if (langMsg) langMsg.textContent = t(state.lang, "PROFILE.NETWORK_ERROR");
+      } finally {
+        saveLangBtn.disabled = false;
+        setTimeout(() => { if (langMsg) langMsg.textContent = ''; }, 2500);
+      }
+    });
+  }
+
   // --- matches summary & history ---
   async function loadMatchesSummary() {
     try {
       const res = await fetch('/api/matches/me', { credentials: 'same-origin' });
-      if (!res.ok) { winsLossesEl.textContent = '0 win | 0 lose'; return; }
+      if (!res.ok) { winsLossesEl.textContent = t(state.lang, "Profile.WINS_LOSSES", {wins: 0, losses: 0}); return; }
       const json = await res.json();
-      if (!json.ok) { winsLossesEl.textContent = '0 win | 0 lose'; return; }
+      if (!json.ok) { winsLossesEl.textContent = t(state.lang, "Profile.WINS_LOSSES", {wins: 0, losses: 0}); return; }
       matchesCache = json.matches || [];
 
       // compute wins / losses comparing winner_name with current user's name
@@ -265,10 +356,10 @@ export function profileContent(): HTMLElement {
         if (m.winner_name === myName) wins++;
       }
       const losses = (matchesCache.length - wins);
-      winsLossesEl.textContent = `${wins} win | ${losses} lose`;
+      winsLossesEl.textContent = t(state.lang, "Profile.WINS_LOSSES", {wins, losses});
     } catch (err) {
       console.error('loadMatchesSummary failed', err);
-      winsLossesEl.textContent = '0 win | 0 lose';
+      winsLossesEl.textContent = t(state.lang, "Profile.WINS_LOSSES", {wins: 0, losses: 0});
     }
   }
 
@@ -276,13 +367,13 @@ export function profileContent(): HTMLElement {
     e.preventDefault();
     profileMsg.textContent = '';
     historyArea.classList.remove('hidden');
-    historyList.innerHTML = '<div class="small">Chargement...</div>';
+    historyList.innerHTML = `<div class="small">${t(state.lang, "Profile.HISTORY_LOADING")}</div>`;
 
     try {
       // reuse cache if present
       if (matchesCache.length === 0) await loadMatchesSummary();
       if (!matchesCache || matchesCache.length === 0) {
-        historyList.innerHTML = '<div class="small">Aucune partie trouvée.</div>';
+        historyList.innerHTML = `<div class="small">${t(state.lang, "Profile.NO_MATCHES")}</div>`;
         return;
       }
       // render list
@@ -291,7 +382,7 @@ export function profileContent(): HTMLElement {
         const item = document.createElement('div');
         item.className = 'p-2 border rounded';
         // safe formatting
-        const created = new Date(m.created_at).toLocaleString();
+  const created = m.created_at ? new Date(m.created_at).toLocaleString() : '';
         item.innerHTML = `
           <div class="flex justify-between">
             <div class="small">
@@ -305,7 +396,7 @@ export function profileContent(): HTMLElement {
       }
     } catch (err) {
       console.error('load history failed', err);
-      historyList.innerHTML = '<div class="small text-red-600">Erreur lors du chargement de l\'historique</div>';
+      historyList.innerHTML = `<div class="small text-red-600">${t(state.lang, "Profile.HISTORY_LOAD_ERROR")}</div>`;
     }
   });
 
@@ -341,7 +432,7 @@ export function profileContent(): HTMLElement {
           <span class="presence-dot w-3 h-3 rounded-full ${onlineClass} inline-block"></span>
           <strong class="ml-2">${escapeHtml(f.name)}</strong>
           <span class="small ml-auto">${escapeHtml(f.email)}</span>
-          <button class="btn small ml-2 remove-friend">Supprimer</button>
+          <button class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000] remove-friend">${t(state.lang, "Profile.REMOVE")}</button>
         `;
         const removeBtn = row.querySelector('.remove-friend') as HTMLButtonElement;
         removeBtn.addEventListener('click', async () => {
@@ -369,39 +460,40 @@ export function profileContent(): HTMLElement {
       return null;
     }
   }
-
   friendSearchBtn.addEventListener('click', async (e) => {
+
     e.preventDefault();
     friendSearchResult.innerHTML = '';
     const q = friendSearchInput.value.trim();
     if (!q) return;
-    friendSearchResult.innerHTML = '<div class="small">Recherche...</div>';
+    friendSearchResult.innerHTML = `<div class="small">${t(state.lang, "Profile.SEARCHING")}</div>`;
     const user = await searchUser(q);
-    if (!user) { friendSearchResult.innerHTML = '<div class="small">Utilisateur non trouvé</div>'; return; }
+    if (!user) { friendSearchResult.innerHTML = `<div class="small">${t(state.lang, "Profile.USER_NOT_FOUND")}</div>`; return; }
     const div = document.createElement('div');
     div.className = 'p-2 border rounded flex items-center gap-3';
     div.innerHTML = `
-      <strong>${escapeHtml(user.name)}</strong>
-      <span class="small ml-auto">${escapeHtml(user.email || '')}</span>
-      <button id="add-friend-btn" class="btn small ml-2">Ajouter</button>
+	<strong>${escapeHtml(user.name)}</strong>
+	<span class="small ml-auto">${escapeHtml(user.email || '')}</span>
+	<button id="add-friend-btn" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "Profile.ADD")}</button>
     `;
     friendSearchResult.innerHTML = '';
     friendSearchResult.appendChild(div);
     (div.querySelector('#add-friend-btn') as HTMLButtonElement).addEventListener('click', async () => {
-      try {
+		if (q === currentUser?.name) { friendSearchResult.innerHTML = `<div class="small">${t(state.lang, "Profile.USER_SELF")}</div>`; return; }
+		try {
         const res = await fetch('/api/friends/request', {
           method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ friend_id: user.id })
         });
         const j = await res.json();
         if (j.ok) {
-          friendSearchResult.innerHTML = '<div class="small text-green-600">Demande envoyée ✔️</div>';
+          friendSearchResult.innerHTML = `<div class="small text-green-600">${t(state.lang, "Profile.REQUEST_SENT")}</div>`;
           await loadFriendsList();
         } else {
-          friendSearchResult.innerHTML = `<div class="small text-red-600">${escapeHtml(j.error || 'Erreur')}</div>`;
+          friendSearchResult.innerHTML = `<div class="small text-red-600">${escapeHtml(j.error ? t(state.lang, j.error) : t(state.lang, "Profile.SERVER_ERROR"))}</div>`;
         }
       } catch (err) {
-        friendSearchResult.innerHTML = '<div class="small text-red-600">Erreur réseau</div>';
+        friendSearchResult.innerHTML = `<div class="small text-red-600">${t(state.lang, "Profile.NETWORK_ERROR")}</div>`;
       }
     });
   });
@@ -431,8 +523,8 @@ export function profileContent(): HTMLElement {
         item.innerHTML = `
           <div><strong>${escapeHtml(r.requester_name)}</strong><div class="small">${escapeHtml(r.requester_email)}</div></div>
           <div class="ml-auto flex gap-2">
-            <button class="btn small accept-btn">Accepter</button>
-            <button class="btn small reject-btn">Refuser</button>
+            <button class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000] accept-btn">${t(state.lang, "Profile.ACCEPT")}</button>
+            <button class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000] reject-btn">${t(state.lang, "Profile.REJECT")}</button>
           </div>
         `;
         (item.querySelector('.accept-btn') as HTMLButtonElement).addEventListener('click', async () => {
@@ -463,8 +555,9 @@ export function profileContent(): HTMLElement {
   // presence updates from presence WS (if available)
   function attachPresenceListener() {
     try {
-      const client = (state as any)?.appState?.ws;
-      const ws = client?.socket || client; // client may be wrapper exposing .socket
+  type _PresenceLike = { socket?: WebSocket; close?: () => void } | WebSocket | null | undefined;
+  const client = state.appState?.ws as unknown as _PresenceLike;
+  const ws = (client && typeof client === 'object' && 'socket' in client) ? (client as { socket?: WebSocket }).socket : (client as WebSocket | undefined | null);
       if (!ws) return;
       ws.addEventListener('message', (ev: MessageEvent) => {
         try {

@@ -14,8 +14,8 @@ const ROOM_STATE = {
 
 function createRoom({ type, host}) {
     if (!host) {
-        console.error("createRoom appelé sans host", {type, host});
-        return { error: "NO_HOST" };
+        console.error("createRoom called with no host", {type, host});
+        return { error: "Rooms.NO_HOST" };
     }
     if (userRoomMap[host])
     {
@@ -65,7 +65,7 @@ function createRoom({ type, host}) {
         tickId : null,
         lastInputs: { player1: null, player2: null },
         lastInputTimes: { player1: 0, player2: 0 },
-        timestamps: {start: null, end: null},
+		timestamps: {start: null, end: null}
     };
 
     rooms[roomId] = room;

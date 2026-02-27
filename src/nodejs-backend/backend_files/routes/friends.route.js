@@ -13,11 +13,11 @@ module.exports = async function friendsRoutes(fastify, opts) {
       const { friend_id } = req.body || {};
       const friendId = Number(friend_id);
       if (!friend_id || Number.isNaN(friendId) || friendId === userId) {
-        return reply.status(400).send({ ok: false, error: 'Invalid friend_id' });
+        return reply.status(400).send({ ok: false, error: t.Friends.INVALID_FRIEND_ID });
       }
 
       const userExists = db.prepare('SELECT id FROM users WHERE id = ?').get(friendId);
-      if (!userExists) return reply.status(404).send({ ok: false, error: 'User not found' });
+      if (!userExists) return reply.status(404).send({ ok: false, error: 'Friends.USER_NOT_FOUND' });
 
       // check existing in either direction
       const existing = db.prepare(`
@@ -27,8 +27,8 @@ module.exports = async function friendsRoutes(fastify, opts) {
       `).get(userId, friendId, friendId, userId);
 
       if (existing) {
-        if (existing.status === 'pending') return reply.status(400).send({ ok: false, error: 'Request already pending' });
-        if (existing.status === 'accepted') return reply.status(400).send({ ok: false, error: 'Already friends' });
+        if (existing.status === 'pending') return reply.status(400).send({ ok: false, error: 'Friends.REQUEST_ALREADY_PENDING' });
+        if (existing.status === 'accepted') return reply.status(400).send({ ok: false, error: 'Friends.ALREADY_FRIENDS' });
         // if rejected, update to pending
         db.prepare('UPDATE friends SET requester_id = ?, addressee_id = ?, status = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?')
           .run(userId, friendId, 'pending', existing.id);
@@ -46,7 +46,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
       return reply.send({ ok: true });
     } catch (err) {
       fastify.log.error(err, 'friend request failed');
-      return reply.status(500).send({ ok: false, error: 'Server error' });
+      return reply.status(500).send({ ok: false, error: 'Friends.SERVER_ERROR' });
     }
   });
 
@@ -67,10 +67,10 @@ module.exports = async function friendsRoutes(fastify, opts) {
     try {
       const userId = req.user.id;
       const { request_id, action } = req.body || {};
-      if (!request_id || !['accept', 'reject'].includes(action)) return reply.status(400).send({ ok: false, error: 'Invalid input' });
+      if (!request_id || !['accept', 'reject'].includes(action)) return reply.status(400).send({ ok: false, error: 'Friends.INVALID_INPUT' });
 
       const row = db.prepare('SELECT * FROM friends WHERE id = ? AND addressee_id = ?').get(request_id, userId);
-      if (!row) return reply.status(404).send({ ok: false, error: 'Request not found' });
+      if (!row) return reply.status(404).send({ ok: false, error: 'Friends.REQUEST_NOT_FOUND' });
 
       const newStatus = action === 'accept' ? 'accepted' : 'rejected';
       db.prepare('UPDATE friends SET status = ? WHERE id = ?').run(newStatus, request_id);
@@ -79,7 +79,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
       return reply.send({ ok: true });
     } catch (err) {
       fastify.log.error(err, 'respond friend failed');
-      return reply.status(500).send({ ok: false, error: 'Server error' });
+      return reply.status(500).send({ ok: false, error: 'Friends.SERVER_ERROR' });
     }
   });
 
@@ -89,7 +89,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
       const userId = req.user.id;
       const { friend_id } = req.body || {};
       const friendId = Number(friend_id);
-      if (!friend_id) return reply.status(400).send({ ok: false, error: 'friend_id required' });
+      if (!friend_id) return reply.status(400).send({ ok: false, error: 'Friends.FRIEND_ID_REQUIRED' });
 
       db.prepare(`
         DELETE FROM friends
@@ -100,7 +100,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
       return reply.send({ ok: true });
     } catch (err) {
       fastify.log.error(err, 'remove friend failed');
-      return reply.status(500).send({ ok: false, error: 'Server error' });
+      return reply.status(500).send({ ok: false, error: 'Friends.SERVER_ERROR' });
     }
   });
 
@@ -120,7 +120,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
       return reply.send({ ok: true, friends: enriched });
     } catch (err) {
       fastify.log.error(err, 'list friends failed');
-      return reply.status(500).send({ ok: false, error: 'Server error' });
+      return reply.status(500).send({ ok: false, error: 'Friends.SERVER_ERROR' });
     }
   });
 };

@@ -10,8 +10,8 @@ const fetch = require("node-fetch");
 
 const {  totalEndedGames, gamesInProgress, exitedGamesCounter, gamesDuration} = require("./metrics.js");
 
-const WINNING_SCORE = 5;
-const TICK_RATE = 30;
+const WINNING_SCORE = 2;
+const TICK_RATE = 60;
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 480;
 let wss;
@@ -39,7 +39,7 @@ function initWebSocket(server) {
   console.log("WebSocket server initialized");
 
   wss.on("connection", (ws, req) => {
-    console.log("Un joueur s'est connecté");
+    console.log("a player has connected");
     // try to identify user from cookie JWT for presence
     try {
       const cookies = parseCookies(req.headers.cookie || '');
@@ -78,6 +78,9 @@ function initWebSocket(server) {
       if (data.type === "start-game") {
         handleStartGame(ws, data);
       }
+      if (data.type === "start-tournament-round") {
+        handleStartTournamentRound(ws, data);
+      }
       if (data.type === "input" || data.type === "input-up"){
         handlePlayerInput(ws, data);
       }
@@ -111,7 +114,7 @@ function initWebSocket(server) {
 function handleJoinRoom(ws, data) {
   const { roomId, pseudo } = data;
   const room = getRoom(roomId);
-  if (!room) return ws.send(JSON.stringify({ type: "room-error", message: "Room introuvable" }));
+  if (!room) return ws.send(JSON.stringify({ type: "room-error", message: "WS.ROOM_NOT_FOUND" }));
 
   // Si le joueur est déjà dans une autre room
   if (userRoomMap[pseudo] && userRoomMap[pseudo] !== roomId) {
@@ -121,13 +124,13 @@ function handleJoinRoom(ws, data) {
   // Vérifie s'il est déjà présent
   const existingParticipant = room.participants.find(p => p.pseudo === pseudo);
   if (existingParticipant) {
-    return ws.send(JSON.stringify({ type: "room-error", message: "Tu es déjà dans cette room" }));
+    return ws.send(JSON.stringify({ type: "room-error", message: "WS.ALREADY_IN_ROOM" }));
   }
 
   // Reconnexion ?
   if (room.disconnectedPlayer && room.disconnectedPlayer.pseudo === pseudo) {
     const role = room.disconnectedPlayer.role;
-    console.log("Reconnexion réussie :", pseudo);
+    console.log("Reconnect success :", pseudo);
 
     // Mettre à jour uniquement le WS du joueur existant
     if (room.players[role]) room.players[role].ws = ws;
@@ -182,7 +185,7 @@ function handleJoinRoom(ws, data) {
 
   // Nouvelle connexion
   if (room.participants.length >= room.maxPlayers) {
-    return ws.send(JSON.stringify({ type: "room-error", message: "Room pleine" }));
+    return ws.send(JSON.stringify({ type: "room-error", message: "WS.ROOM_FULL" }));
   }
 
   if (!room.host) room.host = pseudo;
@@ -202,7 +205,7 @@ function handleStartGame(ws, data) {
   if (!participant) return;
 
   if (room.host !== participant.pseudo) {
-    ws.send(JSON.stringify({ type: "room-error", message: "Seul le créateur de la room peut lancer la partie."}));
+    ws.send(JSON.stringify({ type: "room-error", message: "WS.ONLY_HOST_CAN_START"}));
     return;
   }
 
@@ -224,11 +227,16 @@ function start1v1Match(room) {
   room.players.player2 = player2;
 
   room.paddles = {
-    player1: { position: { x: 50, y: 200}, width: 10, height: 100, speed: 8, score: 0 },
-    player2: { position: { x : 740, y: 200 }, width: 10, height: 100, speed: 8, score: 0}
+    player1: { position: { x: 50, y: 200}, width: 10, height: 100, speed: 9, score: 0 },
+    player2: { position: { x : 740, y: 200 }, width: 10, height: 100, speed: 9, score: 0}
   };
   room.lastInputs = { player1: null, player2: null };
-  room.ball = { position: { x: 400, y: 240 }, velocity: { x: 6, y: 4}, size: 10 };
+  room.ball = { position: { x: 400, y: 240 }, velocity: { x: 5, y: 3}, size: 10, initialVelocity: { x: 5, y: 3 } };
+  // obstacles
+  room.obstacles = {
+    top: { position: { x: CANVAS_WIDTH / 2, y: 0 }, size: 20, pointingUp: false },
+    bottom: { position: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 20 }, size: 20, pointingUp: true }
+  };
 
   [player1, player2].forEach(p => {
     if (p.ws.readyState === WebSocket.OPEN) {
@@ -251,13 +259,13 @@ function handleStartTournament(ws, data) {
 
   // Bloquer si le tournoi a déjà commencé
   if (room.tournament && room.tournament.started) {
-    ws.send(JSON.stringify({ type: "room-error", message: "Le tournoi est déjà en cours" }));
+    ws.send(JSON.stringify({ type: "room-error", message: "WS.TOURNAMENT_ALREADY_STARTED" }));
     return;
   }
 
   const pseudos = room.participants.map(p => p.pseudo);
   if (pseudos.length < 2) {
-    ws.send(JSON.stringify({ type: "room-error", message: "Il faut au moins 2 joueurs pour démarrer le tournoi" }));
+    ws.send(JSON.stringify({ type: "room-error", message: "WS.NEED_MIN_2_PLAYERS" }));
     return;
   }
 
@@ -272,21 +280,52 @@ function handleStartTournament(ws, data) {
 
   room.tournament.started = true;
 
-  // Notifie tous les joueurs
+  // Notifie tous les joueurs with initial players list
   room.participants.forEach(p => {
     if (p.ws.readyState === WebSocket.OPEN) {
       p.ws.send(JSON.stringify({ type: "tournament-start", players: pseudos }));
     }
   });
 
+  // Prepare initial round and send the matches overview but DON'T start matches until host confirms
+  room.tournament.waitingForHost = true;
+  // send round overview
+  const matchesOverview = room.tournament.matches.map(m => ({ p1: m.p1, p2: m.p2 }));
+  const byes = room.tournament.nextRound && room.tournament.nextRound.length ? [...room.tournament.nextRound] : [];
+      room.participants.forEach(p => {
+        if (p.ws.readyState === WebSocket.OPEN) {
+          p.ws.send(JSON.stringify({ type: "tournament-round", round: room.tournament.round || 1, roundPlayers: room.tournament.players, matches: matchesOverview, byes, host: room.host }));
+        }
+      });
+
   // Initialise paddles si ce n'est pas déjà fait
   if (!room.paddles) room.paddles = {};
   if (!room.paddles.player1) room.paddles.player1 = { position: { x: 50, y: 200 }, width: 10, height: 100, speed: 8, score: 0 };
   if (!room.paddles.player2) room.paddles.player2 = { position: { x: 740, y: 200 }, width: 10, height: 100, speed: 8, score: 0 };
   if (!room.lastInputs) room.lastInputs = { player1: null, player2: null };
-  if (!room.ball) room.ball = { position: { x: 400, y: 240 }, velocity: { x: 6, y: 4 }, size: 10 };
+  if (!room.ball) room.ball = { position: { x: 400, y: 240 }, velocity: { x: 3, y: 2 }, size: 10, initialVelocity: { x: 3, y: 2 } };
+  if (!room.obstacles) room.obstacles = {
+    top: { position: { x: CANVAS_WIDTH / 2, y: 0 }, size: 20, pointingUp: false },
+    bottom: { position: { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 20 }, size: 20, pointingUp: true }
+  };
 
   // Lance le premier match
+  // startNextTournamentMatch will be triggered when host sends 'start-tournament-round'
+}
+
+function handleStartTournamentRound(ws, data) {
+  const room = getRoom(data.roomId);
+  if (!room || room.type !== "tournament") return;
+  const participant = room.participants.find(p => p.ws === ws);
+  if (!participant) return;
+  if (room.host !== participant.pseudo) {
+    ws.send(JSON.stringify({ type: "room-error", message: "WS.ONLY_HOST_CAN_START" }));
+    return;
+  }
+
+  if (!room.tournament) return;
+  // mark that tournament is no longer waiting and start the next match
+  room.tournament.waitingForHost = false;
   startNextTournamentMatch(room);
 }
 
@@ -339,7 +378,7 @@ function handleDisconnect(ws) {
         role
       };
 
-      console.log("Déconnexion pendant la partie: ", room.disconnectedPlayer.pseudo);
+      console.log("Disconnected during the game: ", room.disconnectedPlayer.pseudo);
 
       // Notifier les autres joueurs
       room.participants.forEach(p => {
@@ -357,7 +396,7 @@ function handleDisconnect(ws) {
       room.disconnectTimeout = setTimeout(() => {
         if (!room.disconnectedPlayer) return;
 
-        console.log("Timeout dépassé, victoire par abandon");
+        console.log("Timeout exceeded, victory by default");
 
         room.lastGameResult = {
           winner: room.players[winnerRole]?.pseudo || null,
@@ -370,7 +409,7 @@ function handleDisconnect(ws) {
     }
 
     if (room.participants.length === 0) {
-      console.log("Room vide, suppression :", room.id);
+      console.log("Empty room, delete:", room.id);
       deleteRoom(room.id);
     }
 
@@ -378,13 +417,19 @@ function handleDisconnect(ws) {
   });
 
   exitedGamesCounter.inc();
-  console.log("Un joueur s'est déconnecté");
+  console.log("a player has disconnected");
 }
 
 // --------- TOURNAMENT LOGIC ---------
 function startNextTournamentMatch(room) {
   const tournament = room.tournament;
   if (!tournament) return;
+
+  // If we're waiting for the host to confirm the next round, do not start matches
+  if (tournament.waitingForHost) {
+    console.log("startNextTournamentMatch: waiting for host confirmation, aborting start");
+    return;
+  }
 
   console.log("START NEXT MATCH");
   console.log("Players:", tournament.players);
@@ -393,7 +438,7 @@ function startNextTournamentMatch(room) {
   let match = getNextMatch(tournament);
   console.log("Next match:", match);
 
-  if (!match) {
+    if (!match) {
     if (tournament.nextRound.length === 1) {
       room.state = ROOM_STATE.TOURNAMENT_OVER;
       const winner = tournament.nextRound[0];
@@ -404,10 +449,25 @@ function startNextTournamentMatch(room) {
       tournament.inProgress = false;
       return;
     } else if (tournament.nextRound.length > 1) {
+      // promote winners to the next round, generate matches and notify clients
       tournament.players = [...tournament.nextRound];
+      // clear nextRound before generating new pairings
       tournament.nextRound = [];
       generateMatches(tournament);
-      match = getNextMatch(tournament);
+
+      // increment round counter (we are moving to the next round)
+      tournament.round = (tournament.round || 1) + 1;
+
+      // send round overview to participants and set waiting flag
+      const matchesOverview = tournament.matches.map(m => ({ p1: m.p1, p2: m.p2 }));
+      const byes = tournament.nextRound && tournament.nextRound.length ? [...tournament.nextRound] : [];
+      room.participants.forEach(p => {
+        if (p.ws.readyState === WebSocket.OPEN) {
+          p.ws.send(JSON.stringify({ type: "tournament-round", round: tournament.round, roundPlayers: tournament.players, matches: matchesOverview, byes, host: room.host }));
+        }
+      });
+      tournament.waitingForHost = true;
+      return; // wait for host to send start-tournament-round
     } else {
       tournament.inProgress = false;
       return;
@@ -424,7 +484,7 @@ function startNextTournamentMatch(room) {
     return;
   }
 
-  console.log("Démarrage du match :", p1, "vs", p2);
+  console.log("Starting match :", p1, "vs", p2);
 
   room.players.player1 = room.participants.find(p => p.pseudo === p1);
   room.players.player2 = room.participants.find(p => p.pseudo === p2);
@@ -442,7 +502,7 @@ function startNextTournamentMatch(room) {
 
     if (player.pseudo === p1 || player.pseudo === p2) {
       const role = player.pseudo === p1 ? "player1" : "player2";
-      player.ws.send(JSON.stringify({ type: "start-game", roomId: room.id, role }));
+      player.ws.send(JSON.stringify({ type: "start-game", roomId: room.id, role, player1: p1, player2: p2 }));
     }
   });
 
@@ -481,15 +541,20 @@ async function setGameOver(room, winnerRole) {
 
   room.participants.forEach(player => {
     if (player?.ws.readyState === WebSocket.OPEN) {
-      player.ws.send(JSON.stringify({
-        type: "gameOver",
+      const payload = {
         winner,
         loser,
         score: {
           player1: room.paddles.player1.score,
           player2: room.paddles.player2.score
         }
-      }));
+      };
+      // send a specific event for 1v1 finishes if client expects it
+      if (room.type === "1v1") {
+        player.ws.send(JSON.stringify(Object.assign({ type: "end1v1" }, payload)));
+      } else {
+        player.ws.send(JSON.stringify(Object.assign({ type: "gameOver" }, payload)));
+      }
     }
   });
 
@@ -575,7 +640,9 @@ function startGameLoop(room) {
               }
             },
             message: room.state === ROOM_STATE.PAUSED && room.disconnectedPlayer
-              ? `En attente de la reconnexion de ${room.disconnectedPlayer.pseudo}`
+              ? {
+                  key: 'WS.PLAYER_DISCONNECTED_WAITING', params:{ pseudo: room.disconnectedPlayer.pseudo }
+                }
               : undefined
           }));
         }
@@ -628,8 +695,19 @@ function startGameLoop(room) {
     ball.position.x += ball.velocity.x;
     ball.position.y += ball.velocity.y;
 
-    if (ball.position.y <= 0 || ball.position.y >= CANVAS_HEIGHT - ball.size) ball.velocity.y *= -1;
+    // wall bounces
+    if (ball.position.y <= 0) {
+      ball.position.y = 0;
+      ball.velocity.y = Math.abs(ball.velocity.y) + (Math.random() - 0.5) * 0.5;
+      increaseBallSpeed(ball, 0.5);
+    }
+    if (ball.position.y >= CANVAS_HEIGHT - ball.size) {
+      ball.position.y = CANVAS_HEIGHT - ball.size;
+      ball.velocity.y = -Math.abs(ball.velocity.y) + (Math.random() - 0.5) * 0.5;
+      increaseBallSpeed(ball, 0.5);
+    }
 
+    // paddle bounces
     ["player1", "player2"].forEach(role => {
       const p = room.paddles[role];
       if (
@@ -637,8 +715,41 @@ function startGameLoop(room) {
         ball.position.x + ball.size >= p.position.x &&
         ball.position.y + ball.size >= p.position.y &&
         ball.position.y <= p.position.y + p.height
-      ) ball.velocity.x *= -1;
+      ) {
+        // compute impact to redirect Y
+        const mid = p.position.y + p.height / 2;
+        const impact = (ball.position.y - mid) / (p.height / 2);
+        if (role === 'player1') {
+          ball.velocity.x = Math.abs(ball.velocity.x);
+        } else {
+          ball.velocity.x = -Math.abs(ball.velocity.x);
+        }
+        ball.velocity.y = impact * 5;
+        increaseBallSpeed(ball, 0.5);
+      }
     });
+
+    // obstacle collisions (triangles centered top/bottom)
+    if (room.obstacles) {
+      const top = room.obstacles.top;
+      const bottom = room.obstacles.bottom;
+      // center of ball
+      const bx = ball.position.x + ball.size / 2;
+      const by = ball.position.y + ball.size / 2;
+      const checkObstacle = (obs) => {
+        const topY = obs.position.y;
+        const bottomY = obs.position.y + obs.size;
+        const leftX = obs.position.x - obs.size / 2;
+        const rightX = obs.position.x + obs.size / 2;
+        if (bx >= leftX && bx <= rightX && by >= topY && by <= bottomY) {
+          ball.velocity.y = -ball.velocity.y;
+          ball.position.y += Math.sign(ball.velocity.y) * 2;
+          increaseBallSpeed(ball, 0.5);
+        }
+      };
+      checkObstacle(top);
+      checkObstacle(bottom);
+    }
 
     // --- Score & GameOver ---
     if (ball.position.x > CANVAS_WIDTH) {
@@ -675,7 +786,31 @@ function startGameLoop(room) {
 
 function resetRoomBall(room) {
   room.ball.position = { x: CANVAS_WIDTH/2, y: CANVAS_HEIGHT/2 };
-  room.ball.velocity = { x: 6 * (Math.random() > 0.5 ? 1 : -1), y: 4 * (Math.random() > 0.5 ? 1 : -1) };
+  // reset to baseline initialVelocity if available
+  if (room.ball.initialVelocity) {
+    room.ball.velocity = {
+      x: Math.abs(room.ball.initialVelocity.x) * (Math.random() > 0.5 ? 1 : -1),
+      y: Math.abs(room.ball.initialVelocity.y) * (Math.random() > 0.5 ? 1 : -1)
+    };
+  } else {
+    room.ball.velocity = { x: 3 * (Math.random() > 0.5 ? 1 : -1), y: 2 * (Math.random() > 0.5 ? 1 : -1) };
+    room.ball.initialVelocity = { x: Math.abs(room.ball.velocity.x), y: Math.abs(room.ball.velocity.y) };
+  }
+}
+
+// Increase ball speed magnitude by `amount`, preserving direction.
+function increaseBallSpeed(ball, amount) {
+  const vx = ball.velocity?.x || 0;
+  const vy = ball.velocity?.y || 0;
+  const speed = Math.hypot(vx, vy);
+  if (speed === 0) {
+    ball.velocity = { x: amount * (Math.random() > 0.5 ? 1 : -1), y: 0 };
+    return;
+  }
+  const newSpeed = speed + amount;
+  const scale = newSpeed / speed;
+  ball.velocity.x = vx * scale;
+  ball.velocity.y = vy * scale;
 }
 
 function broadcastRoomUpdate() {

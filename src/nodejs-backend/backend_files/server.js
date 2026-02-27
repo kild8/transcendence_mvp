@@ -31,11 +31,6 @@ const {setupShutdown} = require("./shutdown.js");
 
 const { connectedPlayersArray, playersConnected, loginCounter, logoutCounter } = require("./metrics.js");
 
-fastify.log.info("Client Id de google " + process.env.GOOGLE_CLIENT_ID + " |");
-fastify.log.info("Secret Id de google " + process.env.GOOGLE_CLIENT_SECRET + " |");
-fastify.log.info("Jwt Secret " + process.env.JWT_SECRET + " |");
-fastify.log.info("WS secret " + process.env.WS_SECRET + " |");
-
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -57,6 +52,7 @@ db.prepare(`
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT,         -- NULL for Google OAuth
     avatar TEXT,
+    language TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en','fr','de')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `).run();
@@ -96,6 +92,23 @@ db.prepare('CREATE INDEX IF NOT EXISTS idx_friends_requester ON friends(requeste
 db.prepare('CREATE INDEX IF NOT EXISTS idx_friends_addressee ON friends(addressee_id)').run();
 
 
+//AIKO
+// Helper wrapper for sync better-sqlite3 queries used across handlers
+function dbQueryWrap(query, mode = 'get', params = []) {
+  try {
+    const stmt = db.prepare(query);
+    if (mode === 'get') return stmt.get(...(params || []));
+    if (mode === 'all') return stmt.all(...(params || []));
+    if (mode === 'run') return stmt.run(...(params || []));
+    throw new Error(`Unsupported dbQueryWrap mode: ${mode}`);
+  } catch (err) {
+    // fastify might not be in scope when this module is required very early,
+    // guard logging if available
+    try { if (fastify && fastify.log) fastify.log.error({ err, query, params }, 'dbQueryWrap error'); } catch (e) {}
+    throw err;
+  }
+}
+
     // ------------------------------------------------------
     //                      ROUTES API
     // ------------------------------------------------------
@@ -117,7 +130,7 @@ async function getUserFromReq(req) {
 
     // récupère l'utilisateur sans le password_hash (sécurité)
     const user = db.prepare(
-      `SELECT id, name, email, avatar, created_at
+      `SELECT id, name, email, avatar, language, created_at
        FROM users WHERE id = ?`
     ).get(payload.id);
 
@@ -133,7 +146,7 @@ async function getUserFromReq(req) {
 async function authPreHandler(req, reply) {
   const user = await getUserFromReq(req);
   if (!user) {
-    return reply.status(401).send({ ok: false, error: 'Unauthorized' });
+    return reply.status(401).send({ ok: false, error: 'Server.UNAUTHORIZED' });
   }
   // attache user à la requête pour l'utiliser dans le handler
   req.user = user;
@@ -148,24 +161,24 @@ fastify.post('/api/auth/register', async (req, reply) => {
     const { name, email, password } = req.body || {};
 
     if (!name || !email || !password) {
-      return reply.status(400).send({ ok: false, error: 'name, email and password are required' });
+      return reply.status(400).send({ ok: false, error: 'Server.NAME_EMAIL_PASSWORD_REQUIRED' });
     }
 
     // basic email format validation
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRe.test(String(email).toLowerCase())) {
-      return reply.status(400).send({ ok: false, error: 'Invalid email format' });
+      return reply.status(400).send({ ok: false, error: 'Server.INVALID_EMAIL_FORMAT' });
     }
 
     if (String(password).length < 8) {
-      return reply.status(400).send({ ok: false, error: 'Password must be at least 8 characters' });
+      return reply.status(400).send({ ok: false, error: 'Server.PASSWORD_TOO_SHORT' });
     }
 
     // unique constraints (name/email)
     const existing = db.prepare('SELECT * FROM users WHERE email = ? OR name = ?').get(email, name);
     if (existing) {
-      if (existing.email === email) return reply.status(400).send({ ok: false, error: 'Email already in use' });
-      return reply.status(400).send({ ok: false, error: 'Name already in use' });
+      if (existing.email === email) return reply.status(400).send({ ok: false, error: 'Server.EMAIL_ALREADY_IN_USE' });
+      return reply.status(400).send({ ok: false, error: 'Server.NAME_ALREADY_IN_USE' });
     }
 
     // hash password
@@ -178,12 +191,12 @@ fastify.post('/api/auth/register', async (req, reply) => {
     // issue JWT and set HttpOnly cookie
     const payload = { id: user.id, name: user.name, email: user.email };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-    loginCounter.inc();
+	loginCounter.inc();
     reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
     return reply.send({ ok: true, user });
   } catch (err) {
     fastify.log.error({ err }, 'register failed');
-    return reply.status(500).send({ ok: false, error: 'Server error' });
+    return reply.status(500).send({ ok: false, error: 'Server.SERVER_ERROR' });
   }
 });
 
@@ -193,7 +206,7 @@ fastify.post('/api/auth/login', async (req, reply) => {
     const { identifier, password } = req.body || {}; // identifier = email OR name
 
     if (!identifier || !password) {
-      return reply.status(400).send({ ok: false, error: 'identifier and password are required' });
+      return reply.status(400).send({ ok: false, error: 'Server.IDENTIFIER_PASSWORD_REQUIRED' });
     }
 
     let user = null;
@@ -205,22 +218,21 @@ fastify.post('/api/auth/login', async (req, reply) => {
 
     if (!user || !user.password_hash) {
       // user not found or has no local password (e.g., registered via Google)
-      return reply.status(401).send({ ok: false, error: 'Invalid credentials' });
+      return reply.status(401).send({ ok: false, error: 'Server.INVALID_CREDENTIALS' });
     }
 
     const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) return reply.status(401).send({ ok: false, error: 'Invalid credentials' });
+    if (!match) return reply.status(401).send({ ok: false, error: 'Server.INVALID_CREDENTIALS' });
 
     const publicUser = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(user.id);
     const payload = { id: publicUser.id, name: publicUser.name, email: publicUser.email };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-
-    loginCounter.inc();
+	loginCounter.inc();
     reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
     return reply.send({ ok: true, user: publicUser });
   } catch (err) {
     fastify.log.error({ err }, 'login failed');
-    return reply.status(500).send({ ok: false, error: 'Server error' });
+    return reply.status(500).send({ ok: false, error: 'Server.SERVER_ERROR' });
   }
 });
 
@@ -288,7 +300,7 @@ fastify.get('/api/auth/google/callback', async (req, reply) => {
 		// mettre cookie HttpOnly (ne pas exposer au JS)
 		// en production ajouter "Secure; Domain=..." si besoin
 		loginCounter.inc();
-    reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
+		reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
 		return reply.redirect(`${FRONTEND_BASE}/#home`);
 	} catch (err) {
 		fastify.log.error({ err }, 'google callback failed');
@@ -323,7 +335,7 @@ fastify.post("/api/start-tournament", async (req, reply) => {
 	const { players } = req.body || {};
       
 	if (!Array.isArray(players) || players.length < 2) {
-		return reply.status(400).send({ error: "Invalid players array (min 2)" });
+		return reply.status(400).send({ error: "Server.INVALID_PLAYERS_ARRAY" });
 	}
       
 	lastPlayers = players;
@@ -337,34 +349,86 @@ fastify.get("/api/players", async () => ({ players: lastPlayers }));
 // Ajouter un utilisateur (correct)
 fastify.post("/api/add-user", async (req, reply) => {
 	const { name, email } = req.body || {};
-	if (!name || !email) return reply.status(400).send({ error: "Name and email are required" });
+	if (!name || !email) return reply.status(400).send({ error: "Server.NAME_REQUIRED" });
 		try {
         db.prepare("INSERT INTO users (name, email) VALUES (?, ?)").run(name, email);
         const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
         return { ok: true, user };
 	} catch(e) {
-		return reply.status(400).send({ error: "User or email already exists" });
+		return reply.status(400).send({ error: "Server.USER_OR_EMAIL_IN_USE" });
 	}
 });
 
-// PUT /api/user/me  -> change the authenticated user's name
+//AIKO
+// to change value of name or language to the database
 fastify.put('/api/user/me', { preHandler: authPreHandler }, async (req, reply) => {
+  req.log.debug("Route Healthy");
+
   try {
-    const user = req.user; // authPreHandler attache user public (id, name, email...)
-    const { name } = req.body || {};
-    if (!name || String(name).trim().length === 0) return reply.status(400).send({ ok: false, error: 'Name required' });
+    const user = req.user;
+    const { name, language } = req.body || {};
 
-    // check uniqueness
-    const existing = db.prepare('SELECT id FROM users WHERE name = ? AND id != ?').get(name, user.id);
-    if (existing) return reply.status(400).send({ ok: false, error: 'Name already in use' });
+    /* ---------------- NAME UPDATE ---------------- */
 
-    db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, user.id);
+    if (name !== undefined) {
+      if (!name || String(name).trim().length === 0) {
+        req.log.debug('Name required');
+        return reply.status(400).send({ ok: false, error: 'Name required' });
+      }
 
-    // respond with updated public user
-    const updated = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(user.id);
+      const existing = dbQueryWrap(
+        'SELECT id FROM users WHERE name = ? AND id != ?',
+        "get",
+        [name, user.id]
+      );
+
+      if (existing) {
+        req.log.debug({ name }, 'Name already in use');
+        return reply.status(400).send({ ok: false, error: 'Name already in use' });
+      }
+
+      dbQueryWrap('UPDATE users SET name = ? WHERE id = ?', "run", [name, user.id]);
+
+      req.log.info(
+        { userId: user.id, oldName: user.name, newName: name },
+        "Username updated"
+      );
+    }
+
+    /* ---------------- LANGUAGE UPDATE ---------------- */
+
+    if (language !== undefined) {
+      const allowed = ['en', 'fr', 'de'];
+
+      if (!allowed.includes(language)) {
+        req.log.debug({ language }, 'Invalid language');
+        return reply.status(400).send({ ok: false, error: 'Invalid language' });
+      }
+
+      dbQueryWrap(
+        'UPDATE users SET language = ? WHERE id = ?',
+        "run",
+        [language, user.id]
+      );
+
+      req.log.info(
+        { userId: user.id, language },
+        "Language updated"
+      );
+    }
+
+    /* ---------------- RESPONSE ---------------- */
+
+    const updated = dbQueryWrap(
+      'SELECT id, name, email, avatar, language, created_at FROM users WHERE id = ?',
+      "get",
+      [user.id]
+    );
+
     return reply.send({ ok: true, user: updated });
+
   } catch (err) {
-    fastify.log.error(err, 'update user failed');
+    req.log.error({ err }, "User update failed");
     return reply.status(500).send({ ok: false, error: 'Server error' });
   }
 });
@@ -377,11 +441,11 @@ fastify.get("/api/users", async () => {
 // Vérifier si user existe
 fastify.post("/api/login", async (req, reply) => {
 	const { name } = req.body || {};
-	if (!name) return reply.status(400).send({ error: "Name is required" });
+	if (!name) return reply.status(400).send({ error: "Server.NAME_REQUIRED" });
 
 	const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
 	if (!user) {
-		return reply.status(404).send({ error: "User not found" });
+		return reply.status(404).send({ error: "Server.USER_NOT_FOUND" });
 	}
 	return { ok: true, user };
 });
@@ -391,7 +455,7 @@ fastify.get("/api/user/:name", async (req, reply) => {
   const name = req.params.name;
   const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
 
-  if (!user) return { ok: false, error: "User not found" };
+  if (!user) return { ok: false, error: "Server.USER_NOT_FOUND" };
 
   return { ok: true, user };
 });
@@ -421,7 +485,7 @@ fastify.post("/api/upload-avatar",
 
       if (!filePart) {
         if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-        return reply.status(400).send({ ok: false, error: "Avatar manquant" });
+        return reply.status(400).send({ ok: false, error: "Server.AVATAR_MISSING" });
       }
 
       // récupérer l'utilisateur depuis la DB (sécurité)
@@ -431,7 +495,7 @@ fastify.post("/api/upload-avatar",
 
       if (!user) {
         if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-        return reply.status(404).send({ ok: false, error: "User not found" });
+        return reply.status(404).send({ ok: false, error: "Server.USER_NOT_FOUND" });
       }
 
       // filename final sécurisé
@@ -468,7 +532,7 @@ fastify.post("/api/upload-avatar",
       fastify.log.error({ err }, "upload-avatar failed");
       return reply.status(500).send({
         ok: false,
-        error: "Erreur serveur lors de l'upload"
+        error: "Server.UPLOAD_ERROR"
       });
     }
   }
@@ -493,7 +557,7 @@ fastify.post('/api/matches',{ preHandler: authPreHandler },
     } = req.body || {};
 
     if (!player1_id || !player2_id) {
-      return reply.status(400).send({ error: 'Invalid match data' });
+      return reply.status(400).send({ error: 'Server.INVALID_MATCH_DATA' });
     }
 
     const winner_id =
@@ -549,7 +613,7 @@ fastify.post('/api/matches/ws', async (req, reply) => {
   const secret = req.headers['x-ws-secret'];
 
   if (secret !== WS_SECRET) {
-    return reply.status(401).send({ error: 'Unauthorized WS' });
+    return reply.status(401).send({ error: 'Server.UNAUTHORIZED_WS' });
   }
 
   const {
@@ -560,14 +624,14 @@ fastify.post('/api/matches/ws', async (req, reply) => {
   } = req.body || {};
 
   if (!player1 || !player2) {
-    return reply.status(400).send({ error: 'Invalid match data' });
+    return reply.status(400).send({ error: 'Server.INVALID_MATCH_DATA' });
   }
 
   const p1 = db.prepare('SELECT id FROM users WHERE name = ?').get(player1);
   const p2 = db.prepare('SELECT id FROM users WHERE name = ?').get(player2);
 
   if (!p1 || !p2) {
-    return reply.status(404).send({ error: 'User not found' });
+    return reply.status(404).send({ error: 'Server.USER_NOT_FOUND' });
   }
 
   const winner_id = score_player1 > score_player2 ? p1.id : p2.id;

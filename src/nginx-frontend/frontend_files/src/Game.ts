@@ -1,3 +1,6 @@
+import { t } from "./lang/langIndex.js";
+import { state } from "./state.js";
+
 interface Vector2D {
     x: number;
     y: number;
@@ -34,29 +37,55 @@ class Ball {
     velocity: Vector2D;
     size: number;
     color: string;
+    initialVelocity: Vector2D;
 
     constructor(x: number, y: number, color: string) {
         this.position = { x, y };
         this.velocity = { x: 3, y: 2 };
+    this.initialVelocity = { x: 3, y: 2 };
         this.size = 10;
         this.color = color;
     }
 
+    // Increase total velocity magnitude by `amount`, preserving direction.
+    increaseSpeed(amount: number) {
+        const vx = this.velocity.x || 0;
+        const vy = this.velocity.y || 0;
+        const speed = Math.hypot(vx, vy);
+        if (speed === 0) {
+            // give a small nudge in x direction when stationary
+            this.velocity.x = amount;
+            this.velocity.y = 0;
+            return;
+        }
+        const newSpeed = speed + amount;
+        const scale = newSpeed / speed;
+        this.velocity.x = vx * scale;
+        this.velocity.y = vy * scale;
+    }
+
     reset(canvasWidth: number, canvasHeight: number) {
         this.position = { x: canvasWidth / 2, y: canvasHeight / 2 };
-        this.velocity.x = -this.velocity.x;
-        this.velocity.y = (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 2);
+    // reset velocity to baseline initial velocity with randomized direction
+    this.velocity.x = (Math.random() > 0.5 ? 1 : -1) * Math.abs(this.initialVelocity.x);
+    this.velocity.y = (Math.random() > 0.5 ? 1 : -1) * Math.abs(this.initialVelocity.y);
     }
 
     update(canvasWidth: number, canvasHeight: number, left: Paddle, right: Paddle) {
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
 
-        if (this.position.y <= 0 || this.position.y >= canvasHeight - this.size) {
-            this.velocity.y = -this.velocity.y;
-            if (Math.abs(this.velocity.y) < 1) this.velocity.y = Math.sign(this.velocity.y || 1) * 1.5;
-            this.velocity.y += (Math.random() - 0.5) * 0.5;
-        }
+       	if (this.position.y <= 0) {
+			this.position.y = 0;
+            this.velocity.y = Math.abs(this.velocity.y) + (Math.random() - 0.5) * 0.5;
+            this.increaseSpeed(0.5);
+		}
+
+		if (this.position.y >= canvasHeight - this.size) {
+			this.position.y = canvasHeight - this.size;
+            this.velocity.y = -Math.abs(this.velocity.y) + (Math.random() - 0.5) * 0.5;
+            this.increaseSpeed(0.5);
+		}
 
         if (this.position.x <= left.position.x + left.width &&
             this.position.y + this.size >= left.position.y &&
@@ -65,6 +94,7 @@ class Ball {
             const impact = (this.position.y - (left.position.y + left.height / 2)) / (left.height / 2);
             this.velocity.x = Math.abs(this.velocity.x);
             this.velocity.y = impact * 5;
+            this.increaseSpeed(0.5);
         }
 
         if (this.position.x + this.size >= right.position.x &&
@@ -74,6 +104,7 @@ class Ball {
             const impact = (this.position.y - (right.position.y + right.height / 2)) / (right.height / 2);
             this.velocity.x = -Math.abs(this.velocity.x);
             this.velocity.y = impact * 5;
+            this.increaseSpeed(0.5);
         }
 
         if (this.position.x > canvasWidth) { left.score++; this.reset(canvasWidth, canvasHeight); }
@@ -125,6 +156,8 @@ class Obstacle {
         if (bx >= leftX && bx <= rightX && by >= topY && by <= bottomY) {
             ball.velocity.y = -ball.velocity.y;
             ball.position.y += Math.sign(ball.velocity.y) * 2;
+                // Ball has increaseSpeed method — call it directly
+                if (typeof (ball as Ball).increaseSpeed === 'function') (ball as Ball).increaseSpeed.call(ball, 0.5);
         }
     }
 }
@@ -151,7 +184,7 @@ class Game {
     private countdown: number | null = 4;
     private countdownStartTime: number = performance.now();
 
-    constructor(canvasId: string, leftName = 'Joueur 1', rightName = 'Joueur 2', winningScore = 2, onGameOver?: OnGameOver) {
+    constructor(canvasId: string, leftName = t(state.lang, "Game.PLAYER1"), rightName = t(state.lang, "Game.PLAYER2"), winningScore = 2, onGameOver?: OnGameOver) {
         this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
         this.ctx = this.canvas.getContext("2d")!;
         this.leftPaddle = new Paddle(20, this.canvas.height / 2 - 50, 10, 100, "white");
@@ -247,7 +280,7 @@ class Game {
             this.ctx.textBaseline = "middle";
 
             this.ctx.fillText(
-                this.countdown === 1 ? "GO" : String(this.countdown - 1),
+                this.countdown === 1 ? t(state.lang, "Game.GO") : String(this.countdown - 1),
                 this.canvas.width / 2,
                 this.canvas.height / 2
             );
@@ -272,8 +305,12 @@ class Game {
     private handleWin(winner: string, loser: string, score: string) {
         this.stop();
         if (this.onGameOver) setTimeout(() => this.onGameOver!(winner, loser, score), 50);
-        else alert(`${winner} a gagné contre ${loser} — ${score}`);
+        else alert(t(state.lang, "Game.WIN_ALERT", { winner, loser, score }));
     }
 }
 
-;(window as any).PongGame = Game;
+declare global {
+    interface Window { PongGame?: typeof Game }
+}
+
+window.PongGame = Game;

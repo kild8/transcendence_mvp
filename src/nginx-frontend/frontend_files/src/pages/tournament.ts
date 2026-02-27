@@ -2,50 +2,51 @@ import { elFromHTML } from '../utils.js';
 import { state } from '../state.js';
 import { navigateTo } from '../router.js';
 import { runTournament } from '../renderer/render-tournament.js';
+import { t } from '../lang/langIndex.js';
 
 export function tournamentContent(): HTMLElement {
   const html = `
     <section>
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-medium">
-          Tournoi (max ${state.MAX_TOURNAMENT_PLAYERS} joueurs)
+          ${t(state.lang, "Tournament.TITLE", { maxPlayers: state.MAX_TOURNAMENT_PLAYERS })}
         </h2>
-        <button id="back" class="small">← Retour</button>
+        <button id="back" class="text-sm text-[#9ca3af]">${t(state.lang, "Tournament.BACK")}</button>
       </div>
 
       <div id="slots" class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
 
       <div class="mt-4 flex gap-3">
-        <button id="fill" class="btn">Remplir exemples</button>
-        <button id="clear" class="btn">Effacer</button>
+  <button id="fill" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Tournament.BUTTON_FILL")}</button>
+  <button id="clear" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Tournament.BUTTON_CLEAR")}</button>
 
         <div class="ml-auto flex items-center gap-3">
-          <div class="small">
-            Joueurs prêts: <strong id="count">0</strong>
+          <div class="text-sm text-[#9ca3af]">
+            ${t(state.lang, "Tournament.READY_COUNT")}<strong id="count">0</strong>
           </div>
-          <button id="start" class="btn">Démarrer</button>
+          <button id="start" class="py-[0.6rem] px-[1rem] rounded-[10px] font-bold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Tournament.BUTTON_START")}</button>
         </div>
       </div>
 
-      <p class="small mt-3">
-        Il faut au moins 2 joueurs pour lancer un tournoi.
+      <p class="text-sm text-[#9ca3af] mt-3">
+        ${t(state.lang, "Tournament.MIN_PLAYERS_ALERT")}
       </p>
     </section>
   `;
 
-  const node = elFromHTML(html);
+  const node = elFromHTML(html) as HTMLElement;
 
-  const back = node.querySelector('#back') as HTMLButtonElement;
-  const slots = node.querySelector('#slots') as HTMLElement;
-  const fill = node.querySelector('#fill') as HTMLButtonElement;
-  const clear = node.querySelector('#clear') as HTMLButtonElement;
-  const countEl = node.querySelector('#count') as HTMLElement;
-  const start = node.querySelector('#start') as HTMLButtonElement;
+  const back = node.querySelector('#back') as HTMLButtonElement | null;
+  const slots = node.querySelector('#slots') as HTMLDivElement | null;
+  const fill = node.querySelector('#fill') as HTMLButtonElement | null;
+  const clear = node.querySelector('#clear') as HTMLButtonElement | null;
+  const countEl = node.querySelector('#count') as HTMLElement | null;
+  const start = node.querySelector('#start') as HTMLButtonElement | null;
 
 
   /* ---------- BACK ---------- */
-  back.addEventListener('click', () => {
-    state.currentGame?.stop();
+  back?.addEventListener('click', () => {
+    state.currentGame?.stop?.();
     state.currentGame = null;
     navigateTo('home');
   });
@@ -58,42 +59,37 @@ export function tournamentContent(): HTMLElement {
         <input
           id="player-${i}"
           placeholder="Pseudo #${i + 1}"
-          class="w-full mt-2 p-2 rounded-md border"
+          class="w-full mt-2 p-2 rounded-md border text-black"
         />
       </div>
     `);
 
-    slots.appendChild(slot);
+    if (slots) slots.appendChild(slot);
 
-    const input = slot.querySelector('input') as HTMLInputElement;
-    input.addEventListener('input', updateCount);
+    const input = slot.querySelector('input') as HTMLInputElement | null;
+    if (input) input.addEventListener('input', updateCount);
   }
 
   /* ---------- HELPERS ---------- */
   function readPlayers(): string[] {
     return Array.from({ length: state.MAX_TOURNAMENT_PLAYERS })
       .map((_, i) => {
-        const input = node.querySelector(
-          `#player-${i}`
-        ) as HTMLInputElement | null;
-        return input?.value.trim() ?? '';
+        const input = node.querySelector(`#player-${i}`) as HTMLInputElement | null;
+        return input && input.value ? input.value.trim() : '';
       })
       .filter(v => v.length > 0);
   }
 
   function updateCount() {
-    countEl.textContent = String(readPlayers().length);
+    if (countEl) countEl.textContent = String(readPlayers().length);
   }
 
   /* ---------- FILL ---------- */
-  fill.addEventListener('click', () => {
+  fill?.addEventListener('click', () => {
     const samples = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel'];
 
     for (let i = 0; i < state.MAX_TOURNAMENT_PLAYERS; i++) {
-      const input = node.querySelector(
-        `#player-${i}`
-      ) as HTMLInputElement | null;
-
+      const input = node.querySelector(`#player-${i}`) as HTMLInputElement | null;
       if (input) input.value = samples[i] || '';
     }
 
@@ -101,12 +97,9 @@ export function tournamentContent(): HTMLElement {
   });
 
   /* ---------- CLEAR ---------- */
-  clear.addEventListener('click', () => {
+  clear?.addEventListener('click', () => {
     for (let i = 0; i < state.MAX_TOURNAMENT_PLAYERS; i++) {
-      const input = node.querySelector(
-        `#player-${i}`
-      ) as HTMLInputElement | null;
-
+      const input = node.querySelector(`#player-${i}`) as HTMLInputElement | null;
       if (input) input.value = '';
     }
 
@@ -114,15 +107,23 @@ export function tournamentContent(): HTMLElement {
   });
 
   /* ---------- START ---------- */
-  start.addEventListener('click', async () => {
+  start?.addEventListener('click', async () => {
     const players = readPlayers();
 
     if (players.length < 2) {
-      alert('Il faut au moins 2 joueurs');
+      alert(t(state.lang, "Tournament.MIN_PLAYERS_START"));
       return;
     }
 
-    state.appState.players = players;
+    // Prevent duplicate player names (same rule as local duel)
+    const lower = players.map(p => p.toLowerCase());
+    const hasDup = lower.some((p, i) => lower.indexOf(p) !== i);
+    if (hasDup) {
+      alert(t(state.lang, "Versus.ERROR_PSEUDOS"));
+      return;
+    }
+
+  state.appState.players = players;
     localStorage.setItem('mvp_players', JSON.stringify(players));
 
     try {

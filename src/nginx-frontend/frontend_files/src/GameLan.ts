@@ -1,3 +1,6 @@
+import { t } from "./lang/langIndex.js";
+import { state } from "./state.js";
+
 interface Vector2D { x: number; y: number; }
 interface PaddleState { position: Vector2D; width: number; height: number; score: number; }
 interface BallState { position: Vector2D; velocity: Vector2D; size: number; }
@@ -75,6 +78,34 @@ export class PongGameLan {
         //Ball
         this.ctx.fillStyle = "white";
         this.ctx.fillRect(this.ball.position.x, this.ball.position.y, this.ball.size, this.ball.size);
+        // middle dashed line
+        this.ctx.strokeStyle = "white";
+        this.ctx.beginPath();
+        this.ctx.setLineDash([5, 5]);
+        this.ctx.moveTo(this.canvas.width / 2, 0);
+        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+
+        // draw triangular obstacles (top and bottom centered)
+        const drawTriangle = (x: number, y: number, size: number, pointingUp: boolean) => {
+            this.ctx.fillStyle = "white";
+            this.ctx.beginPath();
+            if (!pointingUp) {
+                this.ctx.moveTo(x, y + size);
+                this.ctx.lineTo(x - size / 2, y);
+                this.ctx.lineTo(x + size / 2, y);
+            } else {
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x - size / 2, y + size);
+                this.ctx.lineTo(x + size / 2, y + size);
+            }
+            this.ctx.closePath();
+            this.ctx.fill();
+        };
+
+        drawTriangle(this.canvas.width / 2, 0, 20, false);
+        drawTriangle(this.canvas.width / 2, this.canvas.height - 20, 20, true);
         //Scores
         this.ctx.font = "12px monospace";
         this.ctx.fillStyle = "white";
@@ -98,7 +129,7 @@ export class PongGameLan {
             this.ctx.textBaseline = "middle";
 
             this.ctx.fillText(
-                this.countdown === 1 ? "GO" : String(this.countdown - 1),
+                this.countdown === 1 ? t(state.lang, "GameLan.GO") : String(this.countdown - 1),
                 this.canvas.width / 2,
                 this.canvas.height / 2
             );

@@ -3,6 +3,7 @@
  * Build: tsc -> dist/main.js ; tailwindcss -> dist/style.css
  */
 
+import './Game.js';
 import { createPresenceSocket } from './wsClient.js';
 import { render } from './renderer/renderer.js';
 import { getHashPage } from './router.js';
@@ -27,11 +28,15 @@ async function checkAuth() {
     const data = await res.json();
 
     if (data.ok) {
+      // prefer a stored session-level language if available (user may have changed it via header)
+      const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
       state.appState.currentUser = {
         id: data.user.id,
         name: data.user.name,
         email: data.user.email,
-        avatar: data.user.avatar
+        avatar: data.user.avatar,
+        language: data.user.language || 'en',
+        language_session: storedSession || data.user.language || 'en'
       };
       // open presence websocket client (keeps user online)
       try {
@@ -42,7 +47,8 @@ async function checkAuth() {
             console.log('presence socket closed');
           });
           // store the client (has .close())
-          state.appState.ws = presenceClient as any;
+          // presenceClient exposes .socket and .close(); store the wrapper object
+          state.appState.ws = presenceClient as unknown as WebSocket;
         }
       } catch (e) {
         console.warn('Failed to open presence socket', e);
