@@ -1,12 +1,10 @@
+//This file describe the setup and execution of the websockets and online features
+
 const WebSocket = require("ws");
 const { getRoom, deleteRoom, rooms, userRoomMap, removeUserFromRoom, ROOM_STATE } = require("./roomStore");
-const {
-  createTournament,
-  generateMatches,
-  getNextMatch,
-  recordMatchWinner
-} = require("./tournament.js");
-const fetch = require("node-fetch");
+const { createTournament, generateMatches, getNextMatch, recordMatchWinner} = require("./tournament.js");
+// we'll use fastify.inject when available (passed from server.js) to avoid an HTTP roundtrip
+let fastifyInstance = null;
 
 const WINNING_SCORE = 2;
 const TICK_RATE = 60;
@@ -32,8 +30,14 @@ function getOnlineUserIds() {
   return Array.from(presenceCounts.keys()).map(k => Number(k));
 }
 
-function initWebSocket(server) {
-  wss = new WebSocket.Server({ server });
+function initWebSocket(serverOrFastify) {
+  // support being passed either the fastify instance or the raw http.Server
+  if (serverOrFastify && typeof serverOrFastify.inject === 'function') {
+    fastifyInstance = serverOrFastify;
+    wss = new WebSocket.Server({ server: serverOrFastify.server });
+  } else {
+    wss = new WebSocket.Server({ server: serverOrFastify });
+  }
   console.log("WebSocket server initialized");
 
   wss.on("connection", (ws, req) => {
@@ -559,24 +563,61 @@ async function setGameOver(room, winnerRole) {
   room.lastGameResult = null;
 
   async function saveMatchToDB({ player1, player2, score1, score2 }) {
+    const body = {
+      player1,
+      player2,
+      score_player1: score1,
+      score_player2: score2
+    };
+
     try {
-      const res = await fetch("http://localhost:3000/api/matches/ws", {
-        method: "POST",
+      if (fastifyInstance && typeof fastifyInstance.inject === 'function') {
+        // Use internal injection to avoid HTTP and auth issues
+        const res = await fastifyInstance.inject({
+          method: 'POST',
+          url: '/api/matches/ws',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-WS-SECRET': process.env.WS_SECRET || 'dev_ws_secret'
+          },
+          payload: JSON.stringify(body)
+        });
+        console.log('MATCH SAVE STATUS:', res.statusCode, res.body);
+        return;
+      }
+
+      // Fallback: simple HTTP POST to localhost:3000
+      const url = new URL(process.env.BACKEND_URL || 'http://localhost:3000/api/matches/ws');
+      const isHttps = url.protocol === 'https:';
+      const lib = isHttps ? require('https') : require('http');
+
+      const opts = {
+        hostname: url.hostname,
+        port: url.port || (isHttps ? 443 : 80),
+        path: url.pathname + (url.search || ''),
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "X-WS-SECRET": process.env.WS_SECRET || "dev_ws_secret"
-        },
-        body: JSON.stringify({
-          player1,
-          player2,
-          score_player1: score1,
-          score_player2: score2
-        })
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(JSON.stringify(body)),
+          'X-WS-SECRET': process.env.WS_SECRET || 'dev_ws_secret'
+        }
+      };
+
+      await new Promise((resolve, reject) => {
+        const req = lib.request(opts, (res) => {
+          let data = '';
+          res.on('data', (chunk) => data += chunk);
+          res.on('end', () => {
+            console.log('MATCH SAVE STATUS:', res.statusCode, data);
+            resolve();
+          });
+        });
+        req.on('error', reject);
+        req.write(JSON.stringify(body));
+        req.end();
       });
-      const text = await res.text();
-      console.log("MATCH SAVE STATUS:", res.status, text);
     } catch (err) {
-      console.error("Failed to save match:", err);
+      console.error('Failed to save match:', err);
     }
   }
 

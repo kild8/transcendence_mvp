@@ -1,3 +1,7 @@
+//Ce fichier orchestre les different call API tout au long du backend
+
+
+
 const Fastify = require("fastify");
 const fastify = Fastify({ logger: true });
 const { initWebSocket, getOnlineUserIds } = require("./ws");
@@ -645,9 +649,10 @@ fastify.post('/api/matches/ws', async (req, reply) => {
 // ------------------------------------------------------
 const start = async () => {
   try {
-    await fastify.listen({ port: 3000, host: "0.0.0.0" });
-    fastify.log.info("Backend listening on 3000");
-    initWebSocket(fastify.server);
+  await fastify.listen({ port: 3000, host: "0.0.0.0" });
+  fastify.log.info("Backend listening on 3000");
+  // pass fastify instance so ws can use fastify.inject to make internal requests
+  initWebSocket(fastify);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
