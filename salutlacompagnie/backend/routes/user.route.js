@@ -26,6 +26,15 @@ module.exports = async function usersRoutes(fastify, opts) {
     }
   }
 
+
+fastify.get("/api/user/:name", async (req, reply) => {
+  const name = req.params.name;
+  const user = db.prepare("SELECT * FROM users WHERE name = ?").get(name);
+  if (!user)
+    return { ok: false, error: "Server.USER_NOT_FOUND" };
+  return { ok: true, user };
+});
+
   // Update user (name / language)
   fastify.put('/api/user/me', { preHandler: fastify.authPreHandler }, async (req, reply) => {
     req.log.debug('Route Healthy');
