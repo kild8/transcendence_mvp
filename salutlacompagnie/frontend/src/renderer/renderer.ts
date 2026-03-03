@@ -25,7 +25,13 @@ export const protectedPages: Page[] = [
   'online'
 ];
 
-export function render(page: Page) {
+// Keep references so we can reuse the header between page renders (avoid full header reload on SPA nav)
+let _appContainer: HTMLElement | null = null;
+let _appMain: HTMLElement | null = null;
+let _lastHeaderUserId: number | null = null;
+
+// `rebuildHeader` forces header recreation (useful for language change that must update header UI)
+export function render(page: Page, rebuildHeader = false) {
 
   // protect to see the site without login
   if (protectedPages.includes(page) && !state.appState.currentUser) {
@@ -33,26 +39,61 @@ export function render(page: Page) {
     return;
   }
 
-  app.innerHTML = '';
-  const container = document.createElement('div');
-  container.className = 'bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-5 w-full max-w-[900px] mx-auto text-center';
-  container.appendChild(header());
+  // If this is the first render, create container/header/main
+  if (!_appContainer) {
+    app.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-5 w-full max-w-[900px] mx-auto text-center';
+    const hdr = header();
+    container.appendChild(hdr);
 
-  const main = document.createElement('main');
-  main.className = 'mt-6';
+    const main = document.createElement('main');
+    main.className = 'mt-6';
 
-  if (page === 'login') main.appendChild(loginContent());
-  if (page === 'register') main.appendChild(registerContent());
-  if (page === 'home') main.appendChild(homeContent());
-  if (page === 'versus') main.appendChild(versusContent());
-  if (page === 'tournament') main.appendChild(tournamentContent());
-  if (page === 'add-user') main.appendChild(addUserContent());
-  if (page === 'profile') main.appendChild(profileContent());
-  if (page === 'online') main.appendChild(onlineContent());
+    container.appendChild(main);
+    app.appendChild(container);
 
-  container.appendChild(main);
+    _appContainer = container;
+    _appMain = main;
+    _lastHeaderUserId = state.appState.currentUser?.id ?? null;
+  } else {
+    // If we detect a change of the logged user (login/logout or different user) or caller forced it,
+    // recreate the header only in that case.
+    const currentUserId = state.appState.currentUser?.id ?? null;
+    if (rebuildHeader || _lastHeaderUserId !== currentUserId) {
+      try {
+        const newHdr = header();
+        const oldHdr = _appContainer!.querySelector('header');
+        if (oldHdr) _appContainer!.replaceChild(newHdr, oldHdr);
+      } catch (e) {
+        // fallback: if anything goes wrong, recreate the entire container
+        app.innerHTML = '';
+        const container = document.createElement('div');
+        container.className = 'bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-5 w-full max-w-[900px] mx-auto text-center';
+        container.appendChild(header());
+        const main = document.createElement('main');
+        main.className = 'mt-6';
+        container.appendChild(main);
+        app.appendChild(container);
+        _appContainer = container;
+        _appMain = main;
+      }
+      _lastHeaderUserId = currentUserId;
+    }
+  }
 
-  app.appendChild(container);
+  // now update only the main content
+  if (!_appMain) return; // defensive
+  _appMain.innerHTML = '';
+
+  if (page === 'login') _appMain.appendChild(loginContent());
+  if (page === 'register') _appMain.appendChild(registerContent());
+  if (page === 'home') _appMain.appendChild(homeContent());
+  if (page === 'versus') _appMain.appendChild(versusContent());
+  if (page === 'tournament') _appMain.appendChild(tournamentContent());
+  if (page === 'add-user') _appMain.appendChild(addUserContent());
+  if (page === 'profile') _appMain.appendChild(profileContent());
+  if (page === 'online') _appMain.appendChild(onlineContent());
 }
 
 function header(): HTMLElement {
@@ -141,7 +182,8 @@ function header(): HTMLElement {
           // persist the session preference locally so pages that re-fetch the user don't overwrite it
           try { localStorage.setItem('language_session', newLang); } catch (e) { /* ignore */ }
         } catch (e) {}
-        window.location.reload();
+        // re-render the current page and force the header to be rebuilt so language UI updates
+        render(getHashPage(), true);
       });
     }
 
