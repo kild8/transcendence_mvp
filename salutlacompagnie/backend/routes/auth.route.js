@@ -5,13 +5,9 @@ const { getUserFromReq } = require('../auth_utils');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change_me_in_prod';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const FRONTEND_BASE = process.env.FRONTEND_BASE || 'http://localhost:8080';
 
 module.exports = async function authRoutes(fastify, opts) {
-  // authPreHandler should be decorated by server or this plugin earlier.
-  // If not decorated, provide a fallback using local logic.
   if (!fastify.authPreHandler) {
     const { authPreHandler } = require('../auth_utils');
     fastify.decorate('authPreHandler', authPreHandler);
@@ -103,7 +99,6 @@ module.exports = async function authRoutes(fastify, opts) {
     const redirectUri = `${FRONTEND_BASE}/api/auth/google/callback`;
     const scope = encodeURIComponent('openid email profile');
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth`
-      + `?client_id=${encodeURIComponent(GOOGLE_CLIENT_ID)}`
       + `&redirect_uri=${encodeURIComponent(redirectUri)}`
       + `&response_type=code`
       + `&scope=${scope}`
@@ -112,55 +107,79 @@ module.exports = async function authRoutes(fastify, opts) {
     return reply.redirect(authUrl);
   });
 
-  // Callback Google
-  fastify.get('/api/auth/google/callback', async (req, reply) => {
+fastify.get('/api/auth/google/callback', async (req, reply) => {
+  const code = req.query.code;
+  if (!code) return reply.redirect(`${FRONTEND_BASE}/#login?error=no_code`);
+
+  const redirectUri = `${FRONTEND_BASE}/api/auth/google/callback`;
+
+  // 1️⃣ Obtenir le token d'accès
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code'
+    })
+  });
+  const tokenJson = await tokenRes.json();
+  if (!tokenJson.access_token) {
+    fastify.log.warn({ tokenJson }, 'no access_token');
+    return reply.redirect(`${FRONTEND_BASE}/#login?error=token`);
+  }
+
+  // 2️⃣ Obtenir le profil de l'utilisateur
+  const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${tokenJson.access_token}` }
+  });
+  const profile = await profileRes.json();
+  const email = profile.email;
+  const name = profile.name || (profile.email ? profile.email.split('@')[0] : 'Unknown');
+
+  // 3️⃣ Vérifier si l'utilisateur existe déjà
+  let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+  if (!user) {
+    // 🔹 Vérifier si le name existe déjà dans la DB
+    const existingName = db.prepare('SELECT * FROM users WHERE name = ?').get(name);
+    if (existingName) {
+      // Si le pseudo existe, on envoie une réponse claire
+      return reply.redirect(`${FRONTEND_BASE}/#login?error=name_taken`);
+    }
+
+    // 🔹 Créer le nouvel utilisateur
     try {
-      const code = req.query.code;
-      if (!code) return reply.redirect(`${FRONTEND_BASE}/#login?error=no_code`);
-
-      const redirectUri = `${FRONTEND_BASE}/api/auth/google/callback`;
-
-      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code,
-          client_id: GOOGLE_CLIENT_ID,
-          client_secret: GOOGLE_CLIENT_SECRET,
-          redirect_uri: redirectUri,
-          grant_type: 'authorization_code'
-        })
-      });
-      const tokenJson = await tokenRes.json();
-      if (!tokenJson.access_token) {
-        fastify.log.warn({ tokenJson }, 'no access_token');
-        return reply.redirect(`${FRONTEND_BASE}/#login?error=token`);
-      }
-
-      const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${tokenJson.access_token}` }
-      });
-      const profile = await profileRes.json();
-      const email = profile.email;
-      const name = profile.name || (profile.email ? profile.email.split('@')[0] : 'Unknown');
-
-      let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-      if (!user) {
-        db.prepare('INSERT INTO users (name, email) VALUES (?, ?)').run(name, email);
-        user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-      } else {
-        if (user.name !== name) db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, user.id);
-      }
-
-      const payload = { id: user.id, email: user.email };
-      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-      reply.header('Set-Cookie', `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`);
-      return reply.redirect(`${FRONTEND_BASE}/#home`);
+      db.prepare('INSERT INTO users (name, email) VALUES (?, ?)').run(name, email);
+      user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     } catch (err) {
-      fastify.log.error({ err }, 'google callback failed');
+      fastify.log.error({ err }, 'failed to create user');
       return reply.redirect(`${FRONTEND_BASE}/#login?error=server`);
     }
-  });
+  } else {
+    // 🔹 Si l'utilisateur existe mais que le nom a changé, mettre à jour
+    if (user.name !== name) {
+      try {
+        db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, user.id);
+        user.name = name; // mettre à jour l'objet user
+      } catch (err) {
+        fastify.log.error({ err }, 'failed to update name');
+        return reply.redirect(`${FRONTEND_BASE}/#login?error=server`);
+      }
+    }
+  }
+
+  // 4️⃣ Créer le JWT avec id + email
+  const payload = { id: user.id, email: user.email };
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+
+  reply.header(
+    'Set-Cookie',
+    `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax`
+  );
+
+  return reply.redirect(`${FRONTEND_BASE}/#home`);
+});
 
   // route for the front to know if user is log
   fastify.get('/api/me', async (req, reply) => {

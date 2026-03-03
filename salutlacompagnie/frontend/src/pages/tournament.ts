@@ -126,14 +126,6 @@ export function tournamentContent(): HTMLElement {
   state.appState.players = players;
     localStorage.setItem('mvp_players', JSON.stringify(players));
 
-    try {
-      await fetch('/api/start-tournament', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ players }),
-      });
-    } catch {}
-
       runTournament(players, state.WINNING_SCORE);
   });
 

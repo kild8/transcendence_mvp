@@ -66,22 +66,7 @@ function dbQueryWrap(query, mode = 'get', params = []) {
     // Health check
 fastify.get("/api/health", async () => ({ status: "ok" }));
 
-
-    // ----------- TOURNOIS -----------
-let lastPlayers = [];
-    
-fastify.post("/api/start-tournament", async (req, reply) => {
-	const { players } = req.body || {};
-      
-	if (!Array.isArray(players) || players.length < 2) {
-		return reply.status(400).send({ error: "Server.INVALID_PLAYERS_ARRAY" });
-	}
-      
-	lastPlayers = players;
-	return { ok: true, players: lastPlayers };
-});
-    
-// user routes moved to routes/user.route.js
+//Match history
 
 fastify.post('/api/matches/ws', async (req, reply) => {
   const secret = req.headers['x-ws-secret'];

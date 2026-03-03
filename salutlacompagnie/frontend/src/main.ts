@@ -41,11 +41,7 @@ async function checkAuth() {
       // open presence websocket client (keeps user online)
       try {
         if (!state.appState.ws) {
-          const presenceClient = createPresenceSocket(() => {
-            console.log('presence socket opened');
-          }, () => {
-            console.log('presence socket closed');
-          });
+          const presenceClient = createPresenceSocket;
           // store the client (has .close())
           // presenceClient exposes .socket and .close(); store the wrapper object
           state.appState.ws = presenceClient as unknown as WebSocket;

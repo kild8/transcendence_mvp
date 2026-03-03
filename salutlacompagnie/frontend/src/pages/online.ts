@@ -72,7 +72,6 @@ export function onlineContent(): HTMLElement {
   };
   lobbyWs.onmessage = (e) => {
     const data = JSON.parse(e.data);
-    console.log("LOBBY WS: ", data);
     if (data.type === "rooms-update") {
       renderRooms(data.roomsData);
     }
@@ -106,7 +105,6 @@ export function onlineContent(): HTMLElement {
 
   // ----------- CREATE ROOM ----------
   const createRoom = async (type: "1v1" | "tournament") => {
-    console.log("le pseudo est:", pseudo);
     if (!pseudo) return alert(t(state.lang, "Online.ERROR_PSEUDO_FETCH"));
     try {
       const res = await fetch("/api/rooms", {
@@ -178,7 +176,6 @@ export function onlineContent(): HTMLElement {
       ctx.fillText(t(state.lang, "Online.WAITING_FOR_HOST"), 250, 240);
     }
     startBtn.onclick = () => {
-      console.log("Start tournament clicked");
       ws.send(JSON.stringify({ type: "start-game", roomId }));
       // disable while waiting for server confirmation instead of hiding immediately
       startBtn.disabled = true;
