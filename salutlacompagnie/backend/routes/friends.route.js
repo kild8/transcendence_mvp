@@ -1,5 +1,4 @@
-const Database = require('better-sqlite3');
-const db = new Database('./data/database.sqlite');
+const db = require('../db_init');
 const jwt = require('jsonwebtoken');
 
 module.exports = async function friendsRoutes(fastify, opts) {
