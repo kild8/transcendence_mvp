@@ -17,6 +17,12 @@ cloud-up:
 cloud-down:
 	TUNNEL_URL_DIR_PATH=$(TUNNEL_URL_DIR_PATH) docker compose -f $(CURDIR)/cloudflared/docker-compose.yml -p $(PROJECT_NAME) down
 
+stop:
+	@$(DOCKER_COMPOSE_COMMAND) stop $(RESTART_TARGET)
+
+start:
+	@$(DOCKER_COMPOSE_COMMAND) start $(RESTART_TARGET)
+
 up:
 	@mkdir -p $(SECRETS_DIR_PATH) && chmod 777 $(SECRETS_DIR_PATH)
 	@mkdir  -p $(VAULT_ACCESS_DIR_PATH) && chmod 777 $(VAULT_ACCESS_DIR_PATH)

@@ -441,7 +441,7 @@ export function profileContent(): HTMLElement {
         const removeBtn = row.querySelector('.remove-friend') as HTMLButtonElement;
         removeBtn.addEventListener('click', async () => {
           await fetch('/api/friends/remove', {
-            method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+            method: 'DELETE', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ friend_id: f.id })
           });
           await loadFriendsList();

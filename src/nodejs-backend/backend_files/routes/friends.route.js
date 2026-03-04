@@ -100,7 +100,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
   });
 
   // Supprimer un ami
-  fastify.post('/api/friends/remove', { preHandler: async (req, reply) => {
+  fastify.delete('/api/friends/remove', { preHandler: async (req, reply) => {
     const { authPreHandler } = require('../auth_utils');
     const h = fastify.authPreHandler || opts.authPreHandler || authPreHandler;
     return await h(req, reply);
