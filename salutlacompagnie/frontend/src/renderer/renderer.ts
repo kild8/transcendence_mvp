@@ -67,18 +67,18 @@ function header(): HTMLElement {
   const node = elFromHTML(html);
   const right = node.querySelector('#header-right') as HTMLElement;
 
-  // Si l'utilisateur est connecté -> afficher son avatar + nom + profile + logout
+  // if user is logged -> show avatar, name, profile and logout 
   if (state.appState.currentUser) {
     const name = state.appState.currentUser.name || t(state.lang, "Renderer.USER");
     // compute avatar src:
   const rawAvatar = state.appState.currentUser?.avatar;
     const avatarSrc = (function () {
       if (!rawAvatar) return '/default-avatar.png';
-      // si c'est déjà un chemin (contient /) on le prend tel quel (relatif ou absolu)
+      // if already a path we keep it
       if (String(rawAvatar).includes('/')) {
         return String(rawAvatar).startsWith('/') ? String(rawAvatar) : `/${String(rawAvatar)}`;
       }
-      // sinon on suppose que c'est un filename stocké dans /api/uploads/
+      // /api/uploads
       return `/api/uploads/${String(rawAvatar)}`;
     })();
 
@@ -109,26 +109,23 @@ function header(): HTMLElement {
       render(getHashPage());
     });
 
-    // clique sur le pseudo renvoie aussi au profile
     usernameEl.addEventListener('click', (e) => {
       e.preventDefault();
       navigateTo('profile');
       render(getHashPage());
     });
 
-    // clique sur l'avatar renvoie aussi au profile
     if (avatarEl) {
       avatarEl.addEventListener('click', (e) => {
         e.preventDefault();
         navigateTo('profile');
         render(getHashPage());
       });
-      // en cas d'erreur de chargement, fallback
+      // fallback
       avatarEl.onerror = () => { avatarEl.src = '/default-avatar.png'; };
     }
 
     // language selector: do NOT persist immediately to backend. Only update a session-level preference
-    // The profile page saves the persisted user preference (language) and should also update language_session.
     if (langSelect) {
       try { langSelect.value = state.lang; } catch (e) { /* ignore */ }
       langSelect.addEventListener('change', async () => {
@@ -159,7 +156,6 @@ function header(): HTMLElement {
       try {
         const lw = state.appState.lobbyWs;
         if (lw && typeof lw.close === 'function') lw.close();
-        // keep lobbyWs property but null it out for safety
         state.appState.lobbyWs = null;
       } catch (e) {}
       try {
@@ -174,14 +170,14 @@ function header(): HTMLElement {
     });
 
   } else {
-    // non connecté -> ne rien afficher dans l'entête
+    // if not logged no header
     right.innerHTML = '';
   }
 
   return node;
 }
 
-/* petit utilitaire pour échapper le HTML (sécurité XSS pour le nom affiché) */
+// util to escape HTML (security for XSS)
 function escapeHtml(s: string) {
   return String(s)
     .replace(/&/g, "&amp;")
