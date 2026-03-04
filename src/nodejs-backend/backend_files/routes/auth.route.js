@@ -2,7 +2,7 @@ const db = require('../db_init');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { getUserFromReq } = require('../auth_utils');
-const { loginCounter, logoutCounter } = require("./metrics.js");
+const { loginCounter, logoutCounter } = require("../metrics.js");
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;

@@ -5,7 +5,7 @@ const physics = require('./physics');
 const gameManager = require('./gameManager');
 const roomUtils = require('./roomUtils');
 
-const { roomIDTimestampsArray, gamesInProgress, exitedGamesCounter} = require("./metrics.js");
+const { roomIDTimestampsArray, gamesInProgress, exitedGamesCounter} = require("../metrics.js");
 
 //utils to notify the players
 const broadcastRoomUpdate = roomUtils.broadcastRoomUpdate;

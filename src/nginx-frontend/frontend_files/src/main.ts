@@ -41,10 +41,11 @@ async function checkAuth() {
       // open presence websocket client (keeps user online)
       try {
         if (!state.appState.ws) {
-          const presenceClient = createPresenceSocket;
-          // store the client (has .close())
-          // presenceClient exposes .socket and .close(); store the wrapper object
+          // actually create the presence socket (call the factory) instead of assigning the function reference
+          const presenceClient = createPresenceSocket();
+          // store the client wrapper
           state.appState.ws = presenceClient as unknown as WebSocket;
+          try { (window as unknown as Record<string, unknown>)['__presenceClient'] = presenceClient; } catch (e) {}
         }
       } catch (e) {
         console.warn('Failed to open presence socket', e);

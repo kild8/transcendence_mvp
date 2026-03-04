@@ -20,7 +20,7 @@ cloud-down:
 up:
 	@mkdir -p $(SECRETS_DIR_PATH) && chmod 777 $(SECRETS_DIR_PATH)
 	@mkdir  -p $(VAULT_ACCESS_DIR_PATH) && chmod 777 $(VAULT_ACCESS_DIR_PATH)
-	@$(DOCKER_COMPOSE_COMMAND) up -d
+	@$(DOCKER_COMPOSE_COMMAND) up -d --build
 	@echo Done
 
 down:

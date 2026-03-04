@@ -5,7 +5,7 @@ const { getFastifyInstance } = require('./ws_config');
 const { broadcastRoomUpdate } = require('./roomUtils');
 const TICK_MS = 1000 / 60; // default tick, physics.step uses TICK_RATE conceptually
 
-const { roomIDTimestampsArray, totalEndedGames, gamesInProgress, gamesDuration} = require("./metrics.js");
+const { roomIDTimestampsArray, totalEndedGames, gamesInProgress, gamesDuration} = require("../metrics.js");
 
 //MAIN GOAL OF THIS FILE: Set up the game, start the match, go to next tournament game, run game loop, save match to DB
 
