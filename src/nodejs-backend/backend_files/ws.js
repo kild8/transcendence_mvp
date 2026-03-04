@@ -1,5 +1,4 @@
 // This file describes setup and execution of the websockets and delegates
-// grouped logic to modules to improve visibility and maintainability.
 
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
@@ -26,14 +25,14 @@ function getOnlineUserIds() {
   return Array.from(presenceCounts.keys()).map(k => Number(k));
 }
 
-function initWebSocket(serverOrFastify) {
+function initWebSocket(instance) {
   // support being passed either the fastify instance or the raw http.Server
   let wss;
-  if (serverOrFastify && typeof serverOrFastify.inject === 'function') {
-    setFastifyInstance(serverOrFastify);
-    wss = new WebSocket.Server({ server: serverOrFastify.server });
+  if (instance && typeof instance.inject === 'function') {
+    setFastifyInstance(instance);
+    wss = new WebSocket.Server({ server: instance.server });
   } else {
-    wss = new WebSocket.Server({ server: serverOrFastify });
+    wss = new WebSocket.Server({ server: instance });
   }
   setWss(wss);
   console.log('WebSocket server initialized');
