@@ -1,7 +1,7 @@
 const { getWss } = require('./ws_config');
 const WebSocket = require('ws');
 const { rooms } = require('../roomStore');
-
+//help to transfer the room data properly
 function serializeRoom(room) {
   return {
     id: room.id,
@@ -12,7 +12,7 @@ function serializeRoom(room) {
     participants: room.participants.map(p => p.pseudo),
   };
 }
-
+//send the state of the room to all the players
 function broadcastRoomUpdate() {
   const wss = getWss();
   if (!wss) return;

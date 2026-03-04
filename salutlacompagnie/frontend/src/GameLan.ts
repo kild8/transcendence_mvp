@@ -1,5 +1,6 @@
 import { t } from "./lang/langIndex.js";
 import { state } from "./state.js";
+//this file is draw the game while in online play. it does not calculate physics
 
 interface Vector2D { x: number; y: number; }
 interface PaddleState { position: Vector2D; width: number; height: number; score: number; }
@@ -10,7 +11,6 @@ interface GameState {
     paddles: { player1: PaddleState; player2: PaddleState };
     scores: { player1: number; player2: number }
 }
-
 export class PongGameLan {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
@@ -39,6 +39,7 @@ export class PongGameLan {
         }
         this.player1Name = player1;
         this.player2Name = player2;
+		//send input
         document.addEventListener("keydown", e => {
             if (e.key === "ArrowUp" || e.key === "ArrowDown") {
                 e.preventDefault();
@@ -87,7 +88,7 @@ export class PongGameLan {
         this.ctx.stroke();
         this.ctx.setLineDash([]);
 
-        // draw triangular obstacles (top and bottom centered)
+        // triangles
         const drawTriangle = (x: number, y: number, size: number, pointingUp: boolean) => {
             this.ctx.fillStyle = "white";
             this.ctx.beginPath();
@@ -106,19 +107,19 @@ export class PongGameLan {
 
         drawTriangle(this.canvas.width / 2, 0, 20, false);
         drawTriangle(this.canvas.width / 2, this.canvas.height - 20, 20, true);
-        //Scores
+        // score
         this.ctx.font = "12px monospace";
         this.ctx.fillStyle = "white";
-        //Player1
+        // player1 name and score
         this.ctx.textAlign = "left";
         this.ctx.fillText(`${this.player1Name}`, 20, 20);
         this.ctx.fillText(`${this.paddles.player1.score}`, 20, 35);
-        //Player2
+        // player2 name and score
         this.ctx.textAlign = "right";
         this.ctx.fillText(`${this.player2Name}`, this.canvas.width - 20, 20);
         this.ctx.fillText(`${this.paddles.player2.score}`, this.canvas.width - 20, 35);
         
-
+		//display the countdown
         if (this.countdown !== null) {
             this.ctx.fillStyle = "rgba(0,0,0,0.6)";
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -136,7 +137,7 @@ export class PongGameLan {
         }
     
     }
-
+	//draw the paddle of the players
     private drawPaddle(p: PaddleState) {
         this.ctx.fillStyle = "white";
         this.ctx.fillRect(p.position.x, p.position.y, p.width, p.height);

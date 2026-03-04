@@ -70,7 +70,7 @@ class Ball {
     this.velocity.x = (Math.random() > 0.5 ? 1 : -1) * Math.abs(this.initialVelocity.x);
     this.velocity.y = (Math.random() > 0.5 ? 1 : -1) * Math.abs(this.initialVelocity.y);
     }
-
+	//update the behavior of the ball, based on position and collisions
     update(canvasWidth: number, canvasHeight: number, left: Paddle, right: Paddle) {
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
@@ -116,7 +116,7 @@ class Ball {
         ctx.fillRect(this.position.x, this.position.y, this.size, this.size);
     }
 }
-
+//small triangles in the middle to change the ball trajectory
 class Obstacle {
     position: Vector2D;
     size: number;
@@ -223,7 +223,7 @@ class Game {
         document.removeEventListener("keydown", this.keydownHandler);
         document.removeEventListener("keyup", this.keyupHandler);
     }
-
+	//update the collisions, the paddle movements
     update() {
         if (this.countdown !== null)
         {
@@ -244,7 +244,7 @@ class Game {
         if (this.leftPaddle.score >= this.winningScore) this.handleWin(this.leftName, this.rightName, `${this.leftPaddle.score}:${this.rightPaddle.score}`);
         if (this.rightPaddle.score >= this.winningScore) this.handleWin(this.rightName, this.leftName, `${this.rightPaddle.score}:${this.leftPaddle.score}`);
     }
-
+	//draw onto the canvas using this.ctx
     draw() {
         this.ctx.fillStyle = "black";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);

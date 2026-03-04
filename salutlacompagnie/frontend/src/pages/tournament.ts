@@ -4,6 +4,7 @@ import { navigateTo } from '../router.js';
 import { runTournament } from '../renderer/render-tournament.js';
 import { t } from '../lang/langIndex.js';
 
+//display the content of the local tournament
 export function tournamentContent(): HTMLElement {
   const html = `
     <section>
@@ -44,14 +45,14 @@ export function tournamentContent(): HTMLElement {
   const start = node.querySelector('#start') as HTMLButtonElement | null;
 
 
-  /* ---------- BACK ---------- */
+  // back button
   back?.addEventListener('click', () => {
     state.currentGame?.stop?.();
     state.currentGame = null;
     navigateTo('home');
   });
 
-  /* ---------- SLOTS ---------- */
+  // Slots
   for (let i = 0; i < state.MAX_TOURNAMENT_PLAYERS; i++) {
     const slot = elFromHTML(`
       <div class="p-2 border rounded-lg bg-slate-50">
@@ -70,7 +71,7 @@ export function tournamentContent(): HTMLElement {
     if (input) input.addEventListener('input', updateCount);
   }
 
-  /* ---------- HELPERS ---------- */
+  //read the players from the inputs
   function readPlayers(): string[] {
     return Array.from({ length: state.MAX_TOURNAMENT_PLAYERS })
       .map((_, i) => {
@@ -84,7 +85,7 @@ export function tournamentContent(): HTMLElement {
     if (countEl) countEl.textContent = String(readPlayers().length);
   }
 
-  /* ---------- FILL ---------- */
+  // fill button to randomize names
   fill?.addEventListener('click', () => {
     const samples = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel'];
 
@@ -96,7 +97,7 @@ export function tournamentContent(): HTMLElement {
     updateCount();
   });
 
-  /* ---------- CLEAR ---------- */
+  //clear button to reset the names
   clear?.addEventListener('click', () => {
     for (let i = 0; i < state.MAX_TOURNAMENT_PLAYERS; i++) {
       const input = node.querySelector(`#player-${i}`) as HTMLInputElement | null;
@@ -106,7 +107,7 @@ export function tournamentContent(): HTMLElement {
     updateCount();
   });
 
-  /* ---------- START ---------- */
+  // start button
   start?.addEventListener('click', async () => {
     const players = readPlayers();
 
@@ -115,7 +116,7 @@ export function tournamentContent(): HTMLElement {
       return;
     }
 
-    // Prevent duplicate player names (same rule as local duel)
+    // prevent duplicate player names
     const lower = players.map(p => p.toLowerCase());
     const hasDup = lower.some((p, i) => lower.indexOf(p) !== i);
     if (hasDup) {

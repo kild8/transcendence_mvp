@@ -57,28 +57,30 @@ export function render(page: Page) {
 
 function header(): HTMLElement {
   const html = `
-    <header class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-semibold">Transcendence PONG</h1>
-      </div>
-      <div id="header-right" class="flex items-center gap-3"></div>
-    </header>
+	<header class="flex items-center justify-between">
+	<div>
+		<h1 class="text-2xl font-semibold">
+		<a href="/" class="hover:underline">Transcendence PONG</a>
+		</h1>
+	</div>
+	<div id="header-right" class="flex items-center gap-3"></div>
+	</header>
   `;
   const node = elFromHTML(html);
   const right = node.querySelector('#header-right') as HTMLElement;
 
-  // if user is logged -> show avatar, name, profile and logout 
+  // Si l'utilisateur est connecté -> afficher son avatar + nom + profile + logout
   if (state.appState.currentUser) {
     const name = state.appState.currentUser.name || t(state.lang, "Renderer.USER");
     // compute avatar src:
   const rawAvatar = state.appState.currentUser?.avatar;
     const avatarSrc = (function () {
       if (!rawAvatar) return '/default-avatar.png';
-      // if already a path we keep it
+      // si c'est déjà un chemin (contient /) on le prend tel quel (relatif ou absolu)
       if (String(rawAvatar).includes('/')) {
         return String(rawAvatar).startsWith('/') ? String(rawAvatar) : `/${String(rawAvatar)}`;
       }
-      // /api/uploads
+      // sinon on suppose que c'est un filename stocké dans /api/uploads/
       return `/api/uploads/${String(rawAvatar)}`;
     })();
 
@@ -87,9 +89,9 @@ function header(): HTMLElement {
         <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full cursor-pointer" />
         <div class="text-sm text-[#9ca3af]">${t(state.lang, "Renderer.HELLO")} <strong id="hdr-username">${escapeHtml(name)}</strong></div>
         <select id="hdr-lang"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
-          <option value="en" class="bg-gray-800 text-white">EN</option>
-          <option value="fr" class="bg-gray-800 text-white">FR</option>
-          <option value="de" class="bg-gray-800 text-white">DE</option>
+			<option value="en" class="bg-gray-800 text-white">EN</option>
+			<option value="fr" class="bg-gray-800 text-white">FR</option>
+			<option value="de" class="bg-gray-800 text-white">DE</option>
         </select>
         <button id="hdr-profile" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "Renderer.PROFILE")}</button>
         <button id="hdr-logout" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "Renderer.LOGOUT")}</button>
@@ -109,23 +111,26 @@ function header(): HTMLElement {
       render(getHashPage());
     });
 
+    // clique sur le pseudo renvoie aussi au profile
     usernameEl.addEventListener('click', (e) => {
       e.preventDefault();
       navigateTo('profile');
       render(getHashPage());
     });
 
+    // clique sur l'avatar renvoie aussi au profile
     if (avatarEl) {
       avatarEl.addEventListener('click', (e) => {
         e.preventDefault();
         navigateTo('profile');
         render(getHashPage());
       });
-      // fallback
+      // en cas d'erreur de chargement, fallback
       avatarEl.onerror = () => { avatarEl.src = '/default-avatar.png'; };
     }
 
     // language selector: do NOT persist immediately to backend. Only update a session-level preference
+    // The profile page saves the persisted user preference (language) and should also update language_session.
     if (langSelect) {
       try { langSelect.value = state.lang; } catch (e) { /* ignore */ }
       langSelect.addEventListener('change', async () => {
@@ -156,6 +161,7 @@ function header(): HTMLElement {
       try {
         const lw = state.appState.lobbyWs;
         if (lw && typeof lw.close === 'function') lw.close();
+        // keep lobbyWs property but null it out for safety
         state.appState.lobbyWs = null;
       } catch (e) {}
       try {
@@ -170,14 +176,14 @@ function header(): HTMLElement {
     });
 
   } else {
-    // if not logged no header
+    // non connecté -> ne rien afficher dans l'entête
     right.innerHTML = '';
   }
 
   return node;
 }
 
-// util to escape HTML (security for XSS)
+/* petit utilitaire pour échapper le HTML (sécurité XSS pour le nom affiché) */
 function escapeHtml(s: string) {
   return String(s)
     .replace(/&/g, "&amp;")

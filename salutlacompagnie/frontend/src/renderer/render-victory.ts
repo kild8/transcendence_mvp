@@ -4,10 +4,11 @@ import { elFromHTML } from "../utils.js";
 import { navigateTo, getHashPage } from "../router.js";
 import { t } from "../lang/langIndex.js";
 
+//render the victory of the 1v1 local match
 export function renderVictory(winner: string, loser: string, score: string, leftName?: string, rightName?: string) {
-  // assure stop instance active
+  // ve
   if (state.currentGame && typeof state.currentGame.stop === 'function') {
-    try { state.currentGame.stop(); } catch(e) { console.warn('failed to stop state.currentGame', e); }
+    state.currentGame.stop;
     state.currentGame = null;
   }
 
@@ -25,13 +26,13 @@ export function renderVictory(winner: string, loser: string, score: string, left
   const node = elFromHTML(html);
   app.appendChild(node);
 
-  // handlers
+  // back and replay buttons
   const replayBtn = document.getElementById('replay') as HTMLButtonElement | null;
   const backBtn = document.getElementById('back') as HTMLButtonElement | null;
-
+  //replay button behavior
   if (replayBtn) {
     replayBtn.addEventListener('click', () => {
-      // Stop any existing game (safety)
+      // Stop any existing game
       if (state.currentGame && typeof state.currentGame.stop === 'function') {
         try { state.currentGame.stop(); } catch(e) { console.warn(e); }
         state.currentGame = null;
@@ -49,7 +50,7 @@ export function renderVictory(winner: string, loser: string, score: string, left
       wrap.className = 'card';
       wrap.innerHTML = canvasHtml;
       app.appendChild(wrap);
-
+	  //load the game inside the window
   const GameClassLocal = window.PongGame;
       if (!GameClassLocal) {
         alert(t(state.lang, "Versus.GAME_MISSING"));
@@ -66,7 +67,7 @@ export function renderVictory(winner: string, loser: string, score: string, left
         renderVictory(w, l, s, leftName, rightName);
       });
 
-      // attach back button to stop and go home
+      // back button
       const backToMenu = document.getElementById('back-to-menu');
       if (backToMenu) {
         backToMenu.addEventListener('click', () => {
@@ -83,7 +84,6 @@ export function renderVictory(winner: string, loser: string, score: string, left
 
   if (backBtn) {
     backBtn.addEventListener('click', () => {
-      // stop if any
       if (state.currentGame && typeof state.currentGame.stop === 'function') {
         try { state.currentGame.stop(); } catch(e) { console.warn(e); }
         state.currentGame = null;

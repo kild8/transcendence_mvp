@@ -5,6 +5,9 @@ const { getFastifyInstance } = require('./ws_config');
 const { broadcastRoomUpdate } = require('./roomUtils');
 const TICK_MS = 1000 / 60; // default tick, physics.step uses TICK_RATE conceptually
 
+//MAIN GOAL OF THIS FILE: Set up the game, start the match, go to next tournament game, run game loop, save match to DB
+
+//Set up the game parameters, positions, notify players through ws, sets countdown and start the game
 function start1v1Match(room) {
   if (room.participants.length < 2) return;
 
@@ -39,6 +42,7 @@ function start1v1Match(room) {
   startGameLoop(room);
 }
 
+//main function to handle the game loop, sends the countdown
 function startGameLoop(room) {
   if (room.tickId) return;
   room.tickId = setInterval(async () => {
@@ -96,6 +100,7 @@ function startGameLoop(room) {
   }, TICK_MS);
 }
 
+//set the game over and notify the players
 async function setGameOver(room, winnerRole) {
   if (room.state === ROOM_STATE.GAME_OVER) return;
   room.state = ROOM_STATE.GAME_OVER;
@@ -122,6 +127,7 @@ async function setGameOver(room, winnerRole) {
   room.disconnectedPlayer = null;
   room.lastGameResult = null;
 
+  //function to save history to the DB
   async function saveMatchToDB({ player1, player2, score1, score2 }) {
     const body = { player1, player2, score_player1: score1, score_player2: score2 };
     try {
@@ -162,6 +168,7 @@ async function setGameOver(room, winnerRole) {
 
   await saveMatchToDB({ player1: room.players.player1.pseudo, player2: room.players.player2.pseudo, score1: room.paddles.player1.score, score2: room.paddles.player2.score });
 
+  //delete the room if it is 1v1
   if (room.type !== 'tournament') {
     deleteRoom(room.id);
     broadcastRoomUpdate();
@@ -173,10 +180,11 @@ async function setGameOver(room, winnerRole) {
   }
 }
 
+//advance between the tournament match online
 function startNextTournamentMatch(room) {
   const tournament = room.tournament;
   if (!tournament) return;
-
+	//alert
   if (tournament.waitingForHost) {
     console.log('startNextTournamentMatch: waiting for host confirmation, aborting start');
     return;
@@ -184,13 +192,15 @@ function startNextTournamentMatch(room) {
 
   let match = getNextMatch(tournament);
   if (!match) {
+	//if the length is 1, means the tournament is over and notify the players
     if (tournament.nextRound.length === 1) {
       room.state = ROOM_STATE.TOURNAMENT_OVER;
       const winner = tournament.nextRound[0];
       room.participants.forEach(p => { if (p.ws.readyState === 1) p.ws.send(JSON.stringify({ type: 'tournament-end', winner })); });
       tournament.inProgress = false;
       return;
-    } else if (tournament.nextRound.length > 1) {
+    } // if the length is more than 1, the tournament is not over, starts the next round, randomize matchups, notify players 
+	else if (tournament.nextRound.length > 1) {
       tournament.players = [...tournament.nextRound];
       tournament.nextRound = [];
       generateMatches(tournament);
@@ -215,7 +225,7 @@ function startNextTournamentMatch(room) {
 
   room.players.player1 = room.participants.find(p => p.pseudo === p1);
   room.players.player2 = room.participants.find(p => p.pseudo === p2);
-
+  //reset the scores and the ball
   room.paddles.player1.score = 0;
   room.paddles.player2.score = 0;
   room.lastInputs.player1 = null;
@@ -231,7 +241,7 @@ function startNextTournamentMatch(room) {
       player.ws.send(JSON.stringify({ type: 'start-game', roomId: room.id, role, player1: p1, player2: p2 }));
     }
   });
-
+  //set the countdown, reset the infos, and start the game loop
   room.state = ROOM_STATE.COUNTDOWN;
   room.countdownSeconds = 10;
   room.countdownStart = Date.now();

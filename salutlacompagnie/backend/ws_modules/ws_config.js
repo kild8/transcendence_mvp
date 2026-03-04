@@ -1,4 +1,4 @@
-// Small shared config for ws modules (holds fastify instance and wss reference)
+// setters and getters for ws modules and fastify instance
 let fastifyInstance = null;
 let wssInstance = null;
 

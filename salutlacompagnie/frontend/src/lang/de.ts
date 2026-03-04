@@ -1,3 +1,5 @@
+//Deutsch/German dictionnary
+
 export default {
   Friends: {
     //friends.route.js
@@ -24,6 +26,7 @@ export default {
     //server.js
     UNAUTHORIZED: "Nicht autorisiert",
     NAME_EMAIL_PASSWORD_REQUIRED: "Name, Email und Passwort erforderlich",
+	INVALID_NAME: "Ungültiges name-Format, nur Buchstaben und Nummern",
     INVALID_EMAIL_FORMAT: "Ungültiges E-Mail-Format",
     PASSWORD_TOO_SHORT: "Passwort muss mindestens 8 Zeichen lang sein",
     EMAIL_ALREADY_IN_USE: "Email bereits verwendet",

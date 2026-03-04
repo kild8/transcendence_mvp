@@ -36,7 +36,7 @@ fastify.get("/api/user/:name", async (req, reply) => {
 });
 
   // Update user (name / language)
-  fastify.put('/api/user/me', { preHandler: fastify.authPreHandler }, async (req, reply) => {
+  fastify.patch('/api/user/me', { preHandler: fastify.authPreHandler }, async (req, reply) => {
     req.log.debug('Route Healthy');
     try {
       const user = req.user;
@@ -47,30 +47,33 @@ fastify.get("/api/user/:name", async (req, reply) => {
           req.log.debug('Name required');
           return reply.status(400).send({ ok: false, error: 'Name required' });
         }
+
+	const nameStr = String(name).trim();
+      const nameRe = /^[a-zA-Z0-9 ]{1,20}$/;
+
+      if (!nameStr || !nameRe.test(nameStr)) {
+        return reply.status(400).send({ ok: false, error: 'Server.INVALID_NAME' });
+      }
+
         const existing = dbQueryWrap('SELECT id FROM users WHERE name = ? AND id != ?', 'get', [name, user.id]);
         if (existing) {
-          req.log.debug({ name }, 'Name already in use');
-          return reply.status(400).send({ ok: false, error: 'Name already in use' });
+          return reply.status(400).send({ ok: false, error: "Server.NAME_ALREADY_IN_USE" });
         }
         dbQueryWrap('UPDATE users SET name = ? WHERE id = ?', 'run', [name, user.id]);
-        req.log.info({ userId: user.id, oldName: user.name, newName: name }, 'Username updated');
       }
 
       if (language !== undefined) {
         const allowed = ['en', 'fr', 'de'];
         if (!allowed.includes(language)) {
-          req.log.debug({ language }, 'Invalid language');
-          return reply.status(400).send({ ok: false, error: 'Invalid language' });
+          return reply.status(400).send({ ok: false, error: "Profile.LANG_SAVE_ERROR" });
         }
         dbQueryWrap('UPDATE users SET language = ? WHERE id = ?', 'run', [language, user.id]);
-        req.log.info({ userId: user.id, language }, 'Language updated');
       }
 
       const updated = dbQueryWrap('SELECT id, name, email, avatar, language, created_at FROM users WHERE id = ?', 'get', [user.id]);
       return reply.send({ ok: true, user: updated });
     } catch (err) {
-      req.log.error({ err }, 'User update failed');
-      return reply.status(500).send({ ok: false, error: 'Server error' });
+      return reply.status(500).send({ ok: false, error: "Server.SERVER_ERROR" });
     }
   });
 

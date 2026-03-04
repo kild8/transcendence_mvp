@@ -39,8 +39,8 @@ export function profileContent(): HTMLElement {
           <label for="profile-language" class="text-sm text-[#9ca3af] mr-2">${t(state.lang, "Profile.LANGUAGE")}</label>
           <select id="profile-language"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
             <option value="en" class="bg-gray-800 text-white">EN</option>
-            <option value="fr" class="bg-gray-800 text-white">FR</option>
-            <option value="de" class="bg-gray-800 text-white">DE</option>
+			<option value="fr" class="bg-gray-800 text-white">FR</option>
+			<option value="de" class="bg-gray-800 text-white">DE</option>
           </select>
           <button id="save-language" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SAVE")}</button>
           <div id="lang-msg" class="text-sm text-green-600 mt-1"></div>
@@ -263,9 +263,8 @@ export function profileContent(): HTMLElement {
         body: JSON.stringify({ name: newName })
       });
       if (!res.ok) {
-        const text = await res.text();
-        console.error('rename failed', res.status, text);
-        nameMsg.textContent = t(state.lang, "Profile.NAME_UPDATE_FAIL");
+		const data = await res.json();
+        nameMsg.textContent = data.error ? t(state.lang, data.error) : t(state.lang, "Profile.NAME_UPDATE_FAIL");
         return;
       }
       const data = await res.json();
@@ -442,7 +441,7 @@ export function profileContent(): HTMLElement {
         const removeBtn = row.querySelector('.remove-friend') as HTMLButtonElement;
         removeBtn.addEventListener('click', async () => {
           await fetch('/api/friends/remove', {
-            method: 'DELETE', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+            method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ friend_id: f.id })
           });
           await loadFriendsList();

@@ -1,4 +1,4 @@
-// Physics-related helpers and constants for the game
+//physics constants for the game
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 480;
 const WINNING_SCORE = 2;
@@ -6,7 +6,7 @@ const TICK_RATE = 60;
 
 function resetRoomBall(room) {
   room.ball.position = { x: CANVAS_WIDTH/2, y: CANVAS_HEIGHT/2 };
-  // reset to baseline initialVelocity if available
+  // reset the ball to initial velocity
   if (room.ball.initialVelocity) {
     room.ball.velocity = {
       x: Math.abs(room.ball.initialVelocity.x) * (Math.random() > 0.5 ? 1 : -1),
@@ -18,7 +18,7 @@ function resetRoomBall(room) {
   }
 }
 
-// Increase ball speed magnitude by `amount`, preserving direction.
+// Increase ball speed by amount
 function increaseBallSpeed(ball, amount) {
   const vx = ball.velocity?.x || 0;
   const vy = ball.velocity?.y || 0;
@@ -33,10 +33,9 @@ function increaseBallSpeed(ball, amount) {
   ball.velocity.y = vy * scale;
 }
 
-// Advance physics by one tick for the given room.
-// Returns: { winnerRole: 'player1'|'player2'|null }
+//advance physics by one tick
 function step(room) {
-  // paddles movement based on lastInputs
+  //paddles movement based on lastInputs
   ['player1', 'player2'].forEach(role => {
     const input = room.lastInputs?.[role];
     const paddle = room.paddles?.[role];
@@ -45,12 +44,12 @@ function step(room) {
     if (input === 'ArrowDown') paddle.position.y = Math.min(paddle.position.y + paddle.speed, CANVAS_HEIGHT - paddle.height);
   });
 
-  // move ball
+  //move ball
   const ball = room.ball;
   ball.position.x += ball.velocity.x;
   ball.position.y += ball.velocity.y;
 
-  // wall bounces
+  //bounce on walls and increase ball speed by 0.5
   if (ball.position.y <= 0) {
     ball.position.y = 0;
     ball.velocity.y = Math.abs(ball.velocity.y) + (Math.random() - 0.5) * 0.5;
@@ -62,7 +61,7 @@ function step(room) {
     increaseBallSpeed(ball, 0.5);
   }
 
-  // paddle bounces
+  // bounce on paddles, considering the point of impact, and increase ball speed by 0.5
   ['player1', 'player2'].forEach(role => {
     const p = room.paddles[role];
     if (
@@ -83,7 +82,7 @@ function step(room) {
     }
   });
 
-  // obstacle collisions (triangles centered top/bottom)
+  // obstacle collisions, triangles centered top/bottom, increase ball speed
   if (room.obstacles) {
     const top = room.obstacles.top;
     const bottom = room.obstacles.bottom;
