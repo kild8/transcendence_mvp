@@ -44,7 +44,7 @@ export const state: State = {
   WINNING_SCORE: 2,
   MAX_TOURNAMENT_PLAYERS: 8,
 
-  // getter pour la langue actuelle
+  // getter for the language
   get lang(): "en" | "fr" | "de" {
     // prefer language_session (temporary / UI preference from header), fall back to persisted user.language, then 'en'
     const cs = this.appState.currentUser;

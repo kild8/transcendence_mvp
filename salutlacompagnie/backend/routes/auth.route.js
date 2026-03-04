@@ -16,10 +16,9 @@ module.exports = async function authRoutes(fastify, opts) {
   // Register (email + password + pseudo)
   fastify.post('/api/auth/register', async (req, reply) => {
     try {
-      // debug: log incoming body to help diagnose client issues (content-type / payload)
-      fastify.log.info({ body: req.body }, 'auth.register attempt');
       const { name, email, password } = req.body || {};
 
+      //check for missing
       if (!name || !email || !password) {
         const missing = [];
         if (!name) missing.push('name');
@@ -28,27 +27,31 @@ module.exports = async function authRoutes(fastify, opts) {
         return reply.status(400).send({ ok: false, error: 'Server.NAME_EMAIL_PASSWORD_REQUIRED', missing });
       }
 
+      // check email format
       const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRe.test(String(email).toLowerCase())) {
         return reply.status(400).send({ ok: false, error: 'Server.INVALID_EMAIL_FORMAT' });
       }
 
+      // simple check of lenght
       if (String(password).length < 8) {
         return reply.status(400).send({ ok: false, error: 'Server.PASSWORD_TOO_SHORT' });
       }
 
+      //check if name or email already exist
       const existing = db.prepare('SELECT * FROM users WHERE email = ? OR name = ?').get(email, name);
-      fastify.log.info({ existing }, 'existing user check');
       if (existing) {
         if (existing.email === email) return reply.status(400).send({ ok: false, error: 'Server.EMAIL_ALREADY_IN_USE' });
         return reply.status(400).send({ ok: false, error: 'Server.NAME_ALREADY_IN_USE' });
       }
 
-  const hash = await bcrypt.hash(password, 10);
-  const info = db.prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)').run(name, email, hash);
-  fastify.log.info({ info }, 'insert result');
-  const user = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(info.lastInsertRowid);
+      //hash the pasword before stocking
+      const hash = await bcrypt.hash(password, 10);
+      const info = db.prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)').run(name, email, hash);
+      fastify.log.info({ info }, 'insert result');
+      const user = db.prepare('SELECT id, name, email, avatar, created_at FROM users WHERE id = ?').get(info.lastInsertRowid);
 
+      //token creation
       const payload = { id: user.id, email: user.email };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
@@ -113,7 +116,7 @@ fastify.get('/api/auth/google/callback', async (req, reply) => {
 
   const redirectUri = `${FRONTEND_BASE}/api/auth/google/callback`;
 
-  // 1️⃣ Obtenir le token d'accès
+  // getting token access
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -129,7 +132,7 @@ fastify.get('/api/auth/google/callback', async (req, reply) => {
     return reply.redirect(`${FRONTEND_BASE}/#login?error=token`);
   }
 
-  // 2️⃣ Obtenir le profil de l'utilisateur
+  // getting user profil
   const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: `Bearer ${tokenJson.access_token}` }
   });
@@ -137,18 +140,17 @@ fastify.get('/api/auth/google/callback', async (req, reply) => {
   const email = profile.email;
   const name = profile.name || (profile.email ? profile.email.split('@')[0] : 'Unknown');
 
-  // 3️⃣ Vérifier si l'utilisateur existe déjà
+  // check if already exist
   let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
   if (!user) {
-    // 🔹 Vérifier si le name existe déjà dans la DB
+    // check if name already exist
     const existingName = db.prepare('SELECT * FROM users WHERE name = ?').get(name);
     if (existingName) {
-      // Si le pseudo existe, on envoie une réponse claire
       return reply.redirect(`${FRONTEND_BASE}/#login?error=name_taken`);
     }
 
-    // 🔹 Créer le nouvel utilisateur
+    // create new user
     try {
       db.prepare('INSERT INTO users (name, email) VALUES (?, ?)').run(name, email);
       user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
@@ -157,11 +159,10 @@ fastify.get('/api/auth/google/callback', async (req, reply) => {
       return reply.redirect(`${FRONTEND_BASE}/#login?error=server`);
     }
   } else {
-    // 🔹 Si l'utilisateur existe mais que le nom a changé, mettre à jour
     if (user.name !== name) {
       try {
         db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, user.id);
-        user.name = name; // mettre à jour l'objet user
+        user.name = name;
       } catch (err) {
         fastify.log.error({ err }, 'failed to update name');
         return reply.redirect(`${FRONTEND_BASE}/#login?error=server`);
@@ -169,7 +170,7 @@ fastify.get('/api/auth/google/callback', async (req, reply) => {
     }
   }
 
-  // 4️⃣ Créer le JWT avec id + email
+  // create jwt token
   const payload = { id: user.id, email: user.email };
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 

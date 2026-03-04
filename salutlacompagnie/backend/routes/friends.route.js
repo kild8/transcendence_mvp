@@ -5,7 +5,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
   // getOnlineUserIds is exported from ws.js and attached to server via require cycle
   const { getOnlineUserIds } = require('../ws');
 
-  // Envoyer une demande d'ami
+  // send friend request
   fastify.post('/api/friends/request', { preHandler: async (req, reply) => {
     const { authPreHandler } = require('../auth_utils');
     const h = fastify.authPreHandler || opts.authPreHandler || authPreHandler;
@@ -58,7 +58,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
     }
   });
 
-  // Lister demandes entrantes
+  // List friend request
   fastify.get('/api/friends/requests', { preHandler: async (req, reply) => {
     const { authPreHandler } = require('../auth_utils');
     const h = fastify.authPreHandler || opts.authPreHandler || authPreHandler;
@@ -74,7 +74,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
     return { ok: true, requests: rows };
   });
 
-  // Repondre a une demande (accept / reject)
+  // response for a friend request (accept / reject)
   fastify.post('/api/friends/respond', { preHandler: async (req, reply) => {
     const { authPreHandler } = require('../auth_utils');
     const h = fastify.authPreHandler || opts.authPreHandler || authPreHandler;
@@ -91,7 +91,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
       const newStatus = action === 'accept' ? 'accepted' : 'rejected';
       db.prepare('UPDATE friends SET status = ? WHERE id = ?').run(newStatus, request_id);
 
-      // optional: notify requester via websocket presence
+      // notify requester via websocket presence
       return reply.send({ ok: true });
     } catch (err) {
       fastify.log.error(err, 'respond friend failed');
@@ -99,8 +99,8 @@ module.exports = async function friendsRoutes(fastify, opts) {
     }
   });
 
-  // Supprimer un ami
-  fastify.post('/api/friends/remove', { preHandler: async (req, reply) => {
+  // delete friend
+  fastify.delete('/api/friends/remove', { preHandler: async (req, reply) => {
     const { authPreHandler } = require('../auth_utils');
     const h = fastify.authPreHandler || opts.authPreHandler || authPreHandler;
     return await h(req, reply);
@@ -124,7 +124,7 @@ module.exports = async function friendsRoutes(fastify, opts) {
     }
   });
 
-  // Lister amis acceptés (avec online flag)
+  // List accepted friend (with online flag)
   fastify.get('/api/friends', { preHandler: async (req, reply) => {
     const { authPreHandler } = require('../auth_utils');
     const h = fastify.authPreHandler || opts.authPreHandler || authPreHandler;

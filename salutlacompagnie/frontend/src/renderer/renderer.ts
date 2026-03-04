@@ -87,9 +87,9 @@ function header(): HTMLElement {
         <img id="hdr-avatar" src="${escapeHtml(avatarSrc)}" alt="avatar" class="w-8 h-8 rounded-full cursor-pointer" />
         <div class="text-sm text-[#9ca3af]">${t(state.lang, "Renderer.HELLO")} <strong id="hdr-username">${escapeHtml(name)}</strong></div>
         <select id="hdr-lang"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
-          <option value="en" style="background-color: dark-gray;">EN</option>
-          <option value="fr" style="background-color: dark-gray;">FR</option>
-          <option value="de" style="background-color: dark-gray;">DE</option>
+          <option value="en" class="bg-gray-800 text-white">EN</option>
+          <option value="fr" class="bg-gray-800 text-white">FR</option>
+          <option value="de" class="bg-gray-800 text-white">DE</option>
         </select>
         <button id="hdr-profile" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "Renderer.PROFILE")}</button>
         <button id="hdr-logout" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 hover:bg-[#ffffff] hover:text-[#000000]">${t(state.lang, "Renderer.LOGOUT")}</button>

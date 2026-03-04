@@ -1,8 +1,3 @@
-/**
- * Frontend SPA (Vanilla TS + Tailwind)
- * Build: tsc -> dist/main.js ; tailwindcss -> dist/style.css
- */
-
 import './Game.js';
 import { createPresenceSocket } from './wsClient.js';
 import { render } from './renderer/renderer.js';
@@ -19,7 +14,7 @@ if (state.appState.ws) {
   state.appState.playerRole = null;
 }
 
-/* Init routing */
+//Init routing 
 window.addEventListener('hashchange', () => render(getHashPage()));
 
 async function checkAuth() {
@@ -28,7 +23,7 @@ async function checkAuth() {
     const data = await res.json();
 
     if (data.ok) {
-      // prefer a stored session-level language if available (user may have changed it via header)
+      // prefer a stored session-level language if available 
       const storedSession = (function() { try { return localStorage.getItem('language_session'); } catch (e) { return null; } })();
       state.appState.currentUser = {
         id: data.user.id,
@@ -41,10 +36,11 @@ async function checkAuth() {
       // open presence websocket client (keeps user online)
       try {
         if (!state.appState.ws) {
-          const presenceClient = createPresenceSocket;
-          // store the client (has .close())
-          // presenceClient exposes .socket and .close(); store the wrapper object
+          // actually create the presence socket (call the factory) instead of assigning the function reference
+          const presenceClient = createPresenceSocket();
+          // store the client wrapper
           state.appState.ws = presenceClient as unknown as WebSocket;
+          try { (window as unknown as Record<string, unknown>)['__presenceClient'] = presenceClient; } catch (e) {}
         }
       } catch (e) {
         console.warn('Failed to open presence socket', e);
@@ -62,10 +58,10 @@ async function checkAuth() {
 (async () => {
   const logged = await checkAuth();
   if (!logged) {
-    // si pas loggé, montrer directement login
+    // if not logged go to page login
     navigateTo('login');
   } else {
-    // si hash vide, aller à home
+    // if no hash go to home
     if (!window.location.hash) navigateTo('home');
   }
   render(getHashPage());
