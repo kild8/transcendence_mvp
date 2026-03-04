@@ -1,6 +1,0 @@
-docker compose exec backend sh
-# puis dans le shell du container
-sqlite3 /app/data/database.sqlite
-.tables
-SELECT * FROM users;
-.quit
