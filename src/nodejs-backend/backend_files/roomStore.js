@@ -10,8 +10,9 @@ const ROOM_STATE = {
     GAME_OVER: "game_over",
     TOURNAMENT_OVER: "tournament_over"
 };
+//keep a state to ease the behavior
 
-
+//Create a room when the btn is clicked on the online page, check if the user is not in room, else delete the previous room, sets up the inital parameters and positions
 function createRoom({ type, host}) {
     if (!host) {
         console.error("createRoom called with no host", {type, host});
@@ -72,6 +73,7 @@ function createRoom({ type, host}) {
     return room;
 }
 
+//list the room available, called when a player is on the online page
 function listRooms() {
     return Object.values(rooms).map(r => ({
         id: r.id,
@@ -80,11 +82,12 @@ function listRooms() {
         maxPlayers: r.maxPlayers
     }));
 }
-
+//return the room by roomId
 function getRoom(roomId) {
     return rooms[roomId];
 }
 
+//delete the room by roomId and delete the users and participants inside
 function deleteRoom(roomId) {
     const room = rooms[roomId];
     if (!room) return;
@@ -98,7 +101,7 @@ function deleteRoom(roomId) {
     });
     delete rooms[roomId];
 }
-
+//remove a user from a room
 function removeUserFromRoom(pseudo) {
     const roomId = userRoomMap[pseudo];
     if (!roomId) return;

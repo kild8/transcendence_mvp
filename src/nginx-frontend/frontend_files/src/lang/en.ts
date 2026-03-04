@@ -1,3 +1,6 @@
+//English dictionnary
+
+
 export default {
   Friends: {
     //friends.route.js
@@ -22,6 +25,7 @@ export default {
         //server.js
         UNAUTHORIZED: "Unauthorized",
         NAME_EMAIL_PASSWORD_REQUIRED: "Name, email and password are required",
+		INVALID_NAME: "Invalid name format, Please only use letters and numbers",
         INVALID_EMAIL_FORMAT: "Invalid email format",
         PASSWORD_TOO_SHORT: "Password must be at least 8 characters",
         EMAIL_ALREADY_IN_USE: "Email already in use",

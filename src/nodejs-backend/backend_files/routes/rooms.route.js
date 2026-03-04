@@ -1,3 +1,5 @@
+//Defines the fastify routes to get and post rooms
+//calls the createRoom function if post, and list the room if get
 async function roomsRoutes(fastify, opts) {
     const { createRoom, listRooms } = require("../roomStore.js");
     fastify.get("/api/rooms", async () => {

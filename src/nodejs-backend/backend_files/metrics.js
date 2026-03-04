@@ -1,6 +1,6 @@
 const promClient = require('prom-client');
 
-promClient.collectDefaultMetrics(); // CPU, mémoire, event loop, GC…
+promClient.collectDefaultMetrics();
 
 const roomIDTimestampsArray = [];
 
@@ -22,17 +22,6 @@ const httpInFlight = new promClient.Gauge({
   help: 'Requests in progress',
   labelNames: ['method', 'route']
 });
-
-// const wsMessages = new promClient.Counter({
-//   name: 'ws_messages_total',
-//   help: 'Total WS messages',
-//   labelNames: ['type']
-// });
-
-// const wsConnections = new promClient.Gauge({
-//   name: 'ws_connections',
-//   help: 'Number of active WebSocket connections'
-// });
 
 const totalEndedGames = new promClient.Counter({
   name: 'total_ended_games',
@@ -60,11 +49,6 @@ const exitedGamesCounter = new promClient.Counter({
   name: 'exited_games_counter',
   help: 'Number of game that have been exited before end'
 });
-
-// const openRooms = new promClient.Gauge({
-//   name: 'open_rooms',
-//   help: 'Number of open rooms'
-// });
 
 const loginCounter = new promClient.Counter({
   name: 'login_counter',
@@ -96,13 +80,10 @@ function setupMetricsHooks(fastify) {
 
 module.exports = {
   promClient, 
-  // wsMessages, 
-  // wsConnections,
   totalEndedGames,
   gamesInProgress,
   playersConnected,
   exitedGamesCounter,
-  // openRooms,
   loginCounter,
   logoutCounter,
   gamesDuration,

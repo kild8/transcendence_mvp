@@ -4,8 +4,10 @@ import { PongGameLan } from "../GameLan.js";
 import { t } from "../lang/langIndex.js";
 import { state } from '../state.js';
 
-export function onlineContent(): HTMLElement {
+//this file contains all the function for the page online. this is used to play online game via the rooms systems
 
+export function onlineContent(): HTMLElement {
+	//content of the page in html and tailwind css
   const html = `
     <section>
       <div class="flex justify-between items-center mb-4">
@@ -30,23 +32,26 @@ export function onlineContent(): HTMLElement {
   `;
 
   const node = elFromHTML(html);
-
+//all the elements of the page
   const list = node.querySelector("#online") as HTMLUListElement;
   const create1v1Btn = node.querySelector("#create-1v1") as HTMLButtonElement;
   const createTournamentBtn = node.querySelector("#create-tournament") as HTMLButtonElement;
   const backBtn = node.querySelector("#back") as HTMLButtonElement;
   const gameContainer = node.querySelector("#game-container") as HTMLDivElement;
   const lobbyWrapper = node.querySelector("#online-lobby") as HTMLDivElement;
+//wrapper is used to contains multiple object and define a behavior for the whole
 
-  function showGame() {
+function showGame() {
     lobbyWrapper.style.display = "none";
     gameContainer.style.display = "block";
   }
 
-
+//initialise the ws, the game, the pseudos
   let currentGame: PongGameLan | null = null;
   let roomWs: WebSocket | null = null;
   let pseudo: string | null = null;
+
+  //fetch the pseudo via the api/me
   const initPseudo = async () => {
     try {
       const res = await fetch("/api/me");
@@ -60,29 +65,34 @@ export function onlineContent(): HTMLElement {
     }
   };
   initPseudo();
-  //--------- Websocket Lobby pour voir les rooms en direct
-  //--------- Reste ouvert tant que la page rooms est ouverte
+  // create a lobby websocket while the window is open, to show the available rooms
   const lobbyWs = new WebSocket(`wss://${window.location.hostname}:8443/ws`);
-  // store on global state so logout can close it if needed
-  try { (window as unknown as Record<string, unknown>)['state'] = (window as unknown as Record<string, unknown>)['state'] || {}; } catch (e) {}
-  (window as unknown as Record<string, unknown>)['state'] = (window as unknown as Record<string, unknown>)['state'] || {};
-  try { state.appState.lobbyWs = lobbyWs; } catch (e) {}
+
+	// chedck that window.state exists with typescript rules
+	interface AppState { lobbyWs?: WebSocket; [key: string]: any; }
+	interface WindowWithState extends Window { state?: AppState; }
+	const win = window as WindowWithState;
+	win.state = win.state || {};
+
+	//save the lobbyWs in the window state
+	win.state.lobbyWs = lobbyWs;
+	//sending a message to all
   lobbyWs.onopen = () => {
     lobbyWs.send(JSON.stringify({ type: "register-socket", role: "lobby"}));
   };
+  //update rooms list on message
   lobbyWs.onmessage = (e) => {
     const data = JSON.parse(e.data);
-    console.log("LOBBY WS: ", data);
     if (data.type === "rooms-update") {
       renderRooms(data.roomsData);
     }
   };
 
-  //--------- Refresh et liste l'etat des rooms ----------
+  //function to render the rooms as a list
   interface RoomSummary { id: string; host?: string; type?: string; players?: number; maxPlayers?: number; participants?: string[] }
   const renderRooms = (rooms: RoomSummary[]) => {
     list.innerHTML = "";
-
+		//create a list element for each
       rooms.forEach((r: any) => {
         const li = document.createElement("li");
         li.className = "flex flex-col border border-slate-700 p-3 rounded bg-slate-900 text-white";
@@ -104,9 +114,8 @@ export function onlineContent(): HTMLElement {
   };
 
 
-  // ----------- CREATE ROOM ----------
+  //create a new room via the POST: api/rooms
   const createRoom = async (type: "1v1" | "tournament") => {
-    console.log("le pseudo est:", pseudo);
     if (!pseudo) return alert(t(state.lang, "Online.ERROR_PSEUDO_FETCH"));
     try {
       const res = await fetch("/api/rooms", {
@@ -115,19 +124,20 @@ export function onlineContent(): HTMLElement {
         body: JSON.stringify({ type, host: pseudo }),
       });
       const room = await res.json();
+	  //sends potential error
       if (!res || !room?.id || room.error) return alert(room.error ? t(state.lang, room.error) : t(state.lang, "Online.ERROR_CREATE_ROOM"));
 
       joinRoom(room.id);
     }
     catch (err) {
-      console.error("Erreur create room:", err);
+      console.error("Error create room:", err);
     }
   };
-
+  // links the buttons
   create1v1Btn.onclick = () => createRoom("1v1");
   createTournamentBtn.onclick = () => createRoom("tournament");
 
-  // Back button: always available, should close sockets / game and go home
+  // back button to go home
   backBtn.onclick = () => {
   try { currentGame?.onGameOver?.(); } catch (e) {}
   try { lobbyWs.close(); } catch (e) {}
@@ -136,7 +146,7 @@ export function onlineContent(): HTMLElement {
     navigateTo("home");
   };
 
-  // ---------- JOIN ROOM ----------
+  // join a room
   function joinRoom(roomId: string) {
     if (!pseudo) return alert(t(state.lang, "Online.ERROR_PSEUDO_FETCH"));
     
@@ -147,12 +157,12 @@ export function onlineContent(): HTMLElement {
       ws.send(JSON.stringify({ type: "register-socket", role: "game" }));
       ws.send(JSON.stringify({ type: "join-room", roomId, pseudo }));
     }
-    // --- LOG TOURNOI ---
+    //create tournament display
     const tournamentLog = document.createElement("div");
     tournamentLog.className = "mt-4 space-y-1 text-sm";
     gameContainer.innerHTML = "";
     gameContainer.appendChild(tournamentLog);
-
+	//create the start button
     const startBtn = document.createElement("button");
     startBtn.textContent = t(state.lang, "RenderTournament.START_MATCH");
   startBtn.className = "mt-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded";
@@ -164,7 +174,7 @@ export function onlineContent(): HTMLElement {
     gameContainer.appendChild(startBtn);
   let startTimeout: number | null = null;
 
-    // --- PRE-CREATE CANVAS ---
+    // create the canvas to diplay waiting for host
     const canvas = document.createElement("canvas");
     canvas.id = "pong-canvas";
     canvas.width = 800;
@@ -177,15 +187,15 @@ export function onlineContent(): HTMLElement {
       ctx.font = "20px monospace";
       ctx.fillText(t(state.lang, "Online.WAITING_FOR_HOST"), 250, 240);
     }
+	//defines start button behavior
     startBtn.onclick = () => {
-      console.log("Start tournament clicked");
       ws.send(JSON.stringify({ type: "start-game", roomId }));
-      // disable while waiting for server confirmation instead of hiding immediately
       startBtn.disabled = true;
-      // fallback: re-enable after 7s if no server response
+	  // sets a fallback after 7s. retries
       try { if (startTimeout) clearTimeout(startTimeout); } catch (e) {}
       startTimeout = window.setTimeout(() => { try { startBtn.disabled = false; } catch (e) {} }, 7000);
     };
+	//update visibility after btn is pressed
     const updateStartButtonVisibilty = (host: string | null) => {
       if (pseudo === host) {
         startBtn.style.display = "inline-block";
@@ -194,12 +204,12 @@ export function onlineContent(): HTMLElement {
         startBtn.setAttribute('aria-disabled', 'false');
         startBtn.classList.remove('opacity-60', 'cursor-not-allowed');
       } else {
-        // show a disabled waiting button for non-hosts
+        //show a disabled waiting button for non-hosts
         startBtn.style.display = "inline-block";
         startBtn.disabled = true;
         startBtn.textContent = t(state.lang, "Online.WAITING_FOR_HOST");
         startBtn.setAttribute('aria-disabled', 'true');
-        // visual hint for disabled state
+        //visual hint for disabled state
         startBtn.classList.add('opacity-60', 'cursor-not-allowed');
       }
     };
@@ -214,17 +224,17 @@ export function onlineContent(): HTMLElement {
   switch (data.type) {
 
     case "start-game":
-      // clear and hide any round overview/log so it doesn't stay above the canvas
-      try { tournamentLog.innerHTML = ""; tournamentLog.style.display = 'none'; } catch (e) {}
+      //clear and hide logs above the canvas
+     // create the game canvas 
+	  try { tournamentLog.innerHTML = ""; tournamentLog.style.display = 'none'; } catch (e) {}
       currentGame?.onGameOver?.();
       currentGame = new PongGameLan("pong-canvas", data.role, ws, data.player1, data.player2);
       showGame();
-      // server accepted start -> clear fallback timeout
       try { if (startTimeout) { clearTimeout(startTimeout); startTimeout = null; } } catch (e) {}
       break;
 
     case "state":
-      // Met à jour le jeu avec l'état reçu
+      // update state of the game
       currentGame?.update(data.state, data.countdown);
 
     case "player-disconnected":
@@ -238,13 +248,11 @@ export function onlineContent(): HTMLElement {
       break;
 
     case "reconnected":
-      // Si le joueur était déconnecté, on initialise/recharge le jeu
+		// if a player has reconnected, update the state of the game
       if (!currentGame) {
         currentGame = new PongGameLan("pong-canvas", data.role, ws, data.player1, data.player2, data.countdown ?? 0);
         showGame();
       }
-
-      // Met à jour l'état de la partie
       if (data.state) currentGame.update(data.state, data.countdown ?? 0);
       break;
 
@@ -262,8 +270,7 @@ export function onlineContent(): HTMLElement {
       break;
 
     case "tournament-round":
-      // data: { roundPlayers, matches: [{p1,p2}, ...], byes: [] }
-      // Render a round overview similar to local tournament
+	  //render a tournament matchups overview
       tournamentLog.innerHTML = "";
       const matchesListHtml = (data.matches || []).map((m: any) => `<div class="py-1 text-slate-900"><strong>${m.p1}</strong> - <strong>${m.p2}</strong></div>`).join('');
       const byesListHtml = (data.byes && data.byes.length) ? `<div class="mt-3 text-sm text-slate-500">${t(state.lang, "RenderTournament.ODD_PLAYERS", { players: data.byes.join(', ') })}</div>` : '';
@@ -321,15 +328,13 @@ export function onlineContent(): HTMLElement {
   }
 };
 
-    // (back button handled globally)
-
-    // ensure lobby ws closed on unload
     window.addEventListener('beforeunload', () => { try { lobbyWs.close(); } catch (e) {} });
   };
 
   return node;
 }
 
+//create an endscreen display
 function showMatchEndScreen(winner: string, loser: string) {
   const overlay = document.createElement("div");
   overlay.className = "fixed inset-0 bg-black/80 flex flex-col justify-center items-center z-50 text-white text-2xl text-center animate-fadeIn";
@@ -344,6 +349,7 @@ function showMatchEndScreen(winner: string, loser: string) {
   }, 3000);
 }
 
+//display a victory screen
 export function showVictoryScreen(winner: string) {
   const overlay = document.createElement("div");
   overlay.className = "fixed inset-0 bg-black/85 flex flex-col justify-center items-center z-50 text-white text-center animate-fadeIn";
@@ -352,7 +358,7 @@ export function showVictoryScreen(winner: string) {
     <div class="text-6xl font-bold mt-4">${winner}</div>
   `;
 
-  // simple confetti pieces (positions rely on inline styles)
+  // simple confetti pieces
   for (let i = 0; i < 30; i++) {
     const piece = document.createElement("div");
     piece.className = "w-2 h-2 rounded-full absolute";
@@ -367,6 +373,6 @@ export function showVictoryScreen(winner: string) {
   setTimeout(() => {
     if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
     window.location.reload();
-  }, 8000);
+  }, 4000);
 }
 

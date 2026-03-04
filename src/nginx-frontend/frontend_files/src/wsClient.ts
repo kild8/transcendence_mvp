@@ -1,6 +1,6 @@
 // Minimal presence WebSocket client (auto-reconnect simple)
 export function createPresenceSocket(onOpen?: () => void, onClose?: (ev?: CloseEvent) => void) {
-  const url = `wss://${window.location.hostname}:8443/ws`; // adapte si backend sur un autre host/port
+  const url = `wss://${window.location.hostname}:8443/ws`;
   let ws: WebSocket | null = null;
   let closedByClient = false;
   let retry = 0;
@@ -12,13 +12,10 @@ export function createPresenceSocket(onOpen?: () => void, onClose?: (ev?: CloseE
     ws.onopen = () => {
       retry = 0;
       if (onOpen) onOpen();
-      // Optionnel : dire au serveur le rôle si souhaité
       try { ws?.send(JSON.stringify({ type: 'register-socket', role: 'presence' })); } catch (e) {}
     };
 
     ws.onmessage = (e) => {
-      // On peut écouter 'presence' ou autres types si besoin dans l'app
-      // Exemple: const msg = JSON.parse(e.data);
     };
 
     ws.onclose = (ev) => {

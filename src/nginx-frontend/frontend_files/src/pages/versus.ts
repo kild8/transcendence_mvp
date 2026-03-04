@@ -3,6 +3,8 @@ import { state } from '../state.js';
 import { navigateTo } from '../router.js';
 import { renderVictory } from '../renderer/render-victory.js';
 import { t } from '../lang/langIndex.js';
+
+//create the 1v1 local game
 export function versusContent(): HTMLElement {
   const html = `
     <section>
@@ -34,12 +36,13 @@ export function versusContent(): HTMLElement {
   const rand = node.querySelector('#rand') as HTMLButtonElement;
   const start = node.querySelector('#start') as HTMLButtonElement;
 
+  //back button
   back.addEventListener('click', () => {
     if (state.currentGame?.stop) state.currentGame.stop();
     state.currentGame = null;
     navigateTo('home');
   });
-
+  //random button
   rand.addEventListener('click', () => {
     const samples = ['Alice','Bob','Charlie','Denis','Eve','Fox'];
     let a = samples[Math.floor(Math.random()*samples.length)];
@@ -48,7 +51,7 @@ export function versusContent(): HTMLElement {
     p1.value = a;
     p2.value = b;
   });
-
+  //start button
   start.addEventListener('click', async () => {
     const a = p1.value.trim();
     const b = p2.value.trim();
@@ -69,14 +72,14 @@ export function versusContent(): HTMLElement {
   wrapper.className = 'bg-[#111111] rounded-[12px] border border-[#ffffff] shadow-[0_0_8px_#ffffff] p-5 w-full max-w-[900px] mx-auto text-center';
   wrapper.innerHTML = canvasHtml;
   app.appendChild(wrapper);
-
+	//loading the local game canvas in the window
   const GameClass = window.PongGame;
     if (!GameClass) { alert(t(state.lang, "Versus.NOT_LOADED")); return; }
 
     state.currentGame = new GameClass('pong-canvas', a, b, state.WINNING_SCORE,
       (winner: string, loser: string, score: string) => renderVictory(winner, loser, score, a, b)
     );
-
+	//back button
     const backBtn = document.getElementById('back-to-menu');
     backBtn?.addEventListener('click', () => {
       state.currentGame?.stop?.();

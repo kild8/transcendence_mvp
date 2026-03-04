@@ -1,3 +1,4 @@
+// many interfaces to describe the state of the game, a user
 // Minimal interface describing a runtime game instance used by pages
 export interface CurrentGameInstance {
   stop?: () => void;
@@ -44,7 +45,7 @@ export const state: State = {
   WINNING_SCORE: 2,
   MAX_TOURNAMENT_PLAYERS: 8,
 
-  // getter pour la langue actuelle
+  // getter for the current language
   get lang(): "en" | "fr" | "de" {
     // prefer language_session (temporary / UI preference from header), fall back to persisted user.language, then 'en'
     const cs = this.appState.currentUser;

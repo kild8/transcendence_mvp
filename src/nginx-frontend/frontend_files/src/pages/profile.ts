@@ -1,5 +1,6 @@
 import { elFromHTML } from '../utils.js';
 import { getHashPage } from '../router.js';
+import { render } from '../renderer/renderer.js';
 import { navigateTo } from '../router.js';
 import { state } from '../state.js'; // si ton projet exporte state (optionnel mais pratique)
 import { t } from "../lang/langIndex.js";
@@ -16,6 +17,10 @@ export function profileContent(): HTMLElement {
 
   const html = `
     <section class="mt-6 flex flex-col gap-4 items-center">
+    <div class="mt-4 flex gap-2 justify-left">
+      <button id="btn-back" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.BACK")}</button>
+    </div>
+
       <div id="profile-view" class="mt-6 text-center">
         <img id="profile-avatar" class="w-24 h-24 rounded-full border border-[#333333] mx-auto mb-4" src="/default-avatar.png" />
         <div class="flex gap-2 justify-center mb-2">
@@ -33,9 +38,9 @@ export function profileContent(): HTMLElement {
         <div class="mb-2">
           <label for="profile-language" class="text-sm text-[#9ca3af] mr-2">${t(state.lang, "Profile.LANGUAGE")}</label>
           <select id="profile-language"class="bg-gray-800 text-white border border-gray-600 rounded p-1 text-sm"title="Langue">
-            <option value="en" style="background-color: dark-gray;">EN</option>
-            <option value="fr" style="background-color: dark-gray;">FR</option>
-            <option value="de" style="background-color: dark-gray;">DE</option>
+            <option value="en" class="bg-gray-800 text-white">EN</option>
+			<option value="fr" class="bg-gray-800 text-white">FR</option>
+			<option value="de" class="bg-gray-800 text-white">DE</option>
           </select>
           <button id="save-language" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] ml-2 transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SAVE")}</button>
           <div id="lang-msg" class="text-sm text-green-600 mt-1"></div>
@@ -57,7 +62,6 @@ export function profileContent(): HTMLElement {
 
         <div class="mt-4 flex gap-2 justify-center">
           <button id="btn-history" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.SHOW_HISTORY")}</button>
-          <button id="btn-back" class="py-[0.4rem] px-[0.8rem] rounded-[8px] text-sm font-semibold border border-[#333333] bg-[#000000] text-[#ffffff] transition-all duration-200 ease-linear hover:bg-[#ffffff] hover:text-[#000000] hover:-translate-y-[1px]">${t(state.lang, "Profile.BACK")}</button>
         </div>
 
         <!-- FRIENDS SECTION -->
@@ -178,7 +182,7 @@ export function profileContent(): HTMLElement {
     }
   }
 
-  // --- upload avatar (we include userId to keep backend compatibility) ---
+  // --- upload avatar
   avatarForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     profileMsg.textContent = '';
@@ -230,7 +234,7 @@ export function profileContent(): HTMLElement {
     }
   });
 
-  // --- edit name UI ---
+  // edit name UI
   editBtn.addEventListener('click', (e) => {
     e.preventDefault();
     nameMsg.textContent = '';
@@ -243,7 +247,7 @@ export function profileContent(): HTMLElement {
     nameMsg.textContent = '';
   });
 
-  // Save new name: calls PUT /api/user/me  (see backend snippet plus instructions)
+  // Save new name: calls PUT /api/user/me 
   saveNameBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const newName = newNameInput.value.trim();
@@ -253,15 +257,14 @@ export function profileContent(): HTMLElement {
 
     try {
       const res = await fetch('/api/user/me', {
-        method: 'PUT',
+        method: 'PATCH',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName })
       });
       if (!res.ok) {
-        const text = await res.text();
-        console.error('rename failed', res.status, text);
-        nameMsg.textContent = t(state.lang, "Profile.NAME_UPDATE_FAIL");
+		const data = await res.json();
+        nameMsg.textContent = data.error ? t(state.lang, data.error) : t(state.lang, "Profile.NAME_UPDATE_FAIL");
         return;
       }
       const data = await res.json();
@@ -272,9 +275,10 @@ export function profileContent(): HTMLElement {
       // update UI & state (currentUser exists here)
       if (currentUser) currentUser.name = newName;
       nameEl.textContent = newName;
-  if (state.appState.currentUser) state.appState.currentUser.name = newName;
+      if (state.appState.currentUser) state.appState.currentUser.name = newName;
       nameMsg.textContent = t(state.lang, "Profile.NAME_UPDATED");
       editForm.classList.add('hidden');
+      render(getHashPage());
     } catch (err) {
       console.error('rename error', err);
       nameMsg.textContent = t(state.lang, "Profile.NETWORK_ERROR");
@@ -284,7 +288,7 @@ export function profileContent(): HTMLElement {
     }
   });
 
-  // --- language save ---
+  //language save
   const profileLangSelect = node.querySelector('#profile-language') as HTMLSelectElement | null;
   const saveLangBtn = node.querySelector('#save-language') as HTMLButtonElement | null;
   const langMsg = node.querySelector('#lang-msg') as HTMLElement | null;
@@ -298,7 +302,7 @@ export function profileContent(): HTMLElement {
       if (langMsg) { langMsg.textContent = t(state.lang, "Profile.LANG_SAVING"); }
       try {
         const res = await fetch('/api/user/me', {
-          method: 'PUT',
+          method: 'PATCH',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ language: newLang })
@@ -315,7 +319,7 @@ export function profileContent(): HTMLElement {
           return;
         }
         // update local state and UI: persisted language and session language
-  currentUser = { ...currentUser, language: data.user.language };
+        currentUser = { ...currentUser, language: data.user.language };
         if (state.appState.currentUser) {
           state.appState.currentUser.language = data.user.language;
           // also update session-level selection so header/other pages reflect user's choice immediately
@@ -329,7 +333,7 @@ export function profileContent(): HTMLElement {
           if (hdr) hdr.value = data.user.language;
         } catch (e) {}
         // re-render to apply translations
-        try { navigateTo(getHashPage()); } catch (e) { /* ignore */ }
+        render(getHashPage());
       } catch (err) {
         console.error('save language error', err);
         if (langMsg) langMsg.textContent = t(state.lang, "PROFILE.NETWORK_ERROR");

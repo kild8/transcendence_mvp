@@ -4,10 +4,10 @@ import { navigateTo, getHashPage } from "../router.js";
 import { state } from "../state.js";
 import { t } from "../lang/langIndex.js";
 
-// joue un match entre p1 et p2, retourne une Promise qui résout sur le nom du gagnant
+// display the tournament match
 function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): Promise<string> {
   return new Promise((resolve) => {
-    // clear area and render canvas
+    // clear area and render canvas for the game
     app.innerHTML = '';
     const canvasHtml = `
       <div>
@@ -19,11 +19,12 @@ function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): 
       wrap.className = 'bg-white rounded-lg shadow p-4 text-slate-900';
     wrap.innerHTML = canvasHtml;
     app.appendChild(wrap);
-
+	//load the game inside the window
   const GameClassLocal = window.PongGame;
+	//stops if the game is not loaded
     if (!GameClassLocal) {
       alert(t(state.lang, "RenderTournament.GAME_MISSING"));
-      resolve(p1); // fallback
+      resolve(p1);
       return;
     }
 
@@ -33,7 +34,7 @@ function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): 
       state.currentGame = null;
     }
 
-    // create game with onGameOver callback
+    // create game
     state.currentGame = new GameClassLocal('pong-canvas', p1, p2, winningScore, (winner: string, loser: string) => {
       // ensure stop and resolve winner
       if (state.currentGame && typeof state.currentGame.stop === 'function') {
@@ -45,12 +46,14 @@ function playMatch(p1: string, p2: string, winningScore = state.WINNING_SCORE): 
   });
 }
 
+//function to create and run the tournament
 export async function runTournament(initialPlayers: string[], winningScore = state.WINNING_SCORE) {
-  if (!initialPlayers || initialPlayers.length < 2) {
+  //alert if the minimum players is not met
+	if (!initialPlayers || initialPlayers.length < 2) {
     alert(t(state.lang, "RenderTournament.MIN_PLAYERS_ALERT"));
     return;
   }
-
+  //shuffle the matches
   let roundPlayers = shuffle(initialPlayers);
   let round = 1;
   let tournamentAbort = false;
@@ -174,7 +177,7 @@ export async function runTournament(initialPlayers: string[], winningScore = sta
 
   // final winner
   const champion = roundPlayers[0];
-  // show champion screen
+  // show campion screen
   app.innerHTML = '';
     const champHtml = `
       <div class="bg-white rounded-lg shadow p-6 text-center text-slate-900">

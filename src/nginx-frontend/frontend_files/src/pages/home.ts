@@ -23,9 +23,6 @@ export function homeContent(): HTMLElement {
 
   node.querySelector('#btn-versus')!.addEventListener('click', () => navigateTo('versus'));
   node.querySelector('#btn-tournament')!.addEventListener('click', () => navigateTo('tournament'));
-  // node.querySelector('#btn-add-user')!.addEventListener('click', () => navigateTo('add-user'));
-  // node.querySelector('#btn-list-users')!.addEventListener('click', () => navigateTo('list-users'));
-  // node.querySelector('#btn-profile')!.addEventListener('click', () => navigateTo('profile'));
   node.querySelector('#btn-online')!.addEventListener('click', () => navigateTo('online'));
 
   return node;
